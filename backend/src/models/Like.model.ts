@@ -32,6 +32,4 @@ const LikeSchema = new Schema<ILike>(
 // Empêche un utilisateur de liker plusieurs fois la même publication
 LikeSchema.index({ userId: 1, postId: 1 }, { unique: true });
 
-const LikeModel = model<ILike>('Like', LikeSchema);
-
-export default LikeModel;
+export const LikeModel = model<ILike>('Like', LikeSchema);

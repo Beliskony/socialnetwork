@@ -1,5 +1,15 @@
 # @inversifyjs/core
 
+## 5.2.0
+
+### Minor Changes
+
+- 56dc0cd: Added `getBindingId`
+
+### Patch Changes
+
+- 1bb859a: Updated `resolve` to set class metadata scope bindings when autobind options are set
+
 ## 5.1.0
 
 ### Minor Changes
