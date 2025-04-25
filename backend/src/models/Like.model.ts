@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Schema, model, Document } from 'mongoose';
 
 interface ILike extends Document {
     userId: string;
@@ -32,4 +32,4 @@ const LikeSchema = new Schema<ILike>(
 // Empêche un utilisateur de liker plusieurs fois la même publication
 LikeSchema.index({ userId: 1, postId: 1 }, { unique: true });
 
-export const LikeModel = model<ILike>('Like', LikeSchema);
+export default mongoose.model<ILike>('Like', LikeSchema);

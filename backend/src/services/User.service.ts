@@ -1,9 +1,18 @@
-import { promises } from "dns";
 import UserModel, { IUser } from "../models/User.model";
 import { hash, compare } from "bcrypt";
+import {injectable} from "inversify";
 
-export const createUser = async (user: IUser): Promise<IUser> => {
-    const existingUser = await UserModel.findOne({ email: user.email}, { phoneNumber: user.phoneNumber })
+export interface IUserService {
+    createUser(user: IUser): Promise<IUser>;
+    loginUser(email: string, password: string): Promise<IUser | null>;
+    findUserByUsername(username: string): Promise<IUser[]>;
+}
+
+@injectable()
+export class UserService implements IUserService{
+
+async createUser (user: IUser): Promise<IUser> {
+    const existingUser = await UserModel.findOne({ $or: [{ email: user.email}, { phoneNumber: user.phoneNumber }]})
      if (existingUser) {
         throw new Error("Utilisateur existe deja")
      }
@@ -14,7 +23,7 @@ export const createUser = async (user: IUser): Promise<IUser> => {
 }
 
 
-export const loginUser = async (email : string, password: string): Promise<IUser | null> => {
+ async loginUser (email : string, password: string): Promise<IUser | null> {
     const user = await UserModel.findOne({ email});
     if (!user){
         throw new Error("Utilisateur non trouve");
@@ -30,10 +39,11 @@ export const loginUser = async (email : string, password: string): Promise<IUser
     return user
 }
 
-export const findUserByUsername = async (username: string): Promise<IUser[]> => {
+async findUserByUsername (username: string): Promise<IUser[]> {
     const user = await UserModel.find ({
         username: {$regex: username, $options: "i"}
     })
 
     return user
+}
 }
