@@ -1,68 +1,65 @@
 import { Request, Response } from 'express';
-import Post from '../models/Post.model';
+import { PostService } from '../services/Post.service';
+import { inject } from 'inversify';
+import { PostProvider } from '../providers/Post.provider';
+import { IPost } from '../models/Post.model';
 
-// Get all posts
-export const getAllPosts = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const posts = await Post.find();
-        res.status(200).json(posts);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching posts', error });
-    }
-};
 
-// Get a single post by ID
-export const getPostById = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const post = await Post.findById(id);
-        if (!post) {
-            res.status(404).json({ message: 'Post not found' });
-            return;
+export class PostController {
+    constructor( @inject(PostService) private postProvider: PostProvider) {}
+
+    async createPost(req: Request, res: Response): Promise<Response> {
+        try {
+            const { userId, text, media } = req.body;
+            const post: IPost = await this.postProvider.createPost(userId, text, media);
+            return res.status(201).json(post);
+        } catch (error) {
+            return res.status(500).json({ message: 'Error creating post', error });
         }
-        res.status(200).json(post);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching post', error });
     }
-};
 
-// Create a new post
-export const createPost = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const newPost = new Post(req.body);
-        const savedPost = await newPost.save();
-        res.status(201).json(savedPost);
-    } catch (error) {
-        res.status(500).json({ message: 'Error creating post', error });
-    }
-};
-
-// Update a post by ID
-export const updatePost = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const updatedPost = await Post.findByIdAndUpdate(id, req.body, { new: true });
-        if (!updatedPost) {
-            res.status(404).json({ message: 'Post not found' });
-            return;
+    async getPosts(req: Request, res: Response): Promise<Response> {
+        try {
+            const {text} = req.query;
+            const posts: IPost[] | null = await this.postProvider.getPosts(text as string);
+            return res.status(200).json(posts);
+        } catch (error) {
+            return res.status(500).json({ message: 'Error fetching posts', error });
         }
-        res.status(200).json(updatedPost);
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating post', error });
     }
-};
 
-// Delete a post by ID
-export const deletePost = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const deletedPost = await Post.findByIdAndDelete(id);
-        if (!deletedPost) {
-            res.status(404).json({ message: 'Post not found' });
-            return;
+    async getAllPosts(req: Request, res: Response): Promise<Response> {
+        try {
+            const posts = await this.postProvider.getAllPosts();
+            return res.status(200).json(posts);
+        } catch (error) {
+            return res.status(500).json({ message: 'Error fetching posts', error });
         }
-        res.status(200).json({ message: 'Post deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting post', error });
     }
-};
+
+    async updatePost(req: Request, res: Response): Promise<Response> {
+        try {
+            const { postId, userId, text, media } = req.body;
+            const post: IPost | null = await this.postProvider.updatePost(postId, userId, text, media);
+            if (!post) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+            return res.status(200).json(post);
+        } catch (error) {
+            return res.status(500).json({ message: 'Error updating post', error });
+        }
+    }
+
+    async deletePost(req: Request, res: Response): Promise<Response> {
+        try {
+            const { postId, userId } = req.body;
+            const deleted: boolean = await this.postProvider.deletePost(postId, userId);
+            if (!deleted) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+            return res.status(200).json({ message: 'Post deleted successfully' });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error deleting post', error });
+        }
+    }
+}

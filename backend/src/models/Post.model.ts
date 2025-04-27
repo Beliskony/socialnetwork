@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-interface IPost extends Document {
+export interface IPost extends Document {
     user: mongoose.Types.ObjectId; // Référence à l'utilisateur
     text?: string;
     media?: {

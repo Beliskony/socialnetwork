@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import LikeModel from "../models/Like.model";
+import LikeModel, {ILike} from "../models/Like.model";
 
 @injectable()
 export class LikeService {

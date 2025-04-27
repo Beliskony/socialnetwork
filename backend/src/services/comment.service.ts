@@ -1,39 +1,48 @@
 import { injectable } from "inversify";
+import CommentModel, {IComment} from "../models/Comment.model";
 
 @injectable()
 export class CommentService {
-    private comments: { id: number; postId: number; userId: number; content: string }[] = [];
-    private currentId = 1;
-
-    // Get comments for a specific post
-    getCommentsByPost(postId: number): { id: number; postId: number; userId: number; content: string }[] {
-        return this.comments.filter(comment => comment.postId === postId);
-    }
+ 
 
     // Add a comment to a post
-    addComment(postId: number, userId: number, content: string): { id: number; postId: number; userId: number; content: string } {
-        const newComment = { id: this.currentId++, postId, userId, content };
-        this.comments.push(newComment);
-        return newComment;
+    async addComment(postId: string, userId: string, content: string): Promise<IComment> {
+        const newComment =  new CommentModel({
+            user: userId,
+            post: postId,
+            content: content, });
+
+            return await newComment.save();
+        }
+
+    
+    async getCommentsByPostId(postId: string): Promise<IComment[]> {
+        return await CommentModel.find({ post: postId }).populate("user", "username").exec();
     }
 
-    // Update a comment made by the user
-    updateComment(commentId: number, userId: number, newContent: string): boolean {
-        const comment = this.comments.find(c => c.id === commentId && c.userId === userId);
-        if (!comment) {
-            return false; // Comment not found or user not authorized
-        }
-        comment.content = newContent;
-        return true;
+    async getCommentsByPost(postId: string): Promise<IComment[]> {
+        return await CommentModel.find({ post: postId }).populate("user", "username").exec();
     }
 
-    // Delete a comment made by the user
-    deleteComment(commentId: number, userId: number): boolean {
-        const commentIndex = this.comments.findIndex(c => c.id === commentId && c.userId === userId);
-        if (commentIndex === -1) {
-            return false; // Comment not found or user not authorized
+    async updateComment(commentId: string, userId: string, content: string, newContent: string): Promise<IComment | null> {
+        const upComment = await CommentModel.findById(commentId)
+
+            if (!upComment || upComment.user !== userId) {
+                throw new Error("Comment not found ou pas autoiser a modifier ce commentaire");
+            }
+
+            upComment.content = newContent;
+            return await upComment.save();
         }
-        this.comments.splice(commentIndex, 1);
-        return true;
-    }
+
+    async deleteComment(commentId: string, userId: string): Promise<boolean> {
+        const delComment = await CommentModel.findById(commentId)
+            if (!delComment || delComment.user !== userId) {
+                throw new Error("Comment not found ou pas autoiser a supprimer ce commentaire");
+            }
+
+            await CommentModel.findByIdAndDelete(commentId);
+            return true
+        }
+    
 }

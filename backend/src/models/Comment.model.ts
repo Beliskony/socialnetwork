@@ -1,30 +1,37 @@
 import { Schema, model } from 'mongoose';
 
-const CommentSchema = new Schema(
+export interface IComment {
+    user: string; // User ID
+    post: string; // Post ID
+    content: string; // Comment content
+    createdAt?: Date; // Optional createdAt field
+}
+
+const commentSchema = new Schema<IComment>(
     {
-        user: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
-        },
-        post: {
-            type: Schema.Types.ObjectId,
-            ref: 'Post',
-            required: true,
-        },
-        content: {
+        user: { 
             type: String,
-            required: true,
-            trim: true,
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now,
+             required: true 
+            },
+
+        post: { 
+            type: String, 
+            required: true 
+            },
+
+        content: { 
+            type: String, 
+            required: true 
+            },
+
+        createdAt: { 
+            type: Date, 
+            default: Date.now 
         },
     },
     {
-        timestamps: true, // Automatically adds `createdAt` and `updatedAt` fields
+        timestamps: true,
     }
 );
 
-export const Comment = model('Comment', CommentSchema);
+export default model<IComment>('Comment', commentSchema);

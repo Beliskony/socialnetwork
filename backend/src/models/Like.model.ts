@@ -1,6 +1,6 @@
 import mongoose, { Schema, model, Document } from 'mongoose';
 
-interface ILike extends Document {
+export interface ILike extends Document {
     userId: string;
     postId: string;
     isLiked: boolean;

@@ -1,64 +1,42 @@
-import { Request, Response } from 'express';
-import Story from '../models/Story.model';
+import { Request, Response } from "express";
+import { inject, injectable } from "inversify";
+import { StoryProvider } from "../providers/Story.provider";
 
-// Créer une nouvelle story
-export const createStory = async (req: Request, res: Response) => {
+@injectable()
+export class StoryController {
+  constructor(@inject(StoryProvider) private storyProvider: StoryProvider) {}
+
+  async createStory(req: Request, res: Response) {
     try {
-        const { title, content, author } = req.body;
-
-        const newStory = new Story({
-            title,
-            content,
-            author,
-            postedAt: new Date(),
-        });
-
-        await newStory.save();
-        res.status(201).json({ message: 'Story created successfully', story: newStory });
+        const { userId, content } = req.body;
+        const story = await this.storyProvider.createStory({ userId, content });
+        res.status(201).json(story);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating story', error });
+        console.error("Erreur lors de la création de la story:", error);
+        res.status(500).json({ message: "Erreur lors de la création de la story" });
     }
-};
+  }
 
-// Récupérer toutes les stories
-export const getStories = async (req: Request, res: Response) => {
+  async getUserStories(req: Request, res: Response) {
     try {
-        const stories = await Story.find();
+        const { userId } = req.params;
+        const stories = await this.storyProvider.getUserStories(userId);
         res.status(200).json(stories);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching stories', error });
+        console.error("Erreur lors de la récupération des stories:", error);
+        res.status(500).json({ message: "Erreur lors de la récupération des stories" });
     }
-};
+  }
 
-// Récupérer une story par ID
-export const getStoryById = async (req: Request, res: Response) => {
+  async deleteExpiredStories(req: Request, res: Response) {
     try {
-        const { id } = req.params;
-        const story = await Story.findById(id);
-
-        if (!story) {
-            return res.status(404).json({ message: 'Story not found' });
-        }
-
-        res.status(200).json(story);
+        const { storyId } = req.params;
+        await this.storyProvider.deleteExpiredStories(storyId);
+        res.status(204).send();
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching story', error });
+        console.error("Erreur lors de la suppression des stories expirées:", error);
+        res.status(500).json({ message: "Erreur lors de la suppression des stories expirées" });
     }
-};
-
-
-// Supprimer une story
-export const deleteStory = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const deletedStory = await Story.findByIdAndDelete(id);
-
-        if (!deletedStory) {
-            return res.status(404).json({ message: 'Story not found' });
-        }
-
-        res.status(200).json({ message: 'Story deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting story', error });
-    }
-};
+  }
+    
+}

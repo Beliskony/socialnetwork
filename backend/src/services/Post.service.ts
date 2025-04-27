@@ -1,62 +1,55 @@
 import { injectable } from "inversify";
+import PostModel, { IPost } from "../models/Post.model";
 
-export interface IPostService {
-    createPost(title: string, content: string): Promise<Post>;
-    getPost(title: string): Promise<Post | null>
-    getAllPosts(): Promise<Post[]>;
-    updatePost(id: string, title: string, content: string): Promise<Post | null>;
-    deletePost(id: string): Promise<boolean>;
-}
 
 @injectable()
-export class PostService implements IPostService {
-    private posts: Post[] = [];
+export class PostService {
 
-    async createPost(title: string, content: string): Promise<Post> {
-        const newPost: Post = {
-            id: (this.posts.length + 1).toString(),
-            title,
-            content,
+    async createPost(userId: string, text?: string, media?: { images?: string[]; videos?: string[] }): Promise<IPost> {
+        const newPost = new PostModel ({
+            user: userId,
+            text,
+            media,
             createdAt: new Date(),
-        };
-        this.posts.push(newPost);
-        return newPost;
+            updatedAt: new Date(),
+        });
+        return await newPost.save();
     }
 
 
-    async getPost(title: string): Promise<Post | null> {
-        return this.posts.find(post => post.title === title) || null
+    async getPosts(text: string): Promise<IPost[] | null> {
+        return await PostModel.find({
+            $or: [
+                { text: { $regex: text, $options: 'i' } }, // Recherche insensible à la casse
+                //{ 'media.images': { $regex: text, $options: 'i' } }, // Recherche dans les images
+                //{ 'media.videos': { $regex: text, $options: 'i' } }, // Recherche dans les vidéos
+            ],
+        }).populate('userId')
     }
 
-    async getAllPosts(): Promise<Post[]> {
-        return this.posts;
+    async getAllPosts(): Promise<IPost[]> {
+        return await PostModel.find().populate('userId').sort({ createdAt: -1 }).exec();
     }
 
-    async updatePost(id: string, title: string, content: string): Promise<Post | null> {
-        const postIndex = this.posts.findIndex(post => post.id === id);
-        if (postIndex === -1) return null;
+    async updatePost(postId: string, userId:string,  text?: string, media?: { images?: string[]; videos?: string[] }): Promise<IPost | null> {
+        const post = await PostModel.findById(postId);
 
-        this.posts[postIndex] = {
-            ...this.posts[postIndex],
-            title,
-            content,
-        };
-        return this.posts[postIndex];
+        if (post?.user.toString() !== userId) {
+            throw new Error("You are not authorized to modify this post");
+        }
+
+        post.text = text || post.text;
+        post.media = media || post.media;
+        post.updatedAt = new Date();
+        return await post.save();
     }
 
-    async deletePost(id: string): Promise<boolean> {
-        const postIndex = this.posts.findIndex(post => post.id === id);
-        if (postIndex === -1) return false;
-
-        this.posts.splice(postIndex, 1);
+    async deletePost(postId: string, userId: string): Promise<boolean> {
+        const post = await PostModel.findById(postId)
+        if (post?.user.toString() !== userId) {
+            throw new Error("You are not authorized to modify this post");
+        }
+        await PostModel.findByIdAndDelete(postId);
         return true;
     }
-}
-
-// Define the Post type
-export interface Post {
-    id: string;
-    title: string;
-    content: string;
-    createdAt: Date;
 }

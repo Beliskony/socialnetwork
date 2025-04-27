@@ -1,76 +1,44 @@
-import { Request, Response } from 'express';
-import User from '../models/User.model';
+import { Request, Response } from "express";
+import { inject, injectable } from "inversify";
+import { UserProvider } from "../providers/User.provider";
 
-// Obtenir un utilisateur par nom
-export const getUserByName = async (req: Request, res: Response) => {
-    try {
-        const { name } = req.query;
+@injectable()
+export class UserController {
+    constructor(@inject(UserProvider) private userProvider: UserProvider) {}
 
-        if (!name) {
-            return res.status(400).json({ message: 'Name query parameter is required' });
+    // Créer un nouvel utilisateur
+    async createUser(req: Request, res: Response): Promise<void> {
+        try {
+            const user = req.body;
+            const newUser = await this.userProvider.createUser(user);
+            res.status(201).json(newUser);
+        } catch (error: any) {
+            res.status(400).json({ message: error.message });
         }
+    }
 
-        const users = await User.find({ name: { $regex: name, $options: 'i' } });
-
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'No users found with the given name' });
+    // Connexion d'un utilisateur
+    async loginUser(req: Request, res: Response): Promise<void> {
+        try {
+            const { email, password } = req.body;
+            const user = await this.userProvider.loginUser(email, password);
+            res.status(200).json(user);
+        } catch (error: any) {
+            res.status(400).json({ message: error.message });
         }
-
-        res.status(200).json(users);
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred while searching for users', error });
     }
-};
 
-// Créer un nouvel utilisateur
-export const createUser = async (req: Request, res: Response) => {
-    try {
-        const user = new User(req.body);
-        const savedUser = await user.save();
-        res.status(201).json(savedUser);
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred while creating the user', error });
-    }
-};
-
-// Obtenir tous les utilisateurs
-export const getAllUsers = async (_req: Request, res: Response) => {
-    try {
-        const users = await User.find();
-        res.status(200).json(users);
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred while fetching users', error });
-    }
-};
-
-// Mettre à jour un utilisateur par ID
-export const updateUser = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const updatedUser = await User.findByIdAndUpdate(id, req.body, { new: true });
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'User not found' });
+    // Rechercher un utilisateur par username
+    async findUserByUsername(req: Request, res: Response): Promise<void> {
+        try {
+            const { username } = req.params;
+            const users = await this.userProvider.findUserByUsername(username);
+            res.status(200).json(users);
+        } catch (error: any) {
+            res.status(400).json({ message: error.message });
         }
-
-        res.status(200).json(updatedUser);
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred while updating the user', error });
     }
-};
 
-// Supprimer un utilisateur par ID
-export const deleteUser = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const deletedUser = await User.findByIdAndDelete(id);
-
-        if (!deletedUser) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.status(200).json({ message: 'User deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred while deleting the user', error });
-    }
-};
+}
+    
+    

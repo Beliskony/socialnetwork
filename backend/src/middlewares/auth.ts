@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 interface AuthRequest extends Request {
-    user?: any;
+    userId?: any;
   }
 // Clé secrète pour signer les tokens JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
@@ -17,7 +17,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded; // Attache les données utilisateur au request
+        req.userId = decoded; // Attache les données utilisateur au request
         next();
     } catch (err) {
         return res.status(403).json({ message: 'Invalid Token' });
