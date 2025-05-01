@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 interface AuthRequest extends Request {
-    userId?: any;
+    userId?: string | object;
   }
 // Clé secrète pour signer les tokens JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
