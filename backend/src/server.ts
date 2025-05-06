@@ -1,51 +1,34 @@
-import express, { Router } from "express"
-import dotenv from "dotenv"
-import cors from "cors"
-import connectDB from "./config/database"
-import { UserRouter } from "./routes/User.Router"
-import { container } from "./config/container"
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./config/database";
+import { UserRouter } from "./routes/User.Router";
+import { container } from "./config/container";
+import { TYPES } from "./config/TYPES";
 
+dotenv.config();
 
+const app = express();
 
-const app = express()
-dotenv.config()
+// Middleware
+app.use(express.json());
 
-//midleware
-app.use(express.json())
+// Injection de dépendances
+const userRouter = container.get<UserRouter>(TYPES.UserRouter);
 
-//utilisation propre de cors
-app.use(cors({
-    origin: process.env.Client_URL || "*",
-    methods: ["GET","POST","PUT","DELETE"],
-    allowedHeaders: ["Content-type", "Authorization"]
-})
-)
+// Routes
+app.use("/api/user", userRouter.router);
 
-//connect DB
-connectDB()
-
-//container inversify
-const userRouter = container.get<UserRouter>("UserRouter")
-
-
-//start server
-const PORT = process.env.PORT || 5000
-app.listen(PORT, ()=> console.log(`serveur lancer sur ${PORT}`))
-
+// Fonction de démarrage
 const startServer = async () => {
-    try {
-        await connectDB()
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`)
-        })
-    } catch (error) {
-        console.error("Error starting server:", error)
-    }
-}
+  try {
+    await connectDB();
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Serveur lancé sur le port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Erreur au démarrage du serveur :", error);
+  }
+};
 
-//routes
-
-//routes pour User
-app.use("/api/user", userRouter.router)
-
-//routes pour Post
+startServer(); // ← C’est maintenant ici que le serveur démarre

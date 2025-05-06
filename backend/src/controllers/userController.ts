@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { UserProvider } from "../providers/User.provider";
+import { TYPES } from "../config/TYPES";
 
 @injectable()
 export class UserController {
-    constructor(@inject(UserProvider) private userProvider: UserProvider) {}
+    constructor(@inject(TYPES.UserProvider) private userProvider: UserProvider) {}
 
     // Créer un nouvel utilisateur
     async createUser(req: Request, res: Response): Promise<void> {

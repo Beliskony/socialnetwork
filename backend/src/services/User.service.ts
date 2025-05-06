@@ -1,7 +1,7 @@
 import UserModel, { IUser } from "../models/User.model";
 import { hash, compare } from "bcrypt";
 import {injectable} from "inversify";
-import { Jwt } from "jsonwebtoken";
+
 
 export interface IUserService {
     createUser(user: IUser): Promise<IUser>;
@@ -34,8 +34,6 @@ async createUser (user: IUser): Promise<IUser> {
     if (!isPasswordValid) {
         throw new Error("Mot de passe incorrect")
     }
-
-   //const token = JWT.sign({ id: user._id, email: user.email}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
     return user
 }

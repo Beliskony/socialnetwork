@@ -11,7 +11,7 @@ export const UserZodSchema = z.object({
         .regex(/[0-9]/, "Password must contain at least one number")
         .regex(/[@$!%*?&#]/, "Password must contain at least one special character"),
     profilePicture: z.string().optional(),
-    phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number").min(10, "Phone number must be at least 10 digits long").max(10).optional(),
+    phoneNumber: z.string().regex(/^(\+?\d{10,20})$/, "Invalid phone number").min(10, "Phone number must be at least 10 digits long").max(20).optional(),
     followers: z.array(z.string()).optional(), // Array of user IDs (as strings)
     createdAt: z.date().optional(), // Date of account creation (optional for validation)
 });
@@ -21,10 +21,14 @@ export const UserZodSchema = z.object({
 
 
 export const LoginZodSchema = z.object({
-    email: z.string().email("Invalid email address").trim().toLowerCase(),
+    email: z.string().email().trim().toLowerCase().optional(),
     username: z.string().optional(),
     contact: z.string().optional(),
     password: z.string().min(8, "Password must be at least 8 characters long"),
+}).refine(data => data.email || data.username || data.contact, {
+    message: "Email, username, or contact is required",
+    path: ["email"]
 });
+
 
 
