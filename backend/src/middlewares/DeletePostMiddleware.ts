@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { string, ZodSchema } from "zod";
+import { ZodSchema } from "zod";
 import PostModel from "../models/Post.model";
 
 export const DeletePostMiddleware = (schema: ZodSchema) => {

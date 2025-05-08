@@ -1,9 +1,10 @@
 import { Schema, model } from 'mongoose';
 
 export interface IComment {
-    user: string; // User ID
-    post: string; // Post ID
-    content: string; // Comment content
+    user: string; // User ID celui qui a posté le commentaire
+    post: string; // Post ID lequel le commentaire est associé
+    // post: string; // Post ID auquel le commentaire est associé
+    content: string; // Comment content 
     createdAt?: Date; // Optional createdAt field
 }
 
