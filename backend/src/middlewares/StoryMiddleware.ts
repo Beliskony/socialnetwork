@@ -1,25 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodSchema } from 'zod';
 
-const storyMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    try {
-        // Example: Check if the story data exists in the request body
-        const { title, content } = req.body;
-
-        if (!title || !content) {
-            return res.status(400).json({ message: 'Title and content are required for the story.' });
-        }
-
-        // Perform additional validation or processing if needed
-        // Example: Limit the title length
-        if (title.length > 100) {
-            return res.status(400).json({ message: 'Title cannot exceed 100 characters.' });
-        }
-
-        // If everything is valid, proceed to the next middleware or route handler
-        next();
-    } catch (error) {
-        res.status(500).json({ message: 'An error occurred in the story middleware.', error });
-    }
+const StoryMiddleware = (schema: ZodSchema) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (['POST', 'Delete'].includes(req.method)) {
+                await schema.parseAsync(req.body);
+            } else if (req.method === 'GET') {
+                await schema.parseAsync(req.query);
+            }
+            next();
+        } catch (error) {
+            res.status(400).json({
+                message: 'Validation error',
+                detail: error instanceof Error ? error : error,
+            });
+    };
 };
+}
 
-export default storyMiddleware;
+export default StoryMiddleware;

@@ -23,5 +23,9 @@ export const TYPES = {
     StoryController: Symbol.for("StoryController"),
     
     // Routers
-    UserRouter: Symbol.for("UserRouter")
+    UserRouter: Symbol.for("UserRouter"),
+    StoryRouter: Symbol.for("StoryRouter"),
+    PostRouter: Symbol.for("PostRouter"),
+    CommentRouter: Symbol.for("CommentRouter"),
+    LikeRouter: Symbol.for("LikeRouter"),
   };

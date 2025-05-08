@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const PostZodValidator = z.object({
+export const PostZodSchema = z.object({
     user: z.string().nonempty("User ID is required"), // Assuming ObjectId is represented as a string
     text: z.string().optional(), // Optional text field with a maximum length of 500 characters,
     media: z
@@ -14,4 +14,4 @@ export const PostZodValidator = z.object({
 });
 
 // Example usage for validation
-export type PostValidationType = z.infer<typeof PostZodValidator>;
+export type PostValidationType = z.infer<typeof PostZodSchema>;

@@ -1,6 +1,6 @@
 import { Container } from "inversify";
-import {  PostService } from "../services/Post.service";
-import { IUserService, UserService } from "../services/User.service";
+import { PostService } from "../services/Post.service";
+import { UserService } from "../services/User.service";
 import { CommentService } from "../services/comment.service";
 import { StoryService } from "../services/Story.service";
 import { LikeService } from "../services/Like.service";
