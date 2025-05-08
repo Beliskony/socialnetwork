@@ -1,10 +1,11 @@
 import { inject, injectable } from "inversify";
 import { IComment } from "../models/Comment.model";
 import { CommentService } from "../services/comment.service";
+import { TYPES } from "../config/TYPES";
 
 @injectable()
 export class CommentProvider {
-    constructor(@inject(CommentService) private commentService: CommentService) {}
+    constructor(@inject(TYPES.CommentService) private commentService: CommentService) {}
 
     async addComment(postId: string, userId: string, content: string): Promise<IComment> {
         return await this.commentService.addComment(postId, userId, content);
