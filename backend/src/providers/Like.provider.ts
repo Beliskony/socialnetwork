@@ -1,10 +1,12 @@
 import { inject, injectable } from "inversify";
 import { LikeService } from "../services/Like.service";
+import { ILike } from "../models/Like.model";
+import { TYPES } from "../config/TYPES";
 
 
 @injectable()
 export class LikeProvider {
-    constructor( @inject(LikeService) private likeService: LikeService) {}
+    constructor( @inject(TYPES.LikeService) private likeService: LikeService) {}
 
     async addLike(userId: string, postId: string): Promise<void> {
         return this.likeService.addLike(userId, postId);
@@ -14,7 +16,7 @@ export class LikeProvider {
         return this.likeService.removeLike(userId, postId);
     }
 
-    async getLikesByPost(postId: string): Promise<number> {
+    async getLikesByPost(postId: string): Promise<ILike[]> {
         return this.likeService.getLikesByPost(postId);
     }
 
