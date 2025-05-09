@@ -1,10 +1,11 @@
 import { inject, injectable } from "inversify";
 import { PostService } from "../services/Post.service";
 import { IPost } from "../models/Post.model";
+import { TYPES } from "../config/TYPES";
 
 @injectable()
 export class PostProvider {
-    constructor(@inject(PostService) private postService: PostService) {}
+    constructor(@inject(TYPES.PostService) private postService: PostService) {}
 
     async createPost(userId: string, text?:string, media?: {images?: string[], videos?: string[]}): Promise<IPost> {
         return this.postService.createPost(userId, text, media);

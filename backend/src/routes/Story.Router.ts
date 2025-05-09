@@ -21,9 +21,9 @@ export class StoryRouter {
     }
 
     private initializeRoutes(): void {
-        this.router.get("/create", StoryMiddleware(StoryZodSchema), this.storyController.createStory.bind(this.storyController));
+        this.router.post("/create/:userId", StoryMiddleware(StoryZodSchema), this.storyController.createStory.bind(this.storyController));
         this.router.get("/getUser", StoryMiddleware(StoryZodSchema), this.storyController.getUserStories.bind(this.storyController));
-        this.router.get("/delete", StoryMiddleware(DeleteStoryZodSchema), this.storyController.deleteExpiredStories.bind(this.storyController));
+        this.router.delete("/delete/:userId/:story", StoryMiddleware(DeleteStoryZodSchema), this.storyController.deleteExpiredStories.bind(this.storyController));
         this.router.get("/expire", this.storyController.deleteExpiredStories.bind(this.storyController));
     }
 }
