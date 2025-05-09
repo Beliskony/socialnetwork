@@ -5,9 +5,9 @@ import StoryModel,{ IStory } from '../models/Story.model';
 
 @injectable()
 export class StoryService {
-    async createStory(userId: string, type: 'image' | 'video', contentUrl: string): Promise<IStory> {
+    async createStory(userId: string, content: { type: 'image' | 'video'; data: string }): Promise<IStory> {
        const expiresAt= new Date(Date.now() + 24 * 60 *60 * 1000)
-        const story = new StoryModel({ userId: new mongoose.Types.ObjectId(userId), type, contentUrl, expiresAt }); // 24h expiration
+        const story = new StoryModel({ userId: new mongoose.Types.ObjectId(userId), content, expiresAt }); // 24h expiration
        
         return await story.save();
     }
@@ -21,6 +21,10 @@ export class StoryService {
         const now = new Date();
         await StoryModel.deleteMany({ expiresAt: { $lte: now } }).exec();
     }
+
+    async deleteUserStory(storyId: string, userId: string): Promise<void> {
+        await StoryModel.deleteOne({ _id: new mongoose.Types.ObjectId(storyId), userId: new mongoose.Types.ObjectId(userId) }).exec();
+}
 }
 
-export default new StoryService();
+export default StoryService;

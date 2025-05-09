@@ -15,6 +15,10 @@ import { PostProvider } from "../providers/Post.provider";
 import { CommentProvider } from "../providers/comment.provider";
 import { StoryController } from "../controllers/storyController";
 import { UserRouter } from "../routes/User.Router";
+import { CommentRouter } from "../routes/Comment.Router";
+import { PostRouter } from "../routes/Post.Router";
+import { LikeRouter } from "../routes/Like.Router";
+import { StoryRouter } from "../routes/Story.Router";
 import { TYPES } from "./TYPES";
 
 
@@ -45,3 +49,7 @@ container.bind(TYPES.StoryController).to(StoryController).inSingletonScope();
 
 // routes
 container.bind(TYPES.UserRouter).to(UserRouter).inSingletonScope();
+container.bind(TYPES.CommentRouter).to(CommentRouter).inSingletonScope();
+container.bind(TYPES.PostRouter).to(PostRouter).inSingletonScope();
+container.bind(TYPES.LikeRouter).to(LikeRouter).inSingletonScope();
+container.bind(TYPES.StoryRouter).to(StoryRouter).inSingletonScope();

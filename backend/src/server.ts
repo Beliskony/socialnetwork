@@ -8,6 +8,7 @@ import { PostRouter } from "./routes/Post.Router";
 import { CommentRouter } from "./routes/Comment.Router";
 import { container } from "./config/container";
 import { TYPES } from "./config/TYPES";
+import bodyParser from "body-parser";
 
 
 dotenv.config();
@@ -16,6 +17,7 @@ const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Injection de dépendances
 const userRouter = container.get<UserRouter>(TYPES.UserRouter);

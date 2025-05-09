@@ -20,8 +20,8 @@ export class PostRouter {
     }
 
     private initializeRoutes(): void {
-        this.router.post("/create", CreatePostRequest(PostZodSchema), this.postController.createPost.bind(this.postController));
-        this.router.delete("/delete", DeletePostMiddleware(DeletePostSchema), this.postController.deletePost.bind(this.postController));
+        this.router.post("/create/:userId", CreatePostRequest(PostZodSchema), this.postController.createPost.bind(this.postController));
+        this.router.delete("/delete/:userId/:postId", DeletePostMiddleware(DeletePostSchema), this.postController.deletePost.bind(this.postController));
         this.router.put("/update/:id", UpdatePostMiddleware(PostZodSchema), this.postController.updatePost.bind(this.postController));
         this.router.get("/getUserPost", this.postController.getPosts.bind(this.postController));
         this.router.get("/getAllPosts", this.postController.getAllPosts.bind(this.postController));

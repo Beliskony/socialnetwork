@@ -3,10 +3,11 @@ import { PostService } from '../services/Post.service';
 import { inject } from 'inversify';
 import { PostProvider } from '../providers/Post.provider';
 import { IPost } from '../models/Post.model';
+import { TYPES } from '../config/TYPES';
 
 
 export class PostController {
-    constructor( @inject(PostService) private postProvider: PostProvider) {}
+    constructor( @inject(TYPES.PostService) private postProvider: PostProvider) {}
 
     async createPost(req: Request, res: Response): Promise<void> {
         try {
@@ -53,12 +54,9 @@ export class PostController {
 
     async deletePost(req: Request, res: Response): Promise<void> {
         try {
+          const post = req.body.postId;
             const { postId, userId } = req.body;
-            const deleted: boolean = await this.postProvider.deletePost(postId, userId);
-            if (!deleted) {
-                 res.status(404).json({ message: 'Post not found' });
-                 return;
-            }
+            await post.deleteOne({ _id: postId, user: userId });
              res.status(200).json({ message: 'Post deleted successfully' });
         } catch (error) {
              res.status(500).json({ message: 'Error deleting post', error });

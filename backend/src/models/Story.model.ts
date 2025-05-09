@@ -17,7 +17,7 @@ const StorySchema: Schema = new Schema<IStory>({
     content: {
         type: {
             type: String,
-            enum: ['image', 'video'],
+            enum: ['image', 'video'], // Types de contenu autorisés
             required: true,
         },
         data: { type: String, required: true }, // URL du fichier

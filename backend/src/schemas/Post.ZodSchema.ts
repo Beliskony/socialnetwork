@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 export const PostZodSchema = z.object({
-    user: z.string().nonempty("User ID is required"), // Assuming ObjectId is represented as a string
+    user: z.string().refine(val => /^[0-9a-fA-F]{24}$/.test(val), {
+        message: "Invalid ObjectId format",
+    }), // Assuming ObjectId is represented as a string
     text: z.string().optional(), // Optional text field with a maximum length of 500 characters,
     media: z
         .object({
