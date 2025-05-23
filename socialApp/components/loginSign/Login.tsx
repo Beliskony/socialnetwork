@@ -18,7 +18,7 @@ const LoginScreen = () => {
         setShowPassword(!showPassword);
     };
 
-    const handleLogin = async () => {
+   /* const handleLogin = async () => {
         try {
             const response = await axios.post('https://your-backend-url.com/login', {
                 email,
@@ -30,7 +30,7 @@ const LoginScreen = () => {
             Alert.alert('Error', 'Login failed. Please try again.');
             console.error(error);
         }
-    };
+    }; */
 
     return (
         <SafeAreaView className="flex-1 justify-center items-center bg-gray-100 px-5">
@@ -62,7 +62,7 @@ const LoginScreen = () => {
                 </TouchableOpacity>
             </View>
             <TouchableOpacity
-                onPress={handleLogin}
+              //  onPress={handleLogin}
                 className="w-full h-12 bg-blue-500 rounded-lg justify-center items-center mt-5"
             >
                 <Text className="text-white text-lg font-bold">Login</Text>

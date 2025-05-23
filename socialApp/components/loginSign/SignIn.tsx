@@ -24,7 +24,7 @@ const SignIn: React.FC = () => {
         setFormData({ ...formData, [field]: value });
     };
 
-    const sendOtp = async () => {
+   /* const sendOtp = async () => {
         if (!formData.contact) {
             Alert.alert('Error', 'Please enter your contact number.');
             return;
@@ -63,7 +63,7 @@ const SignIn: React.FC = () => {
         } catch (error) {
             Alert.alert('Error', 'An error occurred while verifying OTP.');
         }
-    };
+    }; */
 
     return (
         <View className="flex-1 p-5 bg-white">
@@ -121,7 +121,7 @@ const SignIn: React.FC = () => {
 
                     <TouchableOpacity
                         className="bg-blue-500 p-4 rounded-md mt-5"
-                        onPress={sendOtp}
+                       // onPress={sendOtp}
                     >
                         <Text className="text-white text-center text-lg">Send OTP</Text>
                     </TouchableOpacity>
@@ -139,7 +139,7 @@ const SignIn: React.FC = () => {
 
                     <TouchableOpacity
                         className="bg-blue-500 p-4 rounded-md"
-                        onPress={verifyOtpAndSignIn}
+                       // onPress={verifyOtpAndSignIn}
                     >
                         <Text className="text-white text-center text-lg">Verify and Sign In</Text>
                     </TouchableOpacity>
