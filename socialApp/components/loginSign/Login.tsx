@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    SafeAreaView,
-    Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -18,22 +13,31 @@ const LoginScreen = () => {
         setShowPassword(!showPassword);
     };
 
-    const handleLogin = async () => {
+   /* const handleLogin = async () => {
         try {
-            const response = await axios.post('https://your-backend-url.com/login', {
+            const response = await axios.post('http://10.0.2.2:3001/api/user/login', {
                 email,
                 password,
             });
+
+            const { token, user } = response.data;
+
+            //Stocker le token
+            await AsyncStorage.setItem('token', response.data.token);
+            //Stocker l'utilisateur
+            await AsyncStorage.setItem('user', response.data.user);
+            //Rediriger l'utilisateur vers la page d'accueil
+
             Alert.alert('Success', 'Login successful!');
             console.log(response.data);
         } catch (error) {
             Alert.alert('Error', 'Login failed. Please try again.');
             console.error(error);
-        }
-    };
+        } 
+    };*/
 
     return (
-        <SafeAreaView className="flex-1 justify-center items-center bg-gray-100 px-5">
+        <SafeAreaView className="flex-1 h-full justify-center items-center bg-gray-100 px-5">
             <Text className="text-2xl font-bold mb-8 text-gray-800">Welcome Back</Text>
             <TextInput
                 className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-gray-300"
@@ -62,7 +66,7 @@ const LoginScreen = () => {
                 </TouchableOpacity>
             </View>
             <TouchableOpacity
-                onPress={handleLogin}
+                
                 className="w-full h-12 bg-blue-500 rounded-lg justify-center items-center mt-5"
             >
                 <Text className="text-white text-lg font-bold">Login</Text>

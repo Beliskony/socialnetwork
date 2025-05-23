@@ -32,9 +32,21 @@ export class PostService {
     }
 
     async updatePost(postId: string, userId:string,  text?: string, media?: { images?: string[]; videos?: string[] }): Promise<IPost | null> {
-        const post = await PostModel.findById(postId);
+        
+        console.log("🔍 Tentative de mise à jour");
+        console.log("➡️ postId reçu :", postId);
+        console.log("➡️ userId reçu :", userId);
+
+
+        const post = await PostModel.findById(postId)
+
+        if (!post) {
+            return null;
+        }
+        console.log("✅ Post trouvé avec user :", post.user.toString());
 
         if (post?.user.toString() !== userId) {
+            console.log("⛔️ Utilisateur non autorisé");
             throw new Error("You are not authorized to modify this post");
         }
 

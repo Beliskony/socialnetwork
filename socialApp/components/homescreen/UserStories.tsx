@@ -7,7 +7,7 @@ const UserStories = () => {
     const [stories, setStories] = useState<string[]>([]);
     const [selectedStory, setSelectedStory] = useState<string | null>(null);
 
-    const addStory = async () => {
+  /*  const addStory = async () => {
         try {
             const result = await ImagePicker.launchImageLibrary({
                 mediaType: 'mixed', // Permet de choisir des images ou vidéos
@@ -16,7 +16,7 @@ const UserStories = () => {
 
             if (result.assets && result.assets.length > 0) {
                 const newStory = result.assets[0].uri as string;
-                await axios.post('https://your-backend-api.com/stories', { url: newStory });
+                await axios.post('http://10.0.2.2:3001/api/story/getUser', { url: newStory });
                 setStories([...stories, newStory]);
             }
         } catch (error) {
@@ -32,7 +32,7 @@ const UserStories = () => {
 
             if (result.assets && result.assets.length > 0) {
                 const newStory = result.assets[0].uri as string;
-                await axios.post('https://your-backend-api.com/stories', { url: newStory });
+                await axios.post('http://10.0.2.2:3001/api/story/getUser', { url: newStory });
                 setStories([...stories, newStory]);
             }
         } catch (error) {
@@ -42,13 +42,13 @@ const UserStories = () => {
 
     const deleteStory = async (story: string) => {
         try {
-            await axios.delete(`https://your-backend-api.com/stories`, { data: { url: story } });
+            await axios.delete(`http://10.0.2.2:3001/api/story/delete/:userId/:story`, { data: { url: story } });
             setStories(stories.filter((s) => s !== story));
             setSelectedStory(null);
         } catch (error) {
             console.error('Error deleting story:', error);
         }
-    };
+    }; */
 
     return (
         <View className="flex-1 bg-white p-4">
@@ -67,13 +67,13 @@ const UserStories = () => {
                 }
             />
             <TouchableOpacity
-                onPress={addStory}
+                //onPress={addStory}
                 className="mt-4 bg-blue-500 p-3 rounded-lg items-center"
             >
                 <Text className="text-white font-bold">Add Story from Gallery</Text>
             </TouchableOpacity>
             <TouchableOpacity
-                onPress={captureStory}
+                //onPress={captureStory}
                 className="mt-4 bg-green-500 p-3 rounded-lg items-center"
             >
                 <Text className="text-white font-bold">Capture Story</Text>
@@ -85,7 +85,7 @@ const UserStories = () => {
                         <>
                             <Image source={{ uri: selectedStory }} className="w-80 h-80 mb-4" />
                             <TouchableOpacity
-                                onPress={() => deleteStory(selectedStory)}
+                                //onPress={() => deleteStory(selectedStory)}
                                 className="bg-red-500 p-3 rounded-lg"
                             >
                                 <Text className="text-white font-bold">Delete Story</Text>

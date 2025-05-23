@@ -16,10 +16,10 @@ const Stories: React.FC = () => {
     const [storiesData, setStoriesData] = useState<Story[]>([]);
     const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 
-    useEffect(() => {
+   /* useEffect(() => {
         const fetchStories = async () => {
             try {
-                const response = await axios.get('https://your-backend-api.com/stories');
+                const response = await axios.get('http://10.0.2.2:3001/api/story/create/:userId');
                 setStoriesData(response.data);
             } catch (error) {
                 console.error('Error fetching stories:', error);
@@ -35,7 +35,7 @@ const Stories: React.FC = () => {
 
     const closeStory = () => {
         setSelectedStory(null);
-    };
+    };*/
 
     return (
         <View className="flex-row p-2">
@@ -44,7 +44,7 @@ const Stories: React.FC = () => {
                     <TouchableOpacity
                         key={story.id}
                         className="items-center mx-2"
-                        onPress={() => openStory(story)}
+                        //onPress={() => openStory(story)}
                     >
                         <Image
                             source={{ uri: story.avatar }}
@@ -64,7 +64,7 @@ const Stories: React.FC = () => {
                         />
                         <TouchableOpacity
                             className="mt-5 px-4 py-2 bg-orange-500 rounded"
-                            onPress={closeStory}
+                           // onPress={closeStory}
                         >
                             <Text className="text-white font-bold">Close</Text>
                         </TouchableOpacity>

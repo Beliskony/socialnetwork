@@ -19,8 +19,8 @@ export class PostProvider {
         return this.postService.getAllPosts();
     }
 
-    async updatePost(postId: string,userId:string ,text?: string, media?: {images?: string[], videos?: string[]}): Promise<IPost | null> {
-        return this.postService.updatePost(postId,userId ,text, media);
+    async updatePost(postId: string,user:string ,text?: string, media?: {images?: string[], videos?: string[]}): Promise<IPost | null> {
+        return this.postService.updatePost(postId, user, text, media);
     }
 
     async deletePost(postId: string, userId: string): Promise<boolean> {

@@ -11,8 +11,8 @@ export class PostController {
 
     async createPost(req: Request, res: Response): Promise<void> {
         try {
-            const { userId, text, media } = req.body;
-            const post: IPost = await this.postProvider.createPost(userId, text, media);
+            const { user, text, media } = req.body;
+            const post: IPost = await this.postProvider.createPost(user, text, media);
              res.status(201).json(post);
         } catch (error) {
              res.status(500).json({ message: 'Error creating post', error });
@@ -40,8 +40,10 @@ export class PostController {
 
     async updatePost(req: Request, res: Response): Promise<void> {
         try {
-            const { postId, userId, text, media } = req.body;
-            const post: IPost | null = await this.postProvider.updatePost(postId, userId, text, media);
+            const {user, postId} = req.params;
+            const { text, media } = req.body;
+
+            const post: IPost | null = await this.postProvider.updatePost( postId ,user, text, media );
             if (!post) {
                  res.status(404).json({ message: 'Post not found' });
                  return
@@ -55,7 +57,7 @@ export class PostController {
     async deletePost(req: Request, res: Response): Promise<void> {
         try {
           const post = req.body.postId;
-            const { postId, userId } = req.body;
+            const { postId, userId } = req.params;
             await post.deleteOne({ _id: postId, user: userId });
              res.status(200).json({ message: 'Post deleted successfully' });
         } catch (error) {

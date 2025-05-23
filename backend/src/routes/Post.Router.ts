@@ -7,6 +7,7 @@ import { DeletePostSchema } from "../schemas/Delete.Post.ZodSchema";
 import { DeletePostMiddleware } from "../middlewares/DeletePostMiddleware";
 import { UpdatePostMiddleware } from "../middlewares/UpdatePostMiddleware";
 import { PostZodSchema } from "../schemas/Post.ZodSchema";
+import { PostUpdateZodSchema } from "../schemas/Update.PostZodschema";
 
 @injectable()
 export class PostRouter {
@@ -20,9 +21,9 @@ export class PostRouter {
     }
 
     private initializeRoutes(): void {
-        this.router.post("/create/:userId", CreatePostRequest(PostZodSchema), this.postController.createPost.bind(this.postController));
-        this.router.delete("/delete/:userId/:postId", DeletePostMiddleware(DeletePostSchema), this.postController.deletePost.bind(this.postController));
-        this.router.put("/update/:id", UpdatePostMiddleware(PostZodSchema), this.postController.updatePost.bind(this.postController));
+        this.router.post("/create/:user", CreatePostRequest(PostZodSchema), this.postController.createPost.bind(this.postController));
+        this.router.delete("/delete/:user/:postId", DeletePostMiddleware(DeletePostSchema), this.postController.deletePost.bind(this.postController));
+        this.router.patch("/update/:user/:postId", UpdatePostMiddleware(PostUpdateZodSchema), this.postController.updatePost.bind(this.postController));
         this.router.get("/getUserPost", this.postController.getPosts.bind(this.postController));
         this.router.get("/getAllPosts", this.postController.getAllPosts.bind(this.postController));
     }

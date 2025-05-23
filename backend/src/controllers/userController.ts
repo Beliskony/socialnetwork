@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { UserProvider } from "../providers/User.provider";
 import { TYPES } from "../config/TYPES";
+import jwt from "jsonwebtoken";
 
 @injectable()
 export class UserController {
@@ -12,7 +13,17 @@ export class UserController {
         try {
             const user = req.body;
             const newUser = await this.userProvider.createUser(user);
-            res.status(201).json(newUser);
+
+            // Génération d'un token JWT
+            const token = jwt.sign(
+                { _id: newUser._id, username: newUser.username },
+                process.env.JWT_SECRET || "your_secret_key",
+                { expiresIn: "1h" }
+            );
+
+            res.status(201).json({message: "User registered successfully",
+                id: newUser._id,
+                token,});
         } catch (error: any) {
             res.status(400).json({ message: error.message });
         }
@@ -23,7 +34,16 @@ export class UserController {
         try {
             const { email, password } = req.body;
             const user = await this.userProvider.loginUser(email, password);
-            res.status(200).json(user);
+
+             // Génération d'un token JWT
+             const token = jwt.sign(
+                { _id: user?._id, username: user?.username },
+                process.env.JWT_SECRET || "your_secret_key",
+                { expiresIn: "1h" }
+            );
+            res.status(200).json({message: "User logged in successfully",
+                id: user?._id,
+                token,});
         } catch (error: any) {
             res.status(400).json({ message: error.message });
         }

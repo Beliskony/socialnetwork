@@ -8,6 +8,8 @@ export interface IUser extends Document {
     profilePicture?: string;
     phoneNumber?: string;
     followers: mongoose.Types.ObjectId[];
+    otp?: string;
+    otpExpires?:number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -18,8 +20,10 @@ const UserSchema: Schema = new Schema(
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
         profilePicture: { type: String, default: '' }, // URL or path to the profile picture
-        phoneNumber: { type: String, unique: true, sparse: true }, // Optional and unique
+        phoneNumber: { type: String, unique: true, sparse: true, require:true },
         followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Array of User references
+        otp: { type: String}, // OTP for verification
+        otpExpires: { type: Number }, // Expiration time for OTP
     },
     {
         timestamps: true, // Automatically adds createdAt and updatedAt fields
