@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -12,6 +12,7 @@ const LoginScreen = () => {
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
     };
+
 
    /* const handleLogin = async () => {
         try {
@@ -37,10 +38,11 @@ const LoginScreen = () => {
     };*/
 
     return (
-        <SafeAreaView className="flex-1 h-full justify-center items-center bg-gray-100 px-5">
-            <Text className="text-2xl font-bold mb-8 text-gray-800">Welcome Back</Text>
+        <SafeAreaView className="flex flex-col w-full h-2/3 justify-center items-center bg-white p-5">
+            
+            <Text className="text-3xl font-bold mb-8 text-[#F1895C]">Bon retour</Text>
             <TextInput
-                className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-gray-300"
+                className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-[#C5C6C6]"
                 placeholder="Email"
                 placeholderTextColor="#aaa"
                 keyboardType="email-address"
@@ -49,7 +51,7 @@ const LoginScreen = () => {
             />
             <View className="w-full relative">
                 <TextInput
-                    className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-gray-300"
+                    className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-[#C5C6C6]"
                     placeholder="Password"
                     placeholderTextColor="#aaa"
                     secureTextEntry={!showPassword}
@@ -60,25 +62,22 @@ const LoginScreen = () => {
                     onPress={togglePasswordVisibility}
                     className="absolute right-4 top-3"
                 >
-                    <Text className="text-blue-500 font-bold">
-                        {showPassword ? 'Hide' : 'Show'}
+                    <Text className="flex">
+                        {showPassword ? <Image source={{uri: "https://img.icons8.com/?size=100&id=96181&format=png&color=000000"}} className='h-6 w-6' /> : 
+                        <Image source={{uri: "https://img.icons8.com/?size=100&id=986&format=png&color=000000"}} className='h-6 w-6' />}
                     </Text>
                 </TouchableOpacity>
             </View>
-            <TouchableOpacity
-                
-                className="w-full h-12 bg-blue-500 rounded-lg justify-center items-center mt-5"
-            >
-                <Text className="text-white text-lg font-bold">Login</Text>
+
+
+            <TouchableOpacity className="w-full h-12 bg-[#2E3244] rounded-lg justify-center items-center mt-5">
+                <Text className="text-white text-xl font-bold">Login</Text>
             </TouchableOpacity>
+
             <TouchableOpacity>
-                <Text className="text-blue-500 mt-4 text-sm">Forgot Password?</Text>
+                <Text className="text-[#516079] my-4 text-sm">Mot de passe oublier ?</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Text className="text-blue-500 mt-2 text-sm">
-                    Don't have an account? Sign Up
-                </Text>
-            </TouchableOpacity>
+
         </SafeAreaView>
     );
 };

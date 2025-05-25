@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image} from 'react-native';
 
 const SignIn: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -22,6 +16,10 @@ const SignIn: React.FC = () => {
 
     const handleInputChange = (field: string, value: string) => {
         setFormData({ ...formData, [field]: value });
+    };
+
+     const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
     };
 
    /* const sendOtp = async () => {
@@ -66,64 +64,64 @@ const SignIn: React.FC = () => {
     }; */
 
     return (
-        <View className="flex-1 p-5 bg-white">
+        <View className="flex flex-col justify-center items-center w-full bg-white my-16">
+            <Text className="text-3xl font-bold mb-8 text-[#F1895C]">Bienvenue </Text>
+
             {!otpSent ? (
                 <>
-                    <Text className="text-lg mb-2 text-gray-800">First Name</Text>
                     <TextInput
-                        className="border border-gray-300 rounded-md p-3 mb-4"
-                        placeholder="Enter your first name"
-                        value={formData.firstName}
-                        onChangeText={(text) => handleInputChange('firstName', text)}
-                    />
-
-                    <Text className="text-lg mb-2 text-gray-800">Last Name</Text>
-                    <TextInput
-                        className="border border-gray-300 rounded-md p-3 mb-4"
-                        placeholder="Enter your last name"
+                        className="w-full border border-gray-300 rounded-md p-3 mb-4"
+                        placeholder="Entrer votre Nom"
                         value={formData.lastName}
                         onChangeText={(text) => handleInputChange('lastName', text)}
                     />
 
-                    <Text className="text-lg mb-2 text-gray-800">Contact</Text>
                     <TextInput
-                        className="border border-gray-300 rounded-md p-3 mb-4"
-                        placeholder="Enter your contact number"
+                        className="w-full border border-gray-300 rounded-md p-3 mb-4"
+                        placeholder="Entrer votre Prénom"
+                        value={formData.firstName}
+                        onChangeText={(text) => handleInputChange('firstName', text)}
+                    />
+
+                    <TextInput
+                        className="w-full border border-gray-300 rounded-md p-3 mb-4"
+                        placeholder="Contact"
+                        placeholderTextColor={"#aaa"}
                         keyboardType="phone-pad"
                         value={formData.contact}
                         onChangeText={(text) => handleInputChange('contact', text)}
                     />
 
-                    <Text className="text-lg mb-2 text-gray-800">Date of Birth</Text>
                     <TextInput
-                        className="border border-gray-300 rounded-md p-3 mb-4"
+                        className=" w-full border border-gray-300 rounded-md p-3 mb-4"
                         placeholder="YYYY-MM-DD"
+                        placeholderTextColor={"#aaa"}
                         value={formData.birthDate}
-                        onChangeText={(text) => handleInputChange('birthDate', text)}
+                        onChangeText={(Date) => handleInputChange('birthDate', Date)}
                     />
 
-                    <Text className="text-lg mb-2 text-gray-800">Password</Text>
-                    <View className="flex-row items-center">
-                        <TextInput
-                            className="flex-1 border border-gray-300 rounded-md p-3"
-                            placeholder="Enter your password"
-                            secureTextEntry={!showPassword}
-                            value={formData.password}
-                            onChangeText={(text) => handleInputChange('password', text)}
-                        />
-                        <TouchableOpacity
-                            onPress={() => setShowPassword(!showPassword)}
-                            className="ml-3"
-                        >
-                            <Text className="text-blue-500">{showPassword ? 'Hide' : 'Show'}</Text>
-                        </TouchableOpacity>
-                    </View>
+                   <View className="w-full relative">
+                                   <TextInput
+                                       className="w-full h-12 bg-white rounded-lg px-4 mb-4 border border-[#C5C6C6]"
+                                       placeholder="Password"
+                                       placeholderTextColor="#aaa"
+                                       secureTextEntry={!showPassword}
+                                       value={formData.password}
+                                       onChangeText={(text) => handleInputChange('password', text)}
+                                   />
+                                   <TouchableOpacity
+                                       onPress={togglePasswordVisibility}
+                                       className="absolute right-4 top-3"
+                                   >
+                                       <Text className="flex">
+                                           {showPassword ? <Image source={{uri: "https://img.icons8.com/?size=100&id=96181&format=png&color=000000"}} className='h-6 w-6' /> : 
+                                           <Image source={{uri: "https://img.icons8.com/?size=100&id=986&format=png&color=000000"}} className='h-6 w-6' />}
+                                       </Text>
+                                   </TouchableOpacity>
+                               </View>
 
-                    <TouchableOpacity
-                        className="bg-blue-500 p-4 rounded-md mt-5"
-                        //onPress={sendOtp}
-                    >
-                        <Text className="text-white text-center text-lg">Send OTP</Text>
+                    <TouchableOpacity className="w-full h-12 bg-[#2E3244] text-xl font-bold justify-center items-center rounded-lg mt-5" /*onPress={sendOtp}*/ >
+                        <Text className="text-white text-center text-lg">Inscription</Text>
                     </TouchableOpacity>
                 </>
             ) : (
