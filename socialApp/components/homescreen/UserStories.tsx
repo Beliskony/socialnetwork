@@ -16,7 +16,7 @@ const UserStories = () => {
 
             if (result.assets && result.assets.length > 0) {
                 const newStory = result.assets[0].uri as string;
-                await axios.post('http://10.0.2.2:3001/api/story/getUser', { url: newStory });
+                await axios.post('https://apisocial.railway.internal/api/story/getUser', { url: newStory });
                 setStories([...stories, newStory]);
             }
         } catch (error) {

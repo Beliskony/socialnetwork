@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 
 const LoginScreen = () => {
@@ -13,10 +15,14 @@ const LoginScreen = () => {
         setShowPassword(!showPassword);
     };
 
+const router = useRouter();
+
+
+
 
    /* const handleLogin = async () => {
         try {
-            const response = await axios.post('http://10.0.2.2:3001/api/user/login', {
+            const response = await axios.post('https://apisocial.railway.internal/api/user/login', {
                 email,
                 password,
             });
@@ -31,6 +37,7 @@ const LoginScreen = () => {
 
             Alert.alert('Success', 'Login successful!');
             console.log(response.data);
+            router.replace('/(tabs)/HomeScreen');
         } catch (error) {
             Alert.alert('Error', 'Login failed. Please try again.');
             console.error(error);
@@ -70,7 +77,10 @@ const LoginScreen = () => {
             </View>
 
 
-            <TouchableOpacity className="w-full h-12 bg-[#2E3244] rounded-lg justify-center items-center mt-5">
+            <TouchableOpacity
+                className="w-full h-12 bg-[#2E3244] rounded-lg justify-center items-center mt-5"
+                onPress={() =>router.replace('/(tabs)/home') }
+            >
                 <Text className="text-white text-xl font-bold">Login</Text>
             </TouchableOpacity>
 

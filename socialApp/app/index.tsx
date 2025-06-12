@@ -1,6 +1,5 @@
 import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
-import { Switch } from 'react-native';
 import LoginScreen from '@/components/loginSign/Login';
 import SignIn from '@/components/loginSign/SignIn';
 

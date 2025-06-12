@@ -28,7 +28,7 @@ const SignIn: React.FC = () => {
             return;
         }
         try {
-            const response = await axios.post('http://10.0.2.2:3001/api/user/register', {
+            const response = await axios.post('https://apisocial.railway.internal/api/user/register', {
                 contact: formData.contact,
             });
             if (response.data.success) {

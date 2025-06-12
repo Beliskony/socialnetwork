@@ -1,48 +1,54 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { FC } from 'react';
 import axios from 'axios';
+import { Text, TextInput, View, TouchableOpacity, FlatList, Image} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const SearchBar: React.FC = () => {
+const SearchBar: FC = () => {
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState([]);
+    const [results, setResults] = useState<any[]>([]);
 
-   /* const handleSearch = async () => {
+    const handleSearch = async () => {
         try {
-            const response = await axios.get(`/api/search`, { params: { query }, });
-            setResults(response.data);
+            const response = await axios.get(`https://apisocial-g8z6.onrender.com/api/user/search/${query}`);
+            setResults(response.data || []);
         } catch (error) {
-            console.error('Error fetching search results:', error);
+            console.error('Erreur lors de la recherche :', error);
         }
-    }; */
+    };
 
     return (
-        <div className="p-4 max-w-lg mx-auto">
-            <input
-                type="text"
-                placeholder="Rechercher des posts ou utilisateurs..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full p-2 rounded border border-gray-300 mb-4"
-            />
-            <button
-                //onClick={handleSearch}
-                className="px-4 py-2 rounded bg-blue-500 text-white border-none cursor-pointer hover:bg-blue-600"
-            >
-                Rechercher
-            </button>
-            <div className="mt-4">
+        <SafeAreaView className="mt-52 p-3 gap-2 w-screen flex flex-col items-center shadow">
+            <View className='h-40 w-full flex flex-row items-center '>
+                <TextInput placeholder="Rechercher des posts ou utilisateurs..."
+                value={query} onChangeText={setQuery}
+                onSubmitEditing={handleSearch}
+                className="w-[90%] h-14 p-3 rounded border border-gray-300 mb-4 text-base"
+                placeholderTextColor="#999" />
+
+                <TouchableOpacity onPress={handleSearch} className="pb-3 justify-center items-center">
+                    <Image src='https://img.icons8.com/?size=100&id=7695&format=png&color=000000' className='h-12 w-12'/>
+                </TouchableOpacity>
+            </View>
+
+            <View className="mt-6">
                 {results.length > 0 ? (
-                    <ul>
-                        {results.map((result: any, index: number) => (
-                            <li key={index} className="py-1">
-                                {result.name || result.title}
-                            </li>
-                        ))}
-                    </ul>
+                    <FlatList
+                        data={results}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={({ item }) => (
+                            <Text className="py-2 text-base text-gray-800">
+                                {item.name || item.title}
+                            </Text>
+                        )}
+                    />
                 ) : (
-                    <p className="text-gray-500">Aucun résultat trouvé.</p>
+                    <Text className="text-gray-500 mt-2">
+                        Aucun résultat trouvé.
+                    </Text>
                 )}
-            </div>
-        </div>
+            </View>
+        </SafeAreaView>
     );
 };
 

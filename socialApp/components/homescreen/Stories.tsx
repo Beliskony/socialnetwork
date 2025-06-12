@@ -19,7 +19,7 @@ const Stories: React.FC = () => {
    /* useEffect(() => {
         const fetchStories = async () => {
             try {
-                const response = await axios.get('http://10.0.2.2:3001/api/story/create/:userId');
+                const response = await axios.get('https://apisocial.railway.internal/api/story/create/:userId');
                 setStoriesData(response.data);
             } catch (error) {
                 console.error('Error fetching stories:', error);
