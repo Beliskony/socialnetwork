@@ -1,7 +1,7 @@
 import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
-import LoginScreen from '@/components/loginSign/Login';
-import SignIn from '@/components/loginSign/SignIn';
+import LoginScreen from '@/components/Auth/Login';
+import SignIn from '@/components/Auth/SignIn';
 
 export default function HomeScreen() {
   const [isLogin, setIsLogin] = useState(true);
