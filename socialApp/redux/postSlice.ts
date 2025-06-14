@@ -1,44 +1,115 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
+import axios from 'axios'
 
-export interface Comment {
+export interface Media {
+  images?: string[]
+  videos?: string[]
+}
+
+export interface Post {
   _id: string
-  user: string    // User ID
-  post: string    // Post ID
-  content: string
+  user: string // user id
+  text?: string
+  media?: Media
   createdAt: string
   updatedAt: string
 }
 
-interface CommentState {
-  comments: Comment[]
+interface PostState {
+  posts: Post[]
+  loading: boolean
+  error: string | null
 }
 
-const initialState: CommentState = {
-  comments: [],
+const initialState: PostState = {
+  posts: [],
+  loading: false,
+  error: null
 }
 
-const commentSlice = createSlice({
-  name: 'comments',
+// Thunk asynchrone pour ajouter un post
+export const addPost = createAsyncThunk(
+  'posts/addPost',
+  async (payload: { text: string }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/api/posts', payload)
+      return response.data // doit être un objet Post complet
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du post')
+    }
+  }
+)
+
+// Thunk pour mettre à jour un post
+export const updatePostAsync = createAsyncThunk(
+  'posts/updatePost',
+  async (payload: { id: string; data: Partial<Post> }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/posts/${payload.id}`, payload.data)
+      return response.data
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors de la modification du post')
+    }
+  }
+)
+
+// Thunk pour supprimer un post
+export const deletePostAsync = createAsyncThunk(
+  'posts/deletePost',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/api/posts/${id}`)
+      return id
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression du post')
+    }
+  }
+)
+
+
+const postSlice = createSlice({
+  name: 'posts',
   initialState,
   reducers: {
-    setComments: (state, action: PayloadAction<Comment[]>) => {
-      state.comments = action.payload
+
+    setPosts(state, action: PayloadAction<Post[]>) {
+      state.posts = action.payload
     },
-    addComment: (state, action: PayloadAction<Comment>) => {
-      state.comments.unshift(action.payload)
+
+    updatePost(state, action: PayloadAction<Post>) {
+      const index = state.posts.findIndex(p => p._id === action.payload._id)
+      if (index !== -1) state.posts[index] = action.payload
     },
-    updateComment: (state, action: PayloadAction<{ _id: string; content: string }>) => {
-      const comment = state.comments.find(c => c._id === action.payload._id)
-      if (comment) {
-        comment.content = action.payload.content
-        comment.updatedAt = new Date().toISOString()
-      }
+
+    deletePost(state, action: PayloadAction<string>) {
+      state.posts = state.posts.filter(p => p._id !== action.payload)
     },
-    deleteComment: (state, action: PayloadAction<string>) => {
-      state.comments = state.comments.filter(c => c._id !== action.payload)
-    },
+
+  },
+
+  extraReducers: (builder) => {
+      builder
+      .addCase(addPost.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(addPost.fulfilled, (state, action) => {
+        state.loading = false
+        state.posts.unshift(action.payload)
+      })
+      .addCase(addPost.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
+      .addCase(updatePostAsync.fulfilled, (state, action) => {
+        const index = state.posts.findIndex(p => p._id === action.payload._id)
+        if (index !== -1) state.posts[index] = action.payload
+      })
+      .addCase(deletePostAsync.fulfilled, (state, action) => {
+        state.posts = state.posts.filter(p => p._id !== action.payload)
+      })
   },
 })
 
-export const { setComments, addComment, updateComment, deleteComment } = commentSlice.actions
-export default commentSlice.reducer
+export const { setPosts, updatePost, deletePost } = postSlice.actions
+export default postSlice.reducer

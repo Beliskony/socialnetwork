@@ -1,48 +1,44 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-export interface Media {
-  images?: string[]
-  videos?: string[]
-}
-
-export interface Post {
+export interface Comment {
   _id: string
-  user: string // user id
-  text?: string
-  media?: Media
+  user: string    // User ID
+  post: string    // Post ID
+  content: string
   createdAt: string
   updatedAt: string
 }
 
-interface PostState {
-  posts: Post[]
+interface CommentState {
+  comments: Comment[]
 }
 
-const initialState: PostState = {
-  posts: [],
+const initialState: CommentState = {
+  comments: [],
 }
 
-const postSlice = createSlice({
-  name: 'posts',
+const commentSlice = createSlice({
+  name: 'comments',
   initialState,
   reducers: {
-    setPosts: (state, action: PayloadAction<Post[]>) => {
-      state.posts = action.payload
+    setComments: (state, action: PayloadAction<Comment[]>) => {
+      state.comments = action.payload
     },
-    addPost: (state, action: PayloadAction<Post>) => {
-      state.posts.unshift(action.payload)
+    addComment: (state, action: PayloadAction<Comment>) => {
+      state.comments.unshift(action.payload)
     },
-    updatePost: (state, action: PayloadAction<Post>) => {
-      const idx = state.posts.findIndex(p => p._id === action.payload._id)
-      if (idx !== -1) {
-        state.posts[idx] = action.payload
+    updateComment: (state, action: PayloadAction<{ _id: string; content: string }>) => {
+      const comment = state.comments.find(c => c._id === action.payload._id)
+      if (comment) {
+        comment.content = action.payload.content
+        comment.updatedAt = new Date().toISOString()
       }
     },
-    deletePost: (state, action: PayloadAction<string>) => {
-      state.posts = state.posts.filter(p => p._id !== action.payload)
+    deleteComment: (state, action: PayloadAction<string>) => {
+      state.comments = state.comments.filter(c => c._id !== action.payload)
     },
   },
 })
 
-export const { setPosts, addPost, updatePost, deletePost } = postSlice.actions
-export default postSlice.reducer
+export const { setComments, addComment, updateComment, deleteComment } = commentSlice.actions
+export default commentSlice.reducer
