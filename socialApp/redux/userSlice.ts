@@ -7,6 +7,7 @@ export interface UserState {
   email: string
   profilePicture?: string
   phoneNumber?: string
+  token?: string
   followersCount: number
   postsCount: number
   isLoggedIn: boolean
@@ -18,6 +19,7 @@ const initialState: UserState = {
   email: '',
   profilePicture: undefined,
   phoneNumber: undefined,
+  token: undefined,
   followersCount: 0,
   postsCount: 0,
   isLoggedIn: false,
@@ -28,12 +30,13 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action: PayloadAction<Omit<UserState, 'isLoggedIn'> & { isLoggedIn?: boolean }>) => {
-      const { _id, username, email, profilePicture, phoneNumber, followersCount, postsCount, isLoggedIn } = action.payload
+      const { _id, username, email, profilePicture, phoneNumber, token, followersCount, postsCount, isLoggedIn } = action.payload
       state._id = _id
       state.username = username
       state.email = email
       state.profilePicture = profilePicture
       state.phoneNumber = phoneNumber
+      state.token = token
       state.followersCount = followersCount
       state.postsCount = postsCount
       state.isLoggedIn = isLoggedIn ?? true
@@ -44,6 +47,7 @@ const userSlice = createSlice({
       state.email = ''
       state.profilePicture = undefined
       state.phoneNumber = undefined
+      state.token = undefined
       state.followersCount = 0
       state.postsCount = 0
       state.isLoggedIn = false

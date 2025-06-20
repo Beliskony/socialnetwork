@@ -20,20 +20,42 @@ const NewPost: React.FC<NewPostProps> = ({ onPostCreated }) => {
     const dispatch = useDispatch();
     const { loading, error } = useSelector((state: RootState) => state.posts);
 
-    // À remplacer par un vrai picker
-    const handleAddImage = () => {
-        setMedia((prev) => ({
-            ...prev,
-            images: [...prev.images, 'https://img.icons8.com/ios-filled/50/000000/add-image.png'],
-        }));
-    };
+    
+    // Picker pour les images et videos
+const handleAddMedia = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+        alert("Permission d'accès à la galerie refusée !");
+        return;
+    }
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true, // Expo SDK 48+
+        aspect: [4,3],
+        quality: 1,
+    })
 
-    const handleAddVideo = () => {
-        setMedia((prev) => ({
+    if (!pickerResult.canceled && pickerResult.assets) {
+        const newImages: string[] = [];
+        const newVideos: string[] = [];
+
+        pickerResult.assets.forEach((asset: ImagePicker.ImagePickerAsset) => {
+      if (asset.type?.startsWith('image')) {
+        newImages.push(asset.uri);
+      } else if (asset.type?.startsWith('video')) {
+        newVideos.push(asset.uri);
+      }
+        });
+
+        setMedia(prev => ({
             ...prev,
-            videos: [...prev.videos, 'https://img.icons8.com/ios-filled/50/000000/video.png'],
+            images: [...prev.images, ...newImages],
+            videos: [...prev.videos, ...newVideos],
         }));
-    };
+    }
+};
+
+
 
     const handleSubmit = async () => {
         if (!content.trim() && media.images.length === 0 && media.videos.length === 0) return;
@@ -82,18 +104,13 @@ const NewPost: React.FC<NewPostProps> = ({ onPostCreated }) => {
                 </ScrollView>
             )}
             <View className="flex-row items-center">
-                <TouchableOpacity className="mr-2" onPress={handleAddImage}>
+                <TouchableOpacity className="mr-2" onPress={handleAddMedia}>
                     <Image
                         source={{ uri: 'https://img.icons8.com/ios-filled/50/000000/add-image.png' }}
                         style={{ width: 28, height: 28 }}
                     />
                 </TouchableOpacity>
-                <TouchableOpacity className="mr-2" onPress={handleAddVideo}>
-                    <Image
-                        source={{ uri: 'https://img.icons8.com/ios-filled/50/000000/video.png' }}
-                        style={{ width: 28, height: 28 }}
-                    />
-                </TouchableOpacity>
+                
                 <TouchableOpacity
                     className={`flex-1 bg-blue-500 rounded px-4 py-2 ${(!content.trim() && media.images.length === 0 && media.videos.length === 0) ? 'opacity-50' : ''}`}
                     onPress={handleSubmit}

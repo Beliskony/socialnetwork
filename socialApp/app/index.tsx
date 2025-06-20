@@ -14,7 +14,7 @@ export default function HomeScreen() {
 
             <View className='flex flex-col justify-center items-center w-full h-full p-5'>
               
-              {isLogin? <LoginScreen/> : <SignIn/>}
+              {isLogin? <SignIn/> : <LoginScreen/> }
 
 
               <View className='flex-row justify-center items-center'>

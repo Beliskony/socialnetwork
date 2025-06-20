@@ -6,7 +6,7 @@ const BASE_URL = 'https://apisocial-g8z6.onrender.com/api';
 
 //Pour Posts
 export const fetchPosts = () => axios.get(`${BASE_URL}/post/getAllPosts`)
-export const crestePost = (user: string) => axios.post(`${BASE_URL}/post/create/${user}`)
+export const createPost = (user: string) => axios.post(`${BASE_URL}/post/create/${user}`)
 export const deletePost = (user: string ,postId: string) => axios.delete(`${BASE_URL}/post/delete/${user}/${postId}`)
 export const updatePost = (user: string, postId: string) => axios.patch(`${BASE_URL}/post/update/${user}/${postId}`)
 export const postByUser = (user: string) => axios.get(`${BASE_URL}/post/${user}`)
