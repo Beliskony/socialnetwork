@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "A-SocialApp",
+    "slug": "A-SocialApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/Logo.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/Logo.png",
+        "backgroundColor": "#2E3244"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/Logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/Logo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ]
+      
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
