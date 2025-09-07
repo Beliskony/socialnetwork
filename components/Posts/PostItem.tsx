@@ -180,7 +180,7 @@ const PostItem: React.FC<PostItemProps> = ({
   const isLiked = currentUser._id ? likes.includes(currentUser._id) : false;
 
   return (
-    <View className=" flex w-full border border-gray-200 rounded-xl mb-1 gap-y-2 justify-center items-center bg-white">
+    <View className=" flex w-full p-4 border border-gray-200 rounded-xl mb-1 gap-y-2 justify-center items-center bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-around px-2 py-1">
         <View className="w-full flex-row items-center">
