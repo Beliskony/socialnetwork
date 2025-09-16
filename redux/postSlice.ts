@@ -1,30 +1,22 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
-import { IUserPopulated ,ICommentPopulated } from '@/intefaces/comment.Interfaces'
-
+import { IUserPopulated, ICommentPopulated } from '@/intefaces/comment.Interfaces'
 
 export interface Media {
   images?: string[]
   videos?: string[]
 }
 
-
-
-
 export interface Post {
-  _id: string;
-  user: IUserPopulated; // ou directement { _id: string; username: string } si tu populates côté backend
-  text?: string;
-  media?: {
-    images?: string[];
-    videos?: string[];
-  };
-  likes?: string[]; // ✅ Type string[] car Mongo renvoie des IDs en string (pas Types.ObjectId)
-  comments?:ICommentPopulated[];
-  createdAt: string;
-  updatedAt: string;
+  _id: string
+  user: IUserPopulated
+  text?: string
+  media?: Media
+  likes?: string[]
+  comments?: ICommentPopulated[]
+  createdAt: string
+  updatedAt: string
 }
-
 
 interface PostState {
   posts: Post[]
@@ -35,49 +27,41 @@ interface PostState {
 const initialState: PostState = {
   posts: [],
   loading: false,
-  error: null
+  error: null,
 }
 
-// Thunk asynchrone pour ajouter un post
-export const addPost = createAsyncThunk(
+// Axios instance
+const api = axios.create({
+  baseURL: 'https://apisocial-g8z6.onrender.com/api',
+})
+
+// Utilitaire pour récupérer les headers auth
+const getAuthHeaders = (getState: any) => {
+  const token = (getState() as any).user.token
+  if (!token) throw new Error('Token manquant, veuillez vous connecter')
+  return { Authorization: `Bearer ${token}` }
+}
+
+// Thunks asynchrones
+export const addPost = createAsyncThunk<Post, { text?: string; media?: Media }, { rejectValue: string }>(
   'posts/addPost',
-  async (payload: { text?: string; media?: Media }, { getState, rejectWithValue }) => {
+  async (payload, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).user.token;
-      console.log('Token dans addPost:', token);
-      if (!token) {
-        return rejectWithValue('Token non trouvé, veuillez vous connecter');
-      }
-      const response = await axios.post('https://apisocial-g8z6.onrender.com/api/post/create', payload, 
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      return response.data // doit être un objet Post complet
+      const headers = getAuthHeaders(getState)
+      const response = await api.post('/post/create', payload, { headers })
+      return response.data
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du post')
     }
   }
 )
 
-// Thunk pour mettre à jour un post
-export const updatePostAsync = createAsyncThunk(
+export const updatePostAsync = createAsyncThunk<Post, { postId: string; data: Partial<Post> }, { rejectValue: string }>(
   'posts/updatePost',
-  async (payload: { postId: string; data: Partial<Post> }, { getState, rejectWithValue }) => {
+  async ({ postId, data }, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).user.token;
-      if (!token) {
-        return rejectWithValue('Token non trouvé, veuillez vous connecter');
-      }
-      const response = await axios.put(`https://apisocial-g8z6.onrender.com/api/post/update/${payload.postId}`, payload.data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      const headers = getAuthHeaders(getState)
+      const response = await api.put(`/post/update/${postId}`, data, { headers })
       return response.data
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Erreur lors de la modification du post')
@@ -85,22 +69,12 @@ export const updatePostAsync = createAsyncThunk(
   }
 )
 
-// Thunk pour supprimer un post
-export const deletePostAsync = createAsyncThunk(
+export const deletePostAsync = createAsyncThunk<string, string, { rejectValue: string }>(
   'posts/deletePost',
-  async (postId: string, { getState, rejectWithValue }) => {
+  async (postId, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).user.token;
-      if (!token) {
-        return rejectWithValue('Token non trouvé, veuillez vous connecter');
-      }
-      await axios.delete(`https://apisocial-g8z6.onrender.com/api/post/delete/${postId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      const headers = getAuthHeaders(getState)
+      await api.delete(`/post/delete/${postId}`, { headers })
       return postId
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression du post')
@@ -108,110 +82,74 @@ export const deletePostAsync = createAsyncThunk(
   }
 )
 
-
-//Thunk pour récupérer tous les posts
-export const fetchPostsAsync = createAsyncThunk(
+export const fetchPostsAsync = createAsyncThunk<Post[], void, { rejectValue: string }>(
   'posts/fetchPosts',
   async (_, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).user.token;
-      if (!token) {
-        return rejectWithValue('Token non trouvé, veuillez vous connecter');
-      }
-      const response = await axios.get('https://apisocial-g8z6.onrender.com/api/post/AllPosts',
-        { headers:{ Authorization: `Bearer ${token}` } }
-      );
-      return response.data // doit être un tableau de Post
-    } catch (error) {
-      return rejectWithValue(error)
+      const headers = getAuthHeaders(getState)
+      const response = await api.get('/post/AllPosts', { headers })
+      return response.data
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des posts')
     }
   }
 )
 
-
-export const fetchPostsByUserAsync = createAsyncThunk(
+export const fetchPostsByUserAsync = createAsyncThunk<Post[], void, { rejectValue: string }>(
   'posts/fetchPostsByUser',
   async (_, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).user.token;
-      if (!token) return rejectWithValue('Token non trouvé');
-
-      const response = await axios.get(`https://apisocial-g8z6.onrender.com/api/post/getPostsByUser`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      return response.data;
+      const headers = getAuthHeaders(getState)
+      const response = await api.get('/post/getPostsByUser', { headers })
+      return response.data
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des posts utilisateur');
-    }
-  }
-);
-
-
-//toggle liker une publication
-export const toggleLikePostAsync = createAsyncThunk(
-  'posts/toggleLikePost',
-  async ({postId}:{postId: string}, { getState, rejectWithValue }) => {
-    try {
-      const token = (getState() as any).user.token;
-      if (!token) return rejectWithValue('Token non trouvé');
-
-      const response = await axios.put(`https://apisocial-g8z6.onrender.com/api/like/toggle/${postId}`, 
-        {}, 
-       { headers: { Authorization: `Bearer ${token}` }}
-      );
-
-      return response.data;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Erreur lors du like/dislike du post');
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des posts utilisateur')
     }
   }
 )
 
+export const toggleLikePostAsync = createAsyncThunk<
+  { postId: string; liked: boolean; userId: string },
+  { postId: string },
+  { rejectValue: string }
+>('posts/toggleLikePost', async ({ postId }, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState)
+    const response = await api.put(`/like/toggle/${postId}`, {}, { headers })
+    return response.data
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du like/dislike du post')
+  }
+})
 
-
-
+// Slice
 const postSlice = createSlice({
   name: 'posts',
   initialState,
   reducers: {
-
     setPosts(state, action: PayloadAction<Post[]>) {
       state.posts = action.payload
     },
-
     updatePost(state, action: PayloadAction<Post>) {
-      const index = state.posts.findIndex(p => p._id === action.payload._id)
+      const index = state.posts.findIndex((p) => p._id === action.payload._id)
       if (index !== -1) state.posts[index] = action.payload
     },
-
     deletePost(state, action: PayloadAction<string>) {
-      state.posts = state.posts.filter(p => p._id !== action.payload)
+      state.posts = state.posts.filter((p) => p._id !== action.payload)
     },
-
-    postByUser(state, action: PayloadAction<Post[]>) {
-      state.posts = action.payload;
-    },
-
-    // Fonction pour liker ou retirer le like d'un post
     toggleLike(state, action: PayloadAction<{ postId: string; userId: string }>) {
-      const { postId, userId } = action.payload;
-      const post = state.posts.find(p => p._id === postId);
-
-        if (post) {
-        const index = post.likes?.indexOf(userId);
-          if (index !== undefined && index !== -1) {
-            post.likes?.splice(index, 1); // Retirer le like
-          } else{
-            post.likes?.push(userId); // Ajouter le like
-          }
+      const { postId, userId } = action.payload
+      const post = state.posts.find((p) => p._id === postId)
+      if (!post) return
+      if (post.likes?.includes(userId)) {
+        post.likes = post.likes.filter((id) => id !== userId)
+      } else {
+        post.likes?.push(userId)
       }
-    }
-
+    },
   },
-
   extraReducers: (builder) => {
-      builder
+    builder
       .addCase(addPost.pending, (state) => {
         state.loading = true
         state.error = null
@@ -222,28 +160,27 @@ const postSlice = createSlice({
       })
       .addCase(addPost.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload as string
+        state.error = action.payload || 'Erreur'
       })
       .addCase(updatePostAsync.fulfilled, (state, action) => {
-        const index = state.posts.findIndex(p => p._id === action.payload._id)
+        const index = state.posts.findIndex((p) => p._id === action.payload._id)
         if (index !== -1) state.posts[index] = action.payload
       })
       .addCase(deletePostAsync.fulfilled, (state, action) => {
-        state.posts = state.posts.filter(p => p._id !== action.payload)
+        state.posts = state.posts.filter((p) => p._id !== action.payload)
       })
       .addCase(toggleLikePostAsync.fulfilled, (state, action) => {
-        const { postId, liked, userId } = action.payload;
-        const post = state.posts.find(p => p._id === postId);
-     
-       if (post && userId) {
-        if (liked && !post.likes?.includes(userId)) {
-          post.likes?.push(userId);
-        } else if (!liked && post.likes?.includes(userId)) {
-            post.likes = post.likes?.filter(id => id !== userId);
-          }
-        }
+        const { postId, liked, userId } = action.payload
+        if (!userId) return
+        postSlice.caseReducers.toggleLike(state, { payload: { postId, userId }, type: '' })
       })
-    },
+      .addCase(fetchPostsAsync.fulfilled, (state, action) => {
+        state.posts = action.payload
+      })
+      .addCase(fetchPostsByUserAsync.fulfilled, (state, action) => {
+        state.posts = action.payload
+      })
+  },
 })
 
 export const { setPosts, updatePost, deletePost, toggleLike } = postSlice.actions

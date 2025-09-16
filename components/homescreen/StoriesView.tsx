@@ -1,78 +1,83 @@
-// Description: This component fetches and displays user stories in a horizontal scrollable view. When a story is clicked, it opens in a modal view with an option to close it.
-import { View, Text, Image, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-
-
-interface Story {
-    id: string;
-    username: string;
-    avatar: string;
-    storyImage: string;
-}
+import { useDispatch, useSelector } from 'react-redux';
+import {AppDispatch, RootState } from '@/redux/store'; // adapte à ton store
+import { fetchStoriesAsync } from '@/redux/storySlice';
 
 const Stories: React.FC = () => {
-    const [storiesData, setStoriesData] = useState<Story[]>([]);
-    const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const { stories, loading, error } = useSelector((state: RootState) => state.stories);
 
-   /* useEffect(() => {
-        const fetchStories = async () => {
-            try {
-                const response = await axios.get('https://apisocial.railway.internal/api/story/create/:userId');
-                setStoriesData(response.data);
-            } catch (error) {
-                console.error('Error fetching stories:', error);
-            }
-        };
+  const [selectedStory, setSelectedStory] = useState<string | null>(null);
 
-        fetchStories();
-    }, []);
+  useEffect(() => {
+    dispatch(fetchStoriesAsync());
+  }, [dispatch]);
 
-    const openStory = (story: Story) => {
-        setSelectedStory(story);
-    };
+  const openStory = (storyId: string) => {
+    setSelectedStory(storyId);
+  };
 
-    const closeStory = () => {
-        setSelectedStory(null);
-    };*/
+  const closeStory = () => {
+    setSelectedStory(null);
+  };
 
-    return (
-        <View className="flex-row p-2">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {storiesData.map((story) => (
-                    <TouchableOpacity
-                        key={story.id}
-                        className="items-center mx-2"
-                        //onPress={() => openStory(story)}
-                    >
-                        <Image
-                            source={{ uri: story.avatar }}
-                            className="w-12 h-12 rounded-full border-2 border-orange-500"
-                        />
-                        <Text className="mt-1 text-xs text-gray-800">{story.username}</Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+  // Story sélectionnée
+  const currentStory = stories.find((s) => s._id === selectedStory);
 
-            <Modal visible={!!selectedStory} animationType="fade" transparent>
-                {selectedStory && (
-                    <View className="flex-1 bg-black/90 justify-center items-center">
-                        <Image
-                            source={{ uri: selectedStory.storyImage }}
-                            className="w-[90%] h-[70%] resize-contain"
-                        />
-                        <TouchableOpacity
-                            className="mt-5 px-4 py-2 bg-orange-500 rounded"
-                           // onPress={closeStory}
-                        >
-                            <Text className="text-white font-bold">Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </Modal>
-        </View>
-    );
+  return (
+    <View className="flex-row p-2">
+      {loading ? (
+        // Skeleton simple
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {[...Array(5)].map((_, i) => (
+            <View key={i} className="items-center mx-2">
+              <View className="w-12 h-12 rounded-full bg-gray-300 animate-pulse" />
+              <View className="mt-1 w-10 h-3 bg-gray-300 rounded animate-pulse" />
+            </View>
+          ))}
+        </ScrollView>
+      ) : error ? (
+        <Text className="text-red-500">{error}</Text>
+      ) : stories.length === 0 ? (
+        <Text className="text-gray-500">Aucune story disponible</Text>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {stories.map((story) => (
+            <TouchableOpacity
+              key={story._id}
+              className="items-center mx-2"
+              onPress={() => openStory(story._id)}
+            >
+              <Image
+                source={{ uri: story.mediaUrl }}
+                className="w-12 h-12 rounded-full border-2 border-orange-500"
+              />
+              <Text className="mt-1 text-xs text-gray-800">{story.user}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Modal story */}
+      <Modal visible={!!currentStory} animationType="fade" transparent>
+        {currentStory && (
+          <View className="flex-1 bg-black/90 justify-center items-center">
+            <Image
+              source={{ uri: currentStory.mediaUrl }}
+              className="w-[90%] h-[70%] resize-contain"
+            />
+            <TouchableOpacity
+              className="mt-5 px-4 py-2 bg-orange-500 rounded"
+              onPress={closeStory}
+            >
+              <Text className="text-white font-bold">Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Modal>
+    </View>
+  );
 };
 
 export default Stories;

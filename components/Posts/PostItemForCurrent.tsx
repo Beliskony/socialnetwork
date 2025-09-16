@@ -207,10 +207,10 @@ const handleLike = async (postId: string, userId: string) => {
  
   return (
     
-    <View className="w-full border-t border-gray-200 rounded-xl px-2 py-1 mb-6 gap-y-1 justify-center items-center bg-white">
+    <View className="w-full shadow-xl rounded-xl p-4 mb-6 gap-y-1 justify-center items-center bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-around">
-        <View className="w-full flex-row items-center">
+        <View className="w-full flex-row items-center py-2">
           {postUser.profilePicture && (
             <Image
               source={{ uri: postUser.profilePicture }}

@@ -1,20 +1,22 @@
 // redux/slices/userSlice.ts
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { RootState } from './store'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import axios from 'axios'
-import { act } from 'react'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from './store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
+// ================== Types ==================
 export interface UserState {
-  _id: string
-  username: string
-  email: string
-  profilePicture?: string
-  phoneNumber?: string
-  token?: string
-  followersCount: number
-  postsCount: number
-  isLoggedIn: boolean
+  _id: string;
+  username: string;
+  email: string;
+  profilePicture?: string;
+  phoneNumber?: string;
+  token?: string;
+  followersCount: number;
+  postsCount: number;
+  isLoggedIn: boolean;
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: UserState = {
@@ -23,123 +25,171 @@ const initialState: UserState = {
   email: '',
   profilePicture: '',
   phoneNumber: '',
-  token: '',
+  token: undefined, // ⚡ undefined par défaut
   followersCount: 0,
   postsCount: 0,
   isLoggedIn: false,
-}
+  loading: false,
+  error: null,
+};
 
+// ================== Thunks ==================
 
-//Thunk pour mise à jour du profil utilisateur
-export const updateUserAsync = createAsyncThunk(
-  'user/updateUser',
-  async (updateData: Partial<UserState>, {getState, rejectWithValue}) => {
-    try {
-      const state: any = getState()
-      const token = state.user.token
+// --- Login ---
+export const loginAsync = createAsyncThunk<
+  { user: UserState; token: string },
+  { email: string; password: string },
+  { rejectValue: string }
+>('user/login', async (credentials, { rejectWithValue }) => {
+  try {
+    const response = await axios.post('https://apisocial-g8z6.onrender.com/api/user/login', credentials);
+    const { user, token } = response.data;
 
-      const response = await axios.put(`https://apisocial-g8z6.onrender.com/api/user/profile`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+    // Sauvegarde du token
+    await AsyncStorage.setItem('token', token);
 
-      return response.data.user
-    } catch (error) {
-      return rejectWithValue(error)
-    }
+    return { user, token };
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors de la connexion');
   }
-)
+});
 
-//Thunk pour récupérer les informations de l'utilisateur
-export const fetchUserMe = createAsyncThunk(
-  'user/fetchUserme',
-  async (_, {getState, rejectWithValue}) => {
-    try {
-      const state: any = getState()
-      const token = state.user.token
-      if (!token) return rejectWithValue('Token manquant')
+// --- Register ---
+export const registerAsync = createAsyncThunk<
+  { user: UserState; token: string },
+  { username: string; email: string; password: string },
+  { rejectValue: string }
+>('user/register', async (payload, { rejectWithValue }) => {
+  try {
+    const response = await axios.post('https://apisocial-g8z6.onrender.com/api/user/register', payload);
+    const { user, token } = response.data;
 
-        const reponse = await axios.get(`https://apisocial-g8z6.onrender.com/api/user/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+    await AsyncStorage.setItem('token', token);
 
-        return reponse.data
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message)
-    }
+    return { user, token };
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors de l’inscription');
   }
-)
+});
 
+// --- Fetch user connecté ---
+export const fetchUserMe = createAsyncThunk<
+  UserState,
+  void,
+  { rejectValue: string; state: RootState }
+>('user/fetchUserMe', async (_, { getState, rejectWithValue }) => {
+  try {
+    const token = getState().user.token;
+    if (!token) return rejectWithValue('Token manquant');
+
+    const response = await axios.get('https://apisocial-g8z6.onrender.com/api/user/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return { ...response.data, token } as UserState; // ⚡ on garde le token existant
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement de l’utilisateur');
+  }
+});
+
+// --- Load token au démarrage ---
+export const loadToken = createAsyncThunk('user/loadToken', async (_, { dispatch }) => {
+  const token = await AsyncStorage.getItem('token');
+  if (token) {
+    // Tu pourrais aussi déclencher fetchUserMe direct ici
+    dispatch(setUser({ token, _id: '', username: '', email: '', followersCount: 0, postsCount: 0 }));
+  }
+});
+
+// ================== Slice ==================
 
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<Omit<UserState, 'isLoggedIn'> & { isLoggedIn?: boolean }>) => {
-      const { _id, username, email, profilePicture, phoneNumber, token, followersCount, postsCount, isLoggedIn } = action.payload
-      state._id = _id
-      state.username = username
-      state.email = email
-      state.profilePicture = profilePicture
-      state.phoneNumber = phoneNumber
-      state.token = token
-      state.followersCount = followersCount
-      state.postsCount = postsCount
-      state.isLoggedIn = isLoggedIn ?? true
-
-      if (token) {
-        AsyncStorage.setItem('token', token)
-      }
+    setUser: (
+      state,
+      action: PayloadAction<Partial<UserState> & { isLoggedIn?: boolean }>
+    ) => {
+      Object.assign(state, action.payload);
+      state.isLoggedIn = action.payload.isLoggedIn ?? true;
     },
     logout: (state) => {
-      state._id = ''
-      state.username = ''
-      state.email = ''
-      state.profilePicture = undefined
-      state.phoneNumber = undefined
-      state.token = undefined
-      state.followersCount = 0
-      state.postsCount = 0
-      state.isLoggedIn = false
+      state._id = '';
+      state.username = '';
+      state.email = '';
+      state.profilePicture = undefined;
+      state.phoneNumber = undefined;
+      state.token = undefined;
+      state.followersCount = 0;
+      state.postsCount = 0;
+      state.isLoggedIn = false;
+      state.loading = false;
+      state.error = null;
+      AsyncStorage.removeItem('token');
     },
   },
-
-  extraReducers(builder) {
-      builder
-      .addCase(updateUserAsync.pending, (state) =>{})
-      .addCase(updateUserAsync.fulfilled, (state, action: PayloadAction<Partial<UserState>>) => {
-        Object.entries(action.payload).forEach(([key, value]) => {
-          if (value !== undefined && key in state) {
-            (state as any)[key] = value
-          }
-        })
+  extraReducers: (builder) => {
+    // Login
+    builder
+      .addCase(loginAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
-      .addCase(fetchUserMe.fulfilled, (state, action: PayloadAction<UserState>) => {
-        const payload = action.payload
-        state._id = payload._id
-        state.username = payload.username
-        state.email = payload.email
-        state.profilePicture = payload.profilePicture
-        state.phoneNumber = payload.phoneNumber
-        state.token = payload.token
-        state.followersCount = payload.followersCount
-        state.postsCount = payload.postsCount
-        state.isLoggedIn = true
+      .addCase(loginAsync.fulfilled, (state, action) => {
+        const { user, token } = action.payload;
+        Object.assign(state, user);
+        state.token = token;
+        state.isLoggedIn = true;
+        state.loading = false;
+      })
+      .addCase(loginAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Register
+    builder
+      .addCase(registerAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerAsync.fulfilled, (state, action) => {
+        const { user, token } = action.payload;
+        Object.assign(state, user);
+        state.token = token;
+        state.isLoggedIn = true;
+        state.loading = false;
+      })
+      .addCase(registerAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // FetchUserMe
+    builder
+      .addCase(fetchUserMe.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserMe.fulfilled, (state, action) => {
+        Object.assign(state, action.payload);
+        state.isLoggedIn = true;
+        state.loading = false;
       })
       .addCase(fetchUserMe.rejected, (state, action) => {
-        state.isLoggedIn = false
-        state.token = undefined
-      })
+        state.isLoggedIn = false;
+        state.token = undefined;
+        state.loading = false;
+        state.error = action.payload as string;
+      });
   },
-})
+});
 
-export const selectCurrentUser = (state: RootState): UserState |undefined => {
-  return state.user.isLoggedIn ? state.user : undefined
-}
+// ================== Selectors ==================
 
-export const { setUser, logout } = userSlice.actions
-export default userSlice.reducer
+export const selectCurrentUser = (state: RootState): UserState | undefined =>
+  state.user.isLoggedIn ? state.user : undefined;
+
+export const { setUser, logout } = userSlice.actions;
+export default userSlice.reducer;

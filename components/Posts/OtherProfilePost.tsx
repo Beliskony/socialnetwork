@@ -1,24 +1,23 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator, Text, View } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import PostItem from './PostItem';
+import SkeletonPostItem from '../skeletons/SkeletonPostItem';
 
 const OtherProfilePostsList = () => {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const correctUser = useSelector((state: RootState) => state.user);
-  
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get('https://apisocial-g8z6.onrender.com/api/post/getPostsByUser',
-      {
-        headers: { Authorization: `Bearer ${correctUser.token}` },
-      });
-      
-    setPosts(response.data.reverse());
+      const response = await axios.get(
+        'https://apisocial-g8z6.onrender.com/api/post/getPostsByUser',
+        { headers: { Authorization: `Bearer ${correctUser.token}` } }
+      );
+      setPosts(response.data.reverse());
     } catch (error) {
       console.error('Erreur lors du chargement des posts:', error);
     } finally {
@@ -27,9 +26,7 @@ const OtherProfilePostsList = () => {
   };
 
   useEffect(() => {
-    if (correctUser && correctUser.token) {
-      fetchPosts();
-    }
+    if (correctUser && correctUser.token) fetchPosts();
   }, [correctUser]);
 
   const handleLike = async (postId: string) => {
@@ -37,7 +34,7 @@ const OtherProfilePostsList = () => {
       await axios.put(`https://apisocial-g8z6.onrender.com/api/like/post/${postId}`, {
         userId: correctUser._id,
       });
-      fetchPosts(); // Rafraîchit les posts
+      fetchPosts();
     } catch (error) {
       console.error('Erreur lors du like:', error);
     }
@@ -56,7 +53,6 @@ const OtherProfilePostsList = () => {
   };
 
   const handleEdit = (postId: string) => {
-    // À implémenter selon ta logique (naviguer vers un écran d’édition, par ex.)
     console.log('Éditer post:', postId);
   };
 
@@ -72,25 +68,29 @@ const OtherProfilePostsList = () => {
   return (
     <ScrollView className="flex w-full h-full py-2">
       {loading ? (
-        <ActivityIndicator size="large" color="#555" />
+        // Affiche 3 skeletons pendant le chargement
+        <>
+          <SkeletonPostItem />
+          <SkeletonPostItem />
+          <SkeletonPostItem />
+        </>
       ) : posts.length === 0 ? (
         <Text>Aucune publication trouvée.</Text>
       ) : (
-        posts.map((post: any) => (
-          // Assure que chaque post a un utilisateur, sinon utilise l'utilisateur actuel
-          post && post.user ? (
-          <PostItem
-            key={post._id}
-            post={{ ...post, author: post.user }} // Assure que le post a un utilisateur
-            onLike={handleLike}
-            onComment={handleComment}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          /> 
-          ) : null
-      )
-    )
-    )} 
+        posts.map(
+          (post: any) =>
+            post && post.user && (
+              <PostItem
+                key={post._id}
+                post={{ ...post, user: post.user }}
+                onLike={handleLike}
+                onComment={handleComment}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            )
+        )
+      )}
     </ScrollView>
   );
 };
