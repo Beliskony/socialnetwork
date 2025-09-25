@@ -6,9 +6,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { AppDispatch, RootState } from '@/redux/store';
 import { addPost, Media } from '@/redux/postSlice';
+import { Post } from '@/intefaces/post.Interface';
 
 interface NewPostProps {
-  onPostCreated?: () => void;
+  onPostCreated?: (post: Post) => void;
 }
 
 type MediaState = {
@@ -19,18 +20,22 @@ type MediaState = {
 const NewPost: React.FC<NewPostProps> = ({ onPostCreated }) => {
   const [content, setContent] = useState('');
   const [media, setMedia] = useState<MediaState>({ images: [], videos: [] });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
 
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.posts);
+
+
 
   // Picker pour les images et vidéos
   const handleAddMedia = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) return alert("Permission d'accès à la galerie refusée !");
+    
 
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'], // ✅ supporté depuis expo-image-picker v16+
+      allowsEditing: false,
       allowsMultipleSelection: true,
       quality: 1,
     });
@@ -59,25 +64,37 @@ const NewPost: React.FC<NewPostProps> = ({ onPostCreated }) => {
     }));
   };
 
-  // Publication
-  const handleSubmit = async () => {
-    if (!content.trim() && media.images.length === 0 && media.videos.length === 0) return;
+// ✅ Ne plus utiliser FormData
+const handleSubmit = async () => {
+  if (!content.trim() && media.images.length === 0 && media.videos.length === 0) return;
 
-    setIsLoading(true);
-    const payload = { text: content, media: { images: media.images, videos: media.videos } };
+  setIsLoading(true);
 
-    try {
-      await dispatch(addPost(payload)).unwrap();
-      setContent('');
-      setMedia({ images: [], videos: [] });
-      onPostCreated?.();
-    } catch (err) {
-      console.error('Erreur réseau:', err);
-      alert('Erreur lors de la publication. Veuillez réessayer.');
-    } finally {
-      setIsLoading(false);
-    }
+  console.log("Contenu:", content);
+  console.log("Images à uploader:", media.images);
+  console.log("Vidéos à uploader:", media.videos);
+
+  const payload = {
+    text: content,
+    media: {
+      images: media.images,
+      videos: media.videos,
+    },
   };
+
+  try {
+    const newPost = await dispatch(addPost(payload)).unwrap();
+    setContent('');
+    setMedia({ images: [], videos: [] });
+    onPostCreated?.(newPost);
+  } catch (err) {
+    console.error('Erreur réseau:', err);
+    alert('Erreur lors de la publication. Veuillez réessayer.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <View className="flex flex-col w-full mb-2 bg-white p-2">
@@ -147,7 +164,7 @@ const NewPost: React.FC<NewPostProps> = ({ onPostCreated }) => {
         )}
       </TouchableOpacity>
 
-      {error && <Text className="text-red-500 mt-2">{error}</Text>}
+      {typeof error ==="string" && <Text className="text-red-500 mt-2">{error}</Text>}
     </View>
   );
 };

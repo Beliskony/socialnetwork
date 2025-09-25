@@ -5,6 +5,7 @@
     "target": "esnext",
     "esModuleInterop": true,
     "strict": true,
+    "types": ["react", "react-native"],
     "paths": {
       "@/*": [
         "./*"

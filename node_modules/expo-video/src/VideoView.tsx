@@ -20,6 +20,9 @@ export function isPictureInPictureSupported(): boolean {
 }
 
 export class VideoView extends PureComponent<VideoViewProps> {
+  /**
+   * A reference to the underlying native view. On web it is a reference to the HTMLVideoElement.
+   */
   nativeRef = createRef<any>();
 
   /**
@@ -63,6 +66,12 @@ export class VideoView extends PureComponent<VideoViewProps> {
   render(): ReactNode {
     const { player, ...props } = this.props;
     const playerId = getPlayerId(player);
+
+    if (props.allowsFullscreen !== undefined) {
+      console.warn(
+        'The `allowsFullscreen` prop is deprecated and will be removed in a future release. Use `fullscreenOptions` prop instead.'
+      );
+    }
 
     if (NativeTextureVideoView && this.props.surfaceType === 'textureView') {
       return <NativeTextureVideoView {...props} player={playerId} ref={this.nativeRef} />;

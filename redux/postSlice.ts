@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
 import { IUserPopulated, ICommentPopulated } from '@/intefaces/comment.Interfaces'
+import { RootState } from './store'
+import { Platform } from 'react-native'
 
 export interface Media {
   images?: string[]
@@ -38,23 +40,84 @@ const api = axios.create({
 // Utilitaire pour récupérer les headers auth
 const getAuthHeaders = (getState: any) => {
   const token = (getState() as any).user.token
+  console.log("Token utilisé:", token);
+
   if (!token) throw new Error('Token manquant, veuillez vous connecter')
   return { Authorization: `Bearer ${token}` }
+
 }
 
-// Thunks asynchrones
-export const addPost = createAsyncThunk<Post, { text?: string; media?: Media }, { rejectValue: string }>(
-  'posts/addPost',
-  async (payload, { getState, rejectWithValue }) => {
-    try {
-      const headers = getAuthHeaders(getState)
-      const response = await api.post('/post/create', payload, { headers })
-      return response.data
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du post')
-    }
+// ---- Utils : Upload Cloudinary ----
+const uploadToCloudinary = async (
+  uri: string,
+  type: "image" | "video"
+): Promise<string> => {
+  let uploadUri = uri;
+  if (Platform.OS === 'ios') {
+    uploadUri = uri.replace('file://', '');
   }
-)
+
+  const data = new FormData();
+  data.append("file", {
+    uri,
+    type: type === "image" ? "image/jpeg" : "video/mp4",
+    name: `upload.${type === "image" ? "jpg" : "mp4"}`,
+  } as any);
+  data.append("upload_preset", "reseau-social");
+
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`,
+    {
+      method: "POST",
+      body: data,
+    }
+  );
+
+  const json = await res.json();
+  if (!json.secure_url) throw new Error("Erreur upload Cloudinary");
+  return json.secure_url;
+};
+
+
+// Thunks asynchrones
+export const addPost = createAsyncThunk<
+  Post,
+  { text?: string; media?: Media },
+  { rejectValue: string }
+>("posts/addPost", async (payload, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+
+    // Upload images local URI vers Cloudinary
+    const uploadedImages = payload.media?.images
+      ? await Promise.all( payload.media.images.map((img) => uploadToCloudinary(img, "image") )
+      ) : [];
+      console.log("✅ Images uploadées :", uploadedImages);
+
+    const uploadedVideos = payload.media?.videos
+      ? await Promise.all( payload.media.videos.map((vid) => uploadToCloudinary(vid, "video") )
+      ) : [];
+
+
+    const body = {
+      text: payload.text,
+      media: {
+        images: uploadedImages,
+        videos: uploadedVideos,
+      },
+    };
+
+    const response = await api.post("/post/create", body, { headers });
+
+    return response.data;
+  } catch (err: any) {
+    console.error("Erreur complète:", err.response?.data || err.message);
+return rejectWithValue(err.response?.data?.message || "Erreur inconnue");
+
+  }
+});
+
 
 export const updatePostAsync = createAsyncThunk<Post, { postId: string; data: Partial<Post> }, { rejectValue: string }>(
   'posts/updatePost',
@@ -69,15 +132,27 @@ export const updatePostAsync = createAsyncThunk<Post, { postId: string; data: Pa
   }
 )
 
-export const deletePostAsync = createAsyncThunk<string, string, { rejectValue: string }>(
+// delete post thunk
+export const deletePostAsync = createAsyncThunk<
+  string,     // Ce que la thunk retourne (ici on renvoie l'ID du post supprimé)
+  string,     // Type de l’argument (ici le postId)
+  { state: RootState; rejectValue: string }  // Pour typer getState + rejectValue
+>(
   'posts/deletePost',
   async (postId, { getState, rejectWithValue }) => {
     try {
       const headers = getAuthHeaders(getState)
-      await api.delete(`/post/delete/${postId}`, { headers })
+      console.log("Headers suppression:", headers)
+
+      const response = await api.delete(`/post/delete/${postId}`, { headers })
+      console.log("Réponse suppression:", response.data)
+
       return postId
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression du post')
+      console.error("Erreur backend:", err.response?.data)
+      return rejectWithValue(
+        err.response?.data?.message || 'Erreur lors de la suppression du post'
+      )
     }
   }
 )

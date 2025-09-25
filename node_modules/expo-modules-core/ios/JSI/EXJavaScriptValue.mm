@@ -123,12 +123,7 @@
 
   for (size_t i = 0; i < arraySize; i++) {
     jsi::Value item = jsiArray.getValueAtIndex(*runtime, i);
-
-    if (item.isUndefined() || item.isNull()) {
-      [result addObject:(id)kCFNull];
-    } else {
-      [result addObject:[[EXJavaScriptValue alloc] initWithRuntime:_runtime value:std::move(item)]];
-    }
+    [result addObject:[[EXJavaScriptValue alloc] initWithRuntime:_runtime value:std::move(item)]];
   }
   return result;
 }
@@ -188,7 +183,7 @@
 {
   jsi::Runtime *jsiRuntime = [runtime get];
   return [[EXJavaScriptValue alloc] initWithRuntime:runtime
-                                              value:jsi::String::createFromUtf8(*jsiRuntime, [value UTF8String])];
+                                              value:expo::convertNSStringToJSIString(*jsiRuntime, value)];
 }
 
 + (nonnull EXJavaScriptValue *)from:(nullable id)value runtime:(nonnull EXJavaScriptRuntime *)runtime

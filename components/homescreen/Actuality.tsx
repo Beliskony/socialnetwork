@@ -4,11 +4,10 @@ import PostsList from '../Posts/PostList'
 
 const Actuality = () => {
   return (
-    <SafeAreaView className="flex-1 ">
-      <ScrollView>
-        <NewPost />
+    <SafeAreaView className="flex h-[85%] ">
+
         <PostsList  />
-      </ScrollView>
+      
 
     </SafeAreaView>
   )

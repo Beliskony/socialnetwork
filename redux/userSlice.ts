@@ -1,6 +1,6 @@
 // redux/slices/userSlice.ts
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from './store';
+import { AppDispatch, RootState } from './store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
@@ -93,13 +93,19 @@ export const fetchUserMe = createAsyncThunk<
 });
 
 // --- Load token au démarrage ---
-export const loadToken = createAsyncThunk('user/loadToken', async (_, { dispatch }) => {
-  const token = await AsyncStorage.getItem('token');
-  if (token) {
-    // Tu pourrais aussi déclencher fetchUserMe direct ici
-    dispatch(setUser({ token, _id: '', username: '', email: '', followersCount: 0, postsCount: 0 }));
+export const loadToken = createAsyncThunk(
+  'user/loadToken',
+  async (_, { dispatch }) => {
+    const saved = await AsyncStorage.getItem('auth');
+    if (saved) {
+      const { user, token } = JSON.parse(saved);
+      // On met d'abord le token dans Redux
+      dispatch(setUser({ ...user, token, isLoggedIn: true }));
+      // Puis on va chercher les infos user
+      await (dispatch as AppDispatch)(fetchUserMe());
+    }
   }
-});
+);
 
 // ================== Slice ==================
 
@@ -126,7 +132,7 @@ const userSlice = createSlice({
       state.isLoggedIn = false;
       state.loading = false;
       state.error = null;
-      AsyncStorage.removeItem('token');
+      AsyncStorage.removeItem('auth');
     },
   },
   extraReducers: (builder) => {

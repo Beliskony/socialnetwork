@@ -37,7 +37,7 @@ type Post = {
   text?: string;
   createdAt: string;
   likes?: string[];
-  comments: Comment[];
+  comments?: Comment[];
   media?: Media;
 };
 

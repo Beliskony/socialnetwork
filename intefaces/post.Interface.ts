@@ -8,7 +8,7 @@ export interface Post {
     images?: string[];
     videos?: string[];
   };
-  comments: ICommentPopulated[] ;
+  comments?: ICommentPopulated[] ;
   createdAt: string;
   updatedAt: string;
 }

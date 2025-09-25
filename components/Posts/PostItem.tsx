@@ -5,7 +5,7 @@ import { AppDispatch } from '@/redux/store';
 import { toggleLikePostAsync } from '@/redux/postSlice';
 import { selectCurrentUser } from '@/redux/userSlice';
 import { addCommentAsync, fetchCommentsByPostAsync } from '@/redux/commentSlice';
-import { updatePostAsync } from '@/redux/postSlice';
+import { updatePostAsync, deletePostAsync } from '@/redux/postSlice';
 import MediaSlider from './MediaSlider';
 
 // Types
@@ -33,7 +33,7 @@ type Post = {
   text?: string;
   createdAt: string;
   likes?: string[];
-  comments: Comment[];
+  comments?: Comment[];
   media?: Media;
 };
 
@@ -53,6 +53,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text || '');
   const [showOptions, setShowOptions] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const currentUser = useSelector(selectCurrentUser);
   const dispatch = useDispatch<AppDispatch>();
@@ -101,6 +102,29 @@ const PostItem: React.FC<PostItemProps> = ({ post, onDelete }) => {
     }
   };
 
+  //Delete Logic 
+  const handleDelete = () => {
+    if (deleting) return;
+    Alert.alert(
+      'Confirmer la suppression',
+      'Êtes-vous sûr de vouloir supprimer ce post ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: async () => {
+          try{
+            setDeleting(true);
+            await dispatch(deletePostAsync(post._id)).unwrap();
+            onDelete(post._id);
+          } catch (error){
+            Alert.alert('Erreur', 'Impossible de supprimer le post.');
+          } finally {
+            setDeleting(false);
+          }
+        } },
+      ]
+    );
+  }
+
   const isLiked = currentUser ? likes.includes(currentUser._id) : false;
 
   return (
@@ -125,7 +149,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, onDelete }) => {
                   <TouchableOpacity onPress={() => { setShowOptions(false); handleEditSubmit() }}>
                     <Text className="px-4 py-2 text-base">Modifier</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { setShowOptions(false)  }}>
+                  <TouchableOpacity onPress={() => { setShowOptions(false); handleDelete()  }}>
                     <Text className="px-4 py-2 text-base text-red-600">Supprimer</Text>
                   </TouchableOpacity>
                 </View>
