@@ -46,7 +46,8 @@ export const loginAsync = createAsyncThunk<
     const { user, token } = response.data;
 
     // Sauvegarde du token
-    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('auth', JSON.stringify({ user, token }));
+
 
     return { user, token };
   } catch (err: any) {
@@ -64,7 +65,8 @@ export const registerAsync = createAsyncThunk<
     const response = await axios.post('https://apisocial-g8z6.onrender.com/api/user/register', payload);
     const { user, token } = response.data;
 
-    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('auth', JSON.stringify({ user, token }));
+
 
     return { user, token };
   } catch (err: any) {

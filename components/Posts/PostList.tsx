@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Text,
-  Platform,
-  FlatList,
-} from 'react-native';
+import { KeyboardAvoidingView, Text, Platform, FlatList, Modal, View, TouchableOpacity,} from 'react-native';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import PostItem from './PostItem';
 import { Post } from '@/intefaces/post.Interface';
 import NewPost from './NewPost';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 const PostsList = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const correctUser = useSelector((state: RootState) => state.user);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = async () => {
@@ -63,17 +61,12 @@ const PostsList = () => {
     }
   };
 
-  const handleEdit = (postId: string) => {
-    console.log('Éditer post:', postId);
+  const handleEdit = (post: Post) => {
+    setEditingPost(post); 
   };
-
-const handleNewPost = (newPost: Post) => {
-  setPosts(prev => [newPost, ...prev]);
-};
 
   return (
 <>
-  <NewPost onPostCreated={handleNewPost}/>
 
 
   <KeyboardAvoidingView
@@ -100,6 +93,28 @@ const handleNewPost = (newPost: Post) => {
     contentContainerStyle={{ paddingBottom: 100 }} // espace pour clavier
   />
 </KeyboardAvoidingView>
+
+  
+    <Modal visible={!!editingPost} animationType="slide" onRequestClose={() => setEditingPost(null)} >
+      <BlurView intensity={50} tint={Platform.OS === 'ios' ? 'light' : 'dark'} style={{ flex: 1, justifyContent: 'center', alignItems: 'center'  }} >
+        <View style={{ width:'100%', padding: 20, backgroundColor: 'white', maxHeight:'80%', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, borderRadius: 10, }}>
+         {/* Bouton fermer */}
+          <TouchableOpacity onPress={() => setEditingPost(null)} style={{ position: 'absolute', top: 4, right: 6, zIndex: 10, padding: 8, }}
+            hitSlop={{ top: 5, bottom: 2, left: 10, right: 10 }} >
+            <MaterialIcons name="close" size={20} color="#333" />
+          </TouchableOpacity>
+
+          {editingPost && (
+            <NewPost initialPost={editingPost} onPostUpdated={(updatedPost) => {
+              setPosts((prevPosts) => prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)) );
+              setEditingPost(null);
+            }}
+            onClose={() => setEditingPost(null)} />
+          )}
+        </View>
+      </BlurView>
+    </Modal>
+
 </>
 
   );

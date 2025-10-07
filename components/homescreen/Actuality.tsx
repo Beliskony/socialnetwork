@@ -1,15 +1,15 @@
-import { SafeAreaView,ScrollView, View } from 'react-native'
-import NewPost from '../Posts/NewPost'
+
 import PostsList from '../Posts/PostList'
+import { View } from 'react-native'
+import HeaderOfApp from './HeaderOfApp'
+import { ScrollView } from 'react-native-gesture-handler'
 
 const Actuality = () => {
   return (
-    <SafeAreaView className="flex h-[85%] ">
-
-        <PostsList  />
-      
-
-    </SafeAreaView>
+    <ScrollView className="flex h-[85%] mt-0">
+        <HeaderOfApp />
+        <PostsList />
+    </ScrollView>
   )
 }
 

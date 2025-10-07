@@ -109,7 +109,6 @@ const MePost: React.FC = () => {
             item._id ? (
               <PostItemForCurrent
                 post={item}
-                onLike={handleLike}
                 onComment={handleComment}
                 onEdit={handleEdit}
                 onDelete={handleDelete}

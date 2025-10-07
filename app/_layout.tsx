@@ -4,11 +4,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 import '../global.css'
 import { Provider } from 'react-redux';
 import store from '@/redux/store';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -33,18 +34,21 @@ export default function RootLayout() {
   }
 
   return (
+  <GestureHandlerRootView style={{ flex: 1 }}>
     <Provider store={store}>
-      <ThemeProvider value={DefaultTheme}>
-        <SafeAreaView style={{flex: 1}}>
+      
+        <SafeAreaView style={{ flex: 1 }}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar style = 'dark'/>
-          </SafeAreaView>
-      </ThemeProvider>
+          <StatusBar style='dark' />
+        </SafeAreaView>
+    
     </Provider>
-  );
+  </GestureHandlerRootView>
+);
+
 }
 

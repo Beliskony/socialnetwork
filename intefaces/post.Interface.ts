@@ -8,6 +8,7 @@ export interface Post {
     images?: string[];
     videos?: string[];
   };
+  likes?: string[]; // IDs des utilisateurs qui ont liké le post
   comments?: ICommentPopulated[] ;
   createdAt: string;
   updatedAt: string;

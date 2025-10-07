@@ -1,24 +1,39 @@
 import { useRef, useState } from 'react';
-import {
-  View,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  ViewToken,
-} from 'react-native';
+import { View, FlatList, TouchableOpacity, Image, ViewToken, StyleSheet, Modal, Dimensions, Text } from 'react-native';
 import VideoPlayerItem from './VideoPlayerItem';
+import { PinchGestureHandler, PinchGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import Animated, {useSharedValue, useAnimatedStyle, withTiming} from 'react-native-reanimated';
 
 const WIDTH  = 350;
-const HEIGHT = 430;
+const HEIGHT = 370;
 
 type MediaItem = {
   uri: string;
   type: 'image' | 'video';
 };
 
-const MediaSlider = ({ post, openImage, openVideo }: any) => {
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+const MediaSlider = ({ post }: any) => {
+  const [fullScreenImage, setFullscreenImage] = useState<MediaItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const scale = useSharedValue(1);
+
+  const onPinchEvent = (event: PinchGestureHandlerGestureEvent) => {
+    scale.value = event.nativeEvent.scale;
+  };
+
+  const onPinchEnd = () => {
+    scale.value = withTiming(1); // Reset zoom when gesture ends
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
 
   const mediaData: MediaItem[] = [
     ...(post.media?.images?.map((uri: string) => ({ uri, type: 'image' })) || []),
@@ -39,6 +54,7 @@ const MediaSlider = ({ post, openImage, openVideo }: any) => {
 
   if (mediaData.length === 0) return null;
 
+
   return (
     <View style={{ flex: 1, marginHorizontal:10 }}>
     <View style={{ width: WIDTH, height: HEIGHT, justifyContent:'center', alignItems:'center' }}>
@@ -53,10 +69,10 @@ const MediaSlider = ({ post, openImage, openVideo }: any) => {
         viewabilityConfig={viewabilityConfig}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() =>
-              item.type === 'image' ? openImage(item.uri) : openVideo(item.uri)
-            }
-            activeOpacity={1}
+            onPress={() => {
+                if (item.type === 'image') setFullscreenImage(item);
+              }}
+              activeOpacity={1}
           >
             {item.type === 'image' ? (
               <Image
@@ -64,12 +80,12 @@ const MediaSlider = ({ post, openImage, openVideo }: any) => {
                 style={{
                   width: WIDTH,
                   height: HEIGHT,
-                  resizeMode: 'cover',
+                  resizeMode: 'contain',
                   borderRadius: 8,
                 }}
               />
             ) : (
-              <VideoPlayerItem uri={item.uri} />
+              <VideoPlayerItem uri={item.uri} isVisible />
             )}
           </TouchableOpacity>
         )}
@@ -102,8 +118,54 @@ const MediaSlider = ({ post, openImage, openVideo }: any) => {
         </View>
       )}
     </View>
+
+         {/* ✅ Plein écran local */}
+       <Modal visible={!!fullScreenImage} transparent={false} animationType="fade">
+        <View style={styles.fullscreenWrapper}>
+          {/* ✕ bouton pour fermer */}
+          <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.closeButton}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+
+          <PinchGestureHandler onGestureEvent={onPinchEvent} onEnded={onPinchEnd}>
+            <Animated.Image
+              source={{ uri: fullScreenImage?.uri }}
+              style={[styles.fullscreenImage, animatedStyle]}
+              resizeMode="contain"
+            />
+          </PinchGestureHandler>
+        </View>
+      </Modal>
     </View>
   );
 };
+
+
+const styles = StyleSheet.create({
+   fullscreenWrapper: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  closeText: {
+    color: 'white',
+    fontSize: 20,
+  },
+
+})
 
 export default MediaSlider;

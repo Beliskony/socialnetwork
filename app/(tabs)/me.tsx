@@ -1,63 +1,69 @@
-import { View, SafeAreaView, Text, Image } from 'react-native'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/redux/store'
-import { useState, useEffect } from 'react'
-import MePost from '@/components/Posts/MePost'
+import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/redux/store"
+import MePost from "@/components/Posts/MePost"
+import { formatCount } from "@/services/Compteur"
 
-function me() {
+function Me() {
   const correctUser = useSelector((state: RootState) => state.user)
 
   if (!correctUser) {
-    return(
-      <SafeAreaView className='flex-1 bg-[#C5C6C6] w-full items-center justify-center'>
-        <Text className='text-lg font-semibold text-center'>Chargement du profil...</Text>
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 w-full items-center justify-center">
+        <Text className="text-lg font-semibold text-center text-slate-700">Chargement du profil...</Text>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView className='flex-1 w-full'>
-       <View className='flex flex-row w-full items-center justify-between p-4'>
-        {/* photo et nom de profil */}
-          <View className='flex flex-row items-center gap-x-2 w-4/5'>
-            <Image
-              source={{ uri: correctUser.profilePicture }} // Remplace par l'URL de la photo de profil
-              className='w-12 h-12 rounded-full'
-            />
-            <View className='flex flex-col'>
-              <Text className='ml-2 text-lg font-semibold'>{correctUser.username}</Text>
-              <Text className='ml-2 text-sm text-gray-500'>@{correctUser.username}</Text>
+    <View className="flex-1 gap-y-4 bg-slate-50">
+      <ScrollView contentContainerStyle={{ alignItems: "center" }}>
+        <View className="w-full h-40 bg-gradient-to-br from-slate-800 to-slate-900 relative">
+          <Image source={{ uri: correctUser.profilePicture }} className="w-full h-full opacity-40" resizeMode="cover" />
+        </View>
+
+        <View className="w-full items-center bg-white mb-1 shadow-lg rounded-t-3xl -mt-6 pt-2">
+          <View className="-mt-16 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl">
+            <Image source={{ uri: correctUser.profilePicture }} className="w-full h-full" resizeMode="cover" />
+          </View>
+
+          <Text className="text-2xl font-bold mt-3 text-slate-900">{correctUser.username}</Text>
+          <Text className="text-base text-slate-500 mt-1">@{correctUser.username}</Text>
+
+          <View className="flex-row mt-5 space-x-4 gap-x-3">
+            <TouchableOpacity className="px-7 py-3 border-2 border-slate-200 rounded-full shadow-sm active:bg-slate-50">
+              <Text className="text-sm font-semibold text-slate-700">Message</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="px-7 py-3 bg-blue-500 rounded-full shadow-md active:bg-blue-600">
+              <Text className="text-sm font-semibold text-white">Modifier</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-row justify-between gap-x-8 w-full px-10 mt-7 pb-6">
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-slate-900">{formatCount(correctUser.followersCount)}</Text>
+              <Text className="text-sm text-slate-500 mt-1">Abonnés</Text>
+            </View>
+
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-slate-900">{formatCount(1000)}</Text>
+              <Text className="text-sm text-slate-500 mt-1">Abonnements</Text>
+            </View>
+
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-slate-900">{correctUser.postsCount}</Text>
+              <Text className="text-sm text-slate-500 mt-1">Publications</Text>
             </View>
           </View>
+        </View>
 
-          {/* icone de parametre ou update profil */}
-          <View className='flex flex-row border rounded-md gap-x-1 justify-center items-center p-3 w-1/5'>
-            <Image source={require('@/assets/images/setting.png')} className='w-5 h-5' />
-            <Text className='text-xs text-gray-500'>Modifier</Text>
-          </View>
-
-       </View>
-
-       <View className='flex flex-row items-center justify-center gap-x-4 p-4'>
-          <View className='flex flex-row w-1/3 items-center gap-x-4'>
-            <Text className='text-lg font-semibold'>{correctUser.followersCount}</Text>
-            <Text className='text-sm text-gray-500'>Abonnés</Text>
-          </View>
-          <View className='flex flex-row w-1/3 items-center gap-x-4'>
-            <Text className='text-lg font-semibold'>{correctUser.postsCount}</Text>
-            <Text className='text-sm text-gray-500'>Publications</Text>
-          </View>
-       </View>
-
-       <View className='flex flex-col h-full gap-y-3'>
-        <Text className='text-lg font-semibold text-center underline'>Publications</Text>
-
-        {/*affichage de mes publications*/}
-          <MePost/>
-       </View>
-       
-    </SafeAreaView>
+        <View className="w-full px-4 mt-2 mb-20 bg-white rounded-xl">
+          <MePost />
+        </View>
+      </ScrollView>
+    </View>
   )
 }
 
-export default me
+export default Me

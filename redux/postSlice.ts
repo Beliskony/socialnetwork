@@ -48,36 +48,44 @@ const getAuthHeaders = (getState: any) => {
 }
 
 // ---- Utils : Upload Cloudinary ----
-const uploadToCloudinary = async (
+export const uploadToCloudinary = async (
   uri: string,
-  type: "image" | "video"
+  type: 'image' | 'video'
 ): Promise<string> => {
-  let uploadUri = uri;
-  if (Platform.OS === 'ios') {
-    uploadUri = uri.replace('file://', '');
-  }
-
-  const data = new FormData();
-  data.append("file", {
-    uri,
-    type: type === "image" ? "image/jpeg" : "video/mp4",
-    name: `upload.${type === "image" ? "jpg" : "mp4"}`,
-  } as any);
-  data.append("upload_preset", "reseau-social");
-
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`,
-    {
-      method: "POST",
-      body: data,
+  try {
+    let uploadUri = uri;
+    if (Platform.OS === 'ios') {
+      uploadUri = uri.replace('file://', '');
     }
-  );
 
-  const json = await res.json();
-  if (!json.secure_url) throw new Error("Erreur upload Cloudinary");
-  return json.secure_url;
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uploadUri,
+      type: type === 'image' ? 'image/jpeg' : 'video/mp4',
+      name: `upload.${type === 'image' ? 'jpg' : 'mp4'}`,
+    } as any);
+
+    formData.append('upload_preset', 'reseau-social');
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!result.secure_url) {
+      console.error('Cloudinary response:', result);
+      throw new Error('Erreur lors de l’upload sur Cloudinary');
+    }
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Cloudinary Upload Error:', error);
+    throw error;
+  }
 };
+
 
 
 // Thunks asynchrones
@@ -88,16 +96,25 @@ export const addPost = createAsyncThunk<
 >("posts/addPost", async (payload, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
+    const isCloudinaryUrl = (url: string) => url.startsWith('https://res.cloudinary.com/');
+
 
     // Upload images local URI vers Cloudinary
-    const uploadedImages = payload.media?.images
-      ? await Promise.all( payload.media.images.map((img) => uploadToCloudinary(img, "image") )
-      ) : [];
-      console.log("✅ Images uploadées :", uploadedImages);
+   const uploadedImages = payload.media?.images
+  ? await Promise.all(
+      payload.media.images
+        .filter((img) => !isCloudinaryUrl(img))
+        .map((img) => uploadToCloudinary(img, 'image'))
+    )
+  : [];
 
-    const uploadedVideos = payload.media?.videos
-      ? await Promise.all( payload.media.videos.map((vid) => uploadToCloudinary(vid, "video") )
-      ) : [];
+const uploadedVideos = payload.media?.videos
+  ? await Promise.all(
+      payload.media.videos
+        .filter((vid) => !isCloudinaryUrl(vid))
+        .map((vid) => uploadToCloudinary(vid, 'video'))
+    )
+  : [];
 
 
     const body = {
@@ -107,6 +124,8 @@ export const addPost = createAsyncThunk<
         videos: uploadedVideos,
       },
     };
+    console.log("📦 Body envoyé :", JSON.stringify(body, null, 2));
+
 
     const response = await api.post("/post/create", body, { headers });
 
@@ -124,9 +143,17 @@ export const updatePostAsync = createAsyncThunk<Post, { postId: string; data: Pa
   async ({ postId, data }, { getState, rejectWithValue }) => {
     try {
       const headers = getAuthHeaders(getState)
-      const response = await api.put(`/post/update/${postId}`, data, { headers })
+      const body = {
+        text: data.text,
+        media: {
+          images: data.media?.images || [],
+          videos: data.media?.videos || [],
+        }
+      }
+      const response = await api.patch(`/post/update/${postId}`, body, { headers })
       return response.data
     } catch (err: any) {
+      console.error("❌ updatePostAsync error:", err.response?.data || err.message)
       return rejectWithValue(err.response?.data?.message || 'Erreur lors de la modification du post')
     }
   }

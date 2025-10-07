@@ -1,40 +1,47 @@
-import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
-import LoginScreen from '@/components/Auth/Login';
-import SignIn from '@/components/Auth/SignIn';
+"use client"
+
+import { View, Text, TouchableOpacity } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { useState } from "react"
+import LoginScreen from "@/components/Auth/Login"
+import SignIn from "@/components/Auth/SignIn"
 
 export default function HomeScreen() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true)
 
   return (
-    <SafeAreaView className='flex flex-col h-screen w-screen justify-center items-center bg-white'>
-        <View className='h-screen w-screen items-center'>
-           
-            {/*Le rendu*/}
+    <SafeAreaView className="flex-1 justify-center items-center bg-slate-50">
+      <View className="flex-1 w-full justify-center items-center px-6">
+        {/* Rendu des écrans */}
+        {isLogin ? <SignIn /> : <LoginScreen />}
 
-            <View className='flex flex-col justify-center items-center w-full h-full p-5'>
-              
-              {isLogin? <SignIn/> : <LoginScreen/> }
-
-
-              <View className='flex-row justify-center items-center'>
-
-                <View className='flex flex-row items-center justify-center w-[80%] py-5 gap-x-5 bg-[#F1895C] rounded-3xl'>
-                  <TouchableOpacity onPress={() => setIsLogin(true)}>
-                    <Text className={`text-lg ${isLogin ? "text-[#2E3244] font-bold bg-white rounded-xl p-2" : "text-[#C5C6C6] font-normal"} `}>Inscrivez-vous </Text>
-                  </TouchableOpacity>
-
-
-                  <TouchableOpacity onPress={() => setIsLogin(false)}>
-                    <Text className={`text-lg ${isLogin ? "text-[#C5C6C6] font-normal" : "text-[#2E3244] font-bold bg-white rounded-xl p-2"} `}>Connectez-vous</Text>
-                  </TouchableOpacity>
-
-                </View>
-
+        {/* Boutons de bascule */}
+        <View className="flex-row justify-center items-center mt-8 w-full max-w-md bg-white rounded-2xl p-1.5 shadow">
+          <TouchableOpacity onPress={() => setIsLogin(true)} className="flex-1">
+            <View className={`py-3.5 px-4 rounded-xl ${
+              isLogin ? "bg-blue-600" : "bg-transparent"
+            }`}>
+              <Text className={`text-center ${
+                isLogin ? "text-white font-bold" : "text-slate-600 font-medium"
+              }`}>
+                Inscrivez-vous
+              </Text>
             </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setIsLogin(false)} className="flex-1">
+            <View className={`py-3.5 px-4 rounded-xl ${
+              !isLogin ? "bg-blue-600" : "bg-transparent"
+            }`}>
+              <Text className={`text-center ${
+                !isLogin ? "text-white font-bold" : "text-slate-600 font-medium"
+              }`}>
+                Connectez-vous
+              </Text>
             </View>
+          </TouchableOpacity>
         </View>
+      </View>
     </SafeAreaView>
-  );
+  )
 }
-
