@@ -1,30 +1,36 @@
 import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDispatch } from 'react-redux';
 import { setUser } from '@/redux/userSlice';
 
-const LoadUser = () => {
-  const dispatch = useDispatch();
+export const useLoadUser = () => {
+  const dispatch = useAppDispatch();
+  const { currentUser } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     const loadUserFromStorage = async () => {
       try {
-        const storedUser = await AsyncStorage.getItem('user');
-        const token = await AsyncStorage.getItem('token')
-        if (storedUser && token) {
-          const parsedUser = JSON.parse(storedUser);
-          dispatch(setUser(parsedUser));
-          console.log('Utilisateur restauré depuis AsyncStorage ✅');
+        console.log('🔄 Chargement de l\'utilisateur depuis le stockage...');
+        const savedAuth = await AsyncStorage.getItem('auth');
+        
+        if (savedAuth) {
+          const authData = JSON.parse(savedAuth);
+          console.log('✅ Utilisateur chargé:', authData.user?.username);
+          
+          dispatch(setUser({
+            user: authData.user,
+            token: authData.token
+          }));
+        } else {
+          console.log('❌ Aucun utilisateur trouvé dans le stockage');
         }
-      } catch (err) {
-        console.error('Erreur chargement utilisateur depuis stockage', err);
+      } catch (error) {
+        console.error('❌ Erreur chargement utilisateur:', error);
       }
     };
 
-    loadUserFromStorage();
-  }, []);
-
-  return null;
+    if (!currentUser) {
+      loadUserFromStorage();
+    }
+  }, [dispatch, currentUser]);
 };
-
-export default LoadUser;

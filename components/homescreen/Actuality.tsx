@@ -1,8 +1,8 @@
 
 import PostsList from '../Posts/PostList'
-import { View } from 'react-native'
+import { View, ScrollView } from 'react-native'
 import HeaderOfApp from './HeaderOfApp'
-import { ScrollView } from 'react-native-gesture-handler'
+
 
 const Actuality = () => {
   return (

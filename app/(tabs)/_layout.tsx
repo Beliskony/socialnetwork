@@ -1,9 +1,15 @@
+// app/(tabs)/_layout.tsx
 import { Tabs } from "expo-router"
 import { Platform } from "react-native"
 import { HapticTab } from "@/components/HapticTab"
 import TabBarBackground from "@/components/ui/TabBarBackground"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { Image } from "react-native"
+import { 
+  Home, 
+  User, 
+  Bell, 
+  Users 
+} from "lucide-react-native"
 
 export default function TabLayout() {
   const colorScheme = useColorScheme()
@@ -50,62 +56,46 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          tabBarIcon: ({ color, focused }) => {
-            return (
-              <Image
-                source={focused ? require("@/assets/images/home.png") : require("@/assets/images/homeOutline.png")}
-                style={{ width: 28, height: 28, tintColor: color }}
-              />
-            )
-          },
+          title: "Accueil",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Home 
+              size={28} 
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
         }}
       />
 
       <Tabs.Screen
-        name="me"
+        name="profile"
         options={{
-          tabBarIcon: ({ color, focused }) => {
-            return (
-              <Image
-                source={focused ? require("@/assets/images/compte.png") : require("@/assets/images/compteOutline.png")}
-                style={{ width: 28, height: 28, tintColor: color }}
-              />
-            )
-          },
+          title: "Profil",
+          tabBarIcon: ({ color, size, focused }) => (
+            <User 
+              size={28} 
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
         }}
       />
 
       <Tabs.Screen
         name="notifications"
         options={{
-          tabBarIcon: ({ color, focused }) => {
-            return (
-              <Image
-                source={
-                  focused
-                    ? require("@/assets/images/notification.png")
-                    : require("@/assets/images/notificationOutline.png")
-                }
-                style={{ width: 28, height: 28, tintColor: color }}
-              />
-            )
-          },
+          title: "Notifications",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Bell 
+              size={28} 
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
         }}
       />
 
-      <Tabs.Screen
-        name="follow"
-        options={{
-          tabBarIcon: ({ color, focused }) => {
-            return (
-              <Image
-                source={focused ? require("@/assets/images/follows.png") : require("@/assets/images/follows.png")}
-                style={{ width: 28, height: 28, tintColor: color }}
-              />
-            )
-          },
-        }}
-      />
+    
     </Tabs>
   )
 }

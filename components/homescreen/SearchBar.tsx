@@ -35,7 +35,7 @@ const SearchBar: FC = () => {
   const goToProfile = (userId: string) => {
     // Navigue vers la page profil en passant l'ID
     router.push({
-        pathname: "/screens/ProfileScreen",
+        pathname: "/(tabs)/profile",
         params: { userId: userId }, // ton paramètre
     });
 

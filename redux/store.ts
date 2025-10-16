@@ -3,13 +3,17 @@ import userReducer from './userSlice'
 import postReducer from './postSlice'
 import storyReducer from './storySlice'
 import commentReducer from './commentSlice'
+import notificationReducer from './notificationSlice'
+import followReducer from './followSlice'
 
 const store = configureStore({
   reducer: {
     user: userReducer,
     posts: postReducer,
     stories: storyReducer,
-    comments: commentReducer
+    comments: commentReducer,
+    notifications: notificationReducer,
+    follows: followReducer
   },
 });
 

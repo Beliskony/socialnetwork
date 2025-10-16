@@ -1,15 +1,16 @@
 "use client"
 
-import { View, TextInput, Pressable, Animated, Image } from "react-native"
+import { View, TextInput, Pressable, Animated, Image, TouchableOpacity } from "react-native"
 import { useState, useRef } from "react"
 import type { Post } from "@/intefaces/post.Interface"
-import NewPost from "../Posts/NewPost"
 import { MaterialIcons } from "@expo/vector-icons"
+
 
 const HeaderOfApp = () => {
   const [posts, setPosts] = useState<Post[]>([])
   const [showSearch, setShowSearch] = useState(false)
   const [searchText, setSearchText] = useState("")
+
 
   const searchHeight = useRef(new Animated.Value(0)).current
 
@@ -53,7 +54,7 @@ const HeaderOfApp = () => {
         />
       </Animated.View>
 
-      <NewPost onPostCreated={handleNewPost} />
+
     </View>
   )
 }

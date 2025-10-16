@@ -1,187 +1,461 @@
+// slices/commentSlice.ts
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-
-export interface UserBrief {
-  _id: string;
-  username: string;
-  profilePicture?: string;
-}
-
-export interface Comment {
-  _id: string;
-  user: UserBrief;
-  post: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface CommentState {
-  comments: Comment[];
-  loading: boolean;
-  error: string | null;
-}
+import { RootState } from './store';
+import { Platform } from 'react-native';
+import { Comment, CommentState, ICommentFront, IUserPopulated } from '@/intefaces/comment.Interfaces';
 
 const initialState: CommentState = {
   comments: [],
+  replies: [],
+  popularComments: [],
+  currentComment: null,
   loading: false,
   error: null,
+  repliesLoading: false,
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  },
 };
 
-// ================= Thunks =================
+// Configuration axios
+const api = axios.create({
+  baseURL: 'https://apisocial-g8z6.onrender.com/api',
+});
 
-// Récupérer les commentaires d’un post
-export const fetchCommentsByPostAsync = createAsyncThunk<
-  Comment[],
-  { postId: string },
-  { rejectValue: string; state: any }
->('comments/fetchByPost', async ({ postId }, { getState, rejectWithValue }) => {
+// Headers d'authentification
+const getAuthHeaders = (getState: () => unknown) => {
+  const token = (getState() as RootState).user.token;
+  if (!token) throw new Error('Token manquant, veuillez vous connecter');
+  return { Authorization: `Bearer ${token}` };
+};
+
+// Upload Cloudinary pour les médias des commentaires
+export const uploadCommentMedia = async (
+  uri: string,
+  type: 'image' | 'video'
+): Promise<string> => {
   try {
-    const token = getState().user.token;
-    if (!token) return rejectWithValue('Token non trouvé');
+    let uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
 
-    const response = await axios.get(
-      `https://apisocial-g8z6.onrender.com/api/comment/getComment/${postId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uploadUri,
+      type: type === 'image' ? 'image/jpeg' : 'video/mp4',
+      name: `comment_media.${type === 'image' ? 'jpg' : 'mp4'}`,
+    } as any);
+    formData.append('upload_preset', 'reseau-social');
 
-    return response.data as Comment[];
+    const response = await fetch(`https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!result.secure_url) {
+      throw new Error('Erreur lors de l\'upload sur Cloudinary');
+    }
+
+    return result.secure_url;
+  } catch (error) {
+    console.error('Cloudinary Upload Error:', error);
+    throw error;
+  }
+};
+
+// ==================== THUNKS ASYNCHRONES ====================
+
+// 💬 Créer un commentaire
+export const createComment = createAsyncThunk<
+  Comment,
+  { 
+    postId: string; 
+    content: { 
+      text: string; 
+      media?: { images?: string[]; videos?: string[] } 
+    };
+    parentComment?: string;
+    metadata?: { mentions?: string[]; hashtags?: string[] };
+  },
+  { rejectValue: string; state: RootState }
+>('comments/createComment', async (payload, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    const isCloudinaryUrl = (url: string) => url.startsWith('https://res.cloudinary.com/');
+
+    // Upload des médias si présents
+    const uploadMedia = async (urls: string[] | undefined, type: 'image' | 'video') => {
+      if (!urls) return [];
+      const uploadPromises = urls
+        .filter(url => !isCloudinaryUrl(url))
+        .map(url => uploadCommentMedia(url, type));
+      return Promise.all(uploadPromises);
+    };
+
+    const [uploadedImages, uploadedVideos] = await Promise.all([
+      uploadMedia(payload.content.media?.images, 'image'),
+      uploadMedia(payload.content.media?.videos, 'video'),
+    ]);
+
+    const body = {
+      content: {
+        text: payload.content.text,
+        media: {
+          images: [...(payload.content.media?.images?.filter(isCloudinaryUrl) || []), ...uploadedImages],
+          videos: [...(payload.content.media?.videos?.filter(isCloudinaryUrl) || []), ...uploadedVideos],
+        },
+      },
+      parentComment: payload.parentComment,
+      metadata: payload.metadata,
+    };
+
+    const response = await api.post(`/posts/${payload.postId}/comments`, body, { headers });
+    return response.data;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du commentaire');
+  }
+});
+
+// 📖 Récupérer les commentaires d'un post
+export const getCommentsByPost = createAsyncThunk<
+  { comments: Comment[]; total: number; pagination?: any },
+  { postId: string; page?: number; limit?: number },
+  { rejectValue: string; state: RootState }
+>('comments/getCommentsByPost', async ({ postId, page = 1, limit = 20 }, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    const response = await api.get(`/posts/${postId}/comments?page=${page}&limit=${limit}`, { headers });
+    return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des commentaires');
   }
 });
 
-// Ajouter un commentaire
-export const addCommentAsync = createAsyncThunk<
-  Comment,
-  { postId: string; content: string },
-  { rejectValue: string; state: any }
->('comments/add', async ({ postId, content }, { getState, rejectWithValue }) => {
+// 🔄 Récupérer les réponses d'un commentaire
+export const getCommentReplies = createAsyncThunk<
+  { replies: Comment[]; total: number },
+  { commentId: string; page?: number; limit?: number },
+  { rejectValue: string; state: RootState }
+>('comments/getCommentReplies', async ({ commentId, page = 1, limit = 20 }, { getState, rejectWithValue }) => {
   try {
-    const token = getState().user.token;
-    if (!token) return rejectWithValue('Token non trouvé');
-
-    const response = await axios.post(
-      `https://apisocial-g8z6.onrender.com/api/comment/create/${postId}`,
-      { content },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    return response.data as Comment;
+    const headers = getAuthHeaders(getState);
+    const response = await api.get(`/comments/${commentId}/replies?page=${page}&limit=${limit}`, { headers });
+    return response.data;
   } catch (err: any) {
-    return rejectWithValue(err.response?.data?.message || 'Erreur lors de l’ajout du commentaire');
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des réponses');
   }
 });
 
-// Modifier un commentaire
-export const updateCommentAsync = createAsyncThunk<
-  Comment,
-  { commentId: string; content: string },
-  { rejectValue: string; state: any }
->('comments/update', async ({ commentId, content }, { getState, rejectWithValue }) => {
+// ❤️ Like/Unlike un commentaire
+export const toggleLikeComment = createAsyncThunk<
+  { commentId: string; likes: string[] },
+  string,
+  { rejectValue: string; state: RootState }
+>('comments/toggleLike', async (commentId, { getState, rejectWithValue }) => {
   try {
-    const token = getState().user.token;
-    if (!token) return rejectWithValue('Token non trouvé');
-
-    const response = await axios.put(
-      `https://apisocial-g8z6.onrender.com/api/comment/update/`,
-      { commentId, content },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    return response.data as Comment;
+    const headers = getAuthHeaders(getState);
+    const response = await api.post(`/comments/${commentId}/like`, {}, { headers });
+    return {
+      commentId,
+      likes: response.data.likes || []
+    };
   } catch (err: any) {
-    return rejectWithValue(err.response?.data?.message || 'Erreur lors de la modification du commentaire');
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du like');
   }
 });
 
-// Supprimer un commentaire
-export const deleteCommentAsync = createAsyncThunk<
-  string,
-  string,
-  { rejectValue: string; state: any }
->('comments/delete', async (commentId, { getState, rejectWithValue }) => {
+// ✏️ Mettre à jour un commentaire
+export const updateComment = createAsyncThunk<
+  Comment,
+  { 
+    commentId: string; 
+    content: { 
+      text: string; 
+      media?: { images?: string[]; videos?: string[] } 
+    };
+    metadata?: { mentions?: string[]; hashtags?: string[] };
+  },
+  { rejectValue: string; state: RootState }
+>('comments/updateComment', async (payload, { getState, rejectWithValue }) => {
   try {
-    const token = getState().user.token;
-    if (!token) return rejectWithValue('Token non trouvé');
+    const headers = getAuthHeaders(getState);
+    
+    // Upload des nouveaux médias si présents
+    const isCloudinaryUrl = (url: string) => url.startsWith('https://res.cloudinary.com/');
+    const uploadMedia = async (urls: string[] | undefined, type: 'image' | 'video') => {
+      if (!urls) return [];
+      const uploadPromises = urls
+        .filter(url => !isCloudinaryUrl(url))
+        .map(url => uploadCommentMedia(url, type));
+      return Promise.all(uploadPromises);
+    };
 
-    await axios.delete(`https://apisocial-g8z6.onrender.com/api/comment/delete/${commentId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const [uploadedImages, uploadedVideos] = await Promise.all([
+      uploadMedia(payload.content.media?.images, 'image'),
+      uploadMedia(payload.content.media?.videos, 'video'),
+    ]);
 
+    const body = {
+      content: {
+        text: payload.content.text,
+        media: {
+          images: [...(payload.content.media?.images?.filter(isCloudinaryUrl) || []), ...uploadedImages],
+          videos: [...(payload.content.media?.videos?.filter(isCloudinaryUrl) || []), ...uploadedVideos],
+        },
+      },
+      metadata: payload.metadata,
+    };
+
+    const response = await api.put(`/comments/${payload.commentId}`, body, { headers });
+    return response.data;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors de la mise à jour du commentaire');
+  }
+});
+
+// 🗑️ Supprimer un commentaire
+export const deleteComment = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string; state: RootState }
+>('comments/deleteComment', async (commentId, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    await api.delete(`/comments/${commentId}`, { headers });
     return commentId;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression du commentaire');
   }
 });
 
-// ================= Slice =================
+// 🔥 Commentaires populaires
+export const getPopularComments = createAsyncThunk<
+  Comment[],
+  { postId: string; limit?: number },
+  { rejectValue: string; state: RootState }
+>('comments/getPopularComments', async ({ postId, limit = 10 }, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    const response = await api.get(`/posts/${postId}/comments/popular?limit=${limit}`, { headers });
+    return response.data;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des commentaires populaires');
+  }
+});
+
+// 📊 Statistiques des commentaires
+export const getCommentStats = createAsyncThunk<
+  { totalComments: number; totalLikes: number; averageReplies: number },
+  string,
+  { rejectValue: string; state: RootState }
+>('comments/getCommentStats', async (postId, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    const response = await api.get(`/posts/${postId}/comments/stats`, { headers });
+    return response.data;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des statistiques');
+  }
+});
+
+// ==================== SLICE ====================
 
 const commentSlice = createSlice({
   name: 'comments',
   initialState,
   reducers: {
-    setComments: (state, action: PayloadAction<Comment[]>) => {
-      state.comments = action.payload;
+    clearError: (state) => {
+      state.error = null;
     },
-    addComment: (state, action: PayloadAction<Comment>) => {
-      state.comments.unshift(action.payload);
+    clearReplies: (state) => {
+      state.replies = [];
     },
-    updateComment: (state, action: PayloadAction<{ _id: string; content: string }>) => {
-      const comment = state.comments.find(c => c._id === action.payload._id);
-      if (comment) {
-        comment.content = action.payload.content;
-        comment.updatedAt = new Date().toISOString();
+    setCurrentComment: (state, action: PayloadAction<ICommentFront | null>) => {
+      state.currentComment = action.payload;
+    },
+    // Mise à jour optimiste pour les likes
+    toggleLikeOptimistic: (state, action: PayloadAction<{ commentId: string; userId: string }>) => {
+      const { commentId, userId } = action.payload;
+      
+      const toggleLikeInComment = (comment: Comment) => {
+        if (comment._id === commentId) {
+          const likeIndex = comment.engagement.likes.indexOf(userId);
+          if (likeIndex > -1) {
+            // Unlike
+            comment.engagement.likes.splice(likeIndex, 1);
+            comment.engagement.likesCount = Math.max(0, comment.engagement.likesCount - 1);
+          } else {
+            // Like
+            comment.engagement.likes.push(userId);
+            comment.engagement.likesCount += 1;
+          }
+        }
+      };
+
+      state.comments.forEach(toggleLikeInComment);
+      state.replies.forEach(toggleLikeInComment);
+      state.popularComments.forEach(toggleLikeInComment);
+    },
+    // Ajouter une réponse localement (optimiste)
+    addReplyOptimistic: (state, action: PayloadAction<Comment>) => {
+      const newReply = action.payload;
+      state.replies.unshift(newReply);
+      
+      // Mettre à jour le compteur de réponses du commentaire parent
+      if (newReply.parentComment) {
+        const parentComment = state.comments.find(c => c._id === newReply.parentComment);
+        if (parentComment) {
+          parentComment.engagement.repliesCount += 1;
+        }
       }
-    },
-    deleteComment: (state, action: PayloadAction<string>) => {
-      state.comments = state.comments.filter(c => c._id !== action.payload);
     },
   },
   extraReducers: (builder) => {
-  // Fulfilled cases d’abord
-  builder
-    .addCase(fetchCommentsByPostAsync.fulfilled, (state, action: PayloadAction<Comment[]>) => {
-      state.comments = action.payload;
-      state.loading = false;
-      state.error = null;
-    })
-    .addCase(addCommentAsync.fulfilled, (state, action: PayloadAction<Comment>) => {
-      state.comments.unshift(action.payload);
-      state.loading = false;
-      state.error = null;
-    })
-    .addCase(updateCommentAsync.fulfilled, (state, action: PayloadAction<Comment>) => {
-      const index = state.comments.findIndex(c => c._id === action.payload._id);
-      if (index !== -1) state.comments[index] = action.payload;
-      state.loading = false;
-      state.error = null;
-    })
-    .addCase(deleteCommentAsync.fulfilled, (state, action: PayloadAction<string>) => {
-      state.comments = state.comments.filter(c => c._id !== action.payload);
-      state.loading = false;
-      state.error = null;
-    });
+    builder
+      // Create Comment
+      .addCase(createComment.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createComment.fulfilled, (state, action) => {
+        state.loading = false;
+        const newComment = action.payload;
+        
+        if (newComment.parentComment) {
+          // C'est une réponse
+          state.replies.unshift(newComment);
+          
+          // Mettre à jour le compteur du parent
+          const parentComment = state.comments.find(c => c._id === newComment.parentComment);
+          if (parentComment) {
+            parentComment.engagement.replies.push(newComment._id);
+            parentComment.engagement.repliesCount += 1;
+          }
+        } else {
+          // C'est un commentaire principal
+          state.comments.unshift(newComment);
+        }
+      })
+      .addCase(createComment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-  // Ensuite seulement les matchers
-  builder.addMatcher(
-    (action) => action.type.endsWith('/pending'),
-    (state) => {
-      state.loading = true;
-      state.error = null;
-    }
-  );
+      // Get Comments by Post
+      .addCase(getCommentsByPost.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getCommentsByPost.fulfilled, (state, action) => {
+        state.loading = false;
+        state.comments = action.payload.comments;
+        if (action.payload.pagination) {
+          state.pagination = {
+            ...state.pagination,
+            ...action.payload.pagination,
+          };
+        }
+      })
+      .addCase(getCommentsByPost.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-  builder.addMatcher(
-    (action) => action.type.endsWith('/rejected'),
-    (state, action: any) => {
-      state.loading = false;
-      state.error = action.payload || 'Erreur inconnue';
-    }
-  );
-}
+      // Get Comment Replies
+      .addCase(getCommentReplies.pending, (state) => {
+        state.repliesLoading = true;
+      })
+      .addCase(getCommentReplies.fulfilled, (state, action) => {
+        state.repliesLoading = false;
+        state.replies = action.payload.replies;
+      })
+      .addCase(getCommentReplies.rejected, (state) => {
+        state.repliesLoading = false;
+      })
 
+      // Toggle Like
+      .addCase(toggleLikeComment.fulfilled, (state, action) => {
+        const { commentId, likes } = action.payload;
+        
+        const updateCommentLikes = (comment: Comment) => {
+          if (comment._id === commentId) {
+            comment.engagement.likes = likes;
+            comment.engagement.likesCount = likes.length;
+          }
+        };
+
+        state.comments.forEach(updateCommentLikes);
+        state.replies.forEach(updateCommentLikes);
+        state.popularComments.forEach(updateCommentLikes);
+      })
+
+      // Update Comment
+      .addCase(updateComment.fulfilled, (state, action) => {
+        const updatedComment = action.payload;
+        
+        const updateInArray = (array: Comment[]) => {
+          const index = array.findIndex(c => c._id === updatedComment._id);
+          if (index !== -1) {
+            array[index] = updatedComment;
+          }
+        };
+
+        updateInArray(state.comments);
+        updateInArray(state.replies);
+        updateInArray(state.popularComments);
+      })
+
+      // Delete Comment
+      .addCase(deleteComment.fulfilled, (state, action) => {
+        const commentId = action.payload;
+        
+        // Supprimer des tableaux principaux
+        state.comments = state.comments.filter(c => c._id !== commentId);
+        state.replies = state.replies.filter(c => c._id !== commentId);
+        state.popularComments = state.popularComments.filter(c => c._id !== commentId);
+        
+        // Si c'était le commentaire courant, le vider
+        if (state.currentComment?._id === commentId) {
+          state.currentComment = null;
+        }
+      })
+
+      // Get Popular Comments
+      .addCase(getPopularComments.fulfilled, (state, action) => {
+        state.popularComments = action.payload;
+      })
+
+     
+  },
 });
 
-export const { setComments, addComment, updateComment, deleteComment } = commentSlice.actions;
+export const { 
+  clearError, 
+  clearReplies, 
+  setCurrentComment, 
+  toggleLikeOptimistic,
+  addReplyOptimistic 
+} = commentSlice.actions;
+
 export default commentSlice.reducer;
+
+// ==================== SÉLECTEURS ====================
+
+export const selectComments = (state: RootState) => state.comments.comments;
+export const selectReplies = (state: RootState) => state.comments.replies;
+export const selectPopularComments = (state: RootState) => state.comments.popularComments;
+export const selectCurrentComment = (state: RootState) => state.comments.currentComment;
+
+export const selectCommentsLoading = (state: RootState) => state.comments.loading;
+export const selectRepliesLoading = (state: RootState) => state.comments.repliesLoading;
+export const selectCommentsError = (state: RootState) => state.comments.error;
+
+export const selectCommentById = (commentId: string) => (state: RootState) => 
+  state.comments.comments.find(comment => comment._id === commentId) ||
+  state.comments.replies.find(comment => comment._id === commentId);
+
+export const selectRepliesByCommentId = (commentId: string) => (state: RootState) =>
+  state.comments.replies.filter(reply => reply.parentComment === commentId);

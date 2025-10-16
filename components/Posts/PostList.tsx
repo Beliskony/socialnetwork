@@ -1,122 +1,341 @@
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Text, Platform, FlatList, Modal, View, TouchableOpacity,} from 'react-native';
-import axios from 'axios';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/redux/store';
-import PostItem from './PostItem';
-import { Post } from '@/intefaces/post.Interface';
-import NewPost from './NewPost';
-import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+// components/Posts/PostsList.tsx
+import { useEffect, useState, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  Modal, 
+  TouchableOpacity, 
+  ActivityIndicator,
+  RefreshControl,
+  Alert 
+} from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { getFeed, deletePost } from '@/redux/postSlice';
+import type { RootState, AppDispatch } from '@/redux/store';
+import type { Post, PostFront } from '@/intefaces/post.Interface'; // ✅ Importer depuis le bon fichier
+import { convertToPostFront } from '@/intefaces/post.Interface';
+import PostCard from './PostCard';
+import CreatePost from './CreatePost';
+import { Plus, X } from 'lucide-react-native';
 
 const PostsList = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const correctUser = useSelector((state: RootState) => state.user);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [editingPost, setEditingPost] = useState<PostFront | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchPosts = async () => {
-    try {
-      const response = await axios.get(
-        'https://apisocial-g8z6.onrender.com/api/post/AllPosts',
-        {
-          headers: { Authorization: `Bearer ${correctUser.token}` },
-        }
-      );
-      setPosts(response.data.reverse());
-    } catch (error) {
-      console.error('Erreur lors du chargement des posts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const dispatch = useDispatch<AppDispatch>();
+  const { 
+    feed, 
+    feedLoading, 
+    feedError,
+    pagination 
+  } = useSelector((state: RootState) => state.posts);
+  const { currentUser, token } = useSelector((state: RootState) => state.user);
 
+  // Charger le feed au montage
   useEffect(() => {
-    if (correctUser && correctUser.token) {
-      fetchPosts();
+    console.log('🚀 PostsList monté - Token:', token ? 'présent' : 'manquant');
+    console.log('👤 Utilisateur actuel:', currentUser?._id);
+    
+    if (token) {
+      loadFeed();
+    } else {
+      console.log('❌ Token manquant, impossible de charger le feed');
     }
-  }, [correctUser]);
+  }, [token]);
 
-  const handleLike = async (postId: string) => {
+  // Charger le feed avec useCallback
+  const loadFeed = useCallback(async () => {
     try {
-      await axios.put(
-        `https://apisocial-g8z6.onrender.com/api/like/post/${postId}`,
-        { userId: correctUser._id }
-      );
-      fetchPosts();
-    } catch (error) {
-      console.error('Erreur lors du like:', error);
+      console.log('🔄 Début du chargement du feed...');
+      setRefreshing(true);
+      
+      const result = await dispatch(getFeed({ 
+        page: 1, 
+        limit: 20, 
+        refresh: true 
+      })).unwrap();
+      
+      console.log('✅ Feed chargé avec succès:', {
+        nombrePosts: result.posts?.length,
+        pagination: result.pagination
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Erreur détaillée loadFeed:', {
+        message: error.message,
+        code: error.code
+      });
+      
+      if (!refreshing) {
+        Alert.alert(
+          'Erreur de chargement', 
+          error || 'Impossible de charger les publications. Vérifiez votre connexion.'
+        );
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
+
+  // Pull to refresh
+  const onRefresh = async () => {
+    console.log('🔄 Pull to refresh déclenché');
+    await loadFeed();
+  };
+
+  // Charger plus de posts
+  const loadMore = () => {
+    if (!feedLoading && pagination && pagination.page < pagination.totalPages) {
+      console.log('📥 Chargement page suivante:', pagination.page + 1);
+      dispatch(getFeed({ 
+        page: pagination.page + 1, 
+        limit: pagination.limit 
+      }));
+    } else {
+      console.log('ℹ️ Pas de chargement supplémentaire:', {
+        loading: feedLoading,
+        page: pagination?.page,
+        totalPages: pagination?.totalPages
+      });
     }
   };
 
-  const handleComment = async (postId: string, comment: string) => {
-    try {
-      await axios.post(
-        `https://apisocial-g8z6.onrender.com/api/post/${postId}/comment`,
-        { userId: correctUser._id, content: comment }
-      );
-      fetchPosts();
-    } catch (error) {
-      console.error('Erreur lors du commentaire:', error);
-    }
+  // Gérer la suppression d'un post
+  const handleDelete = async (postId: string) => {
+    Alert.alert(
+      'Supprimer la publication',
+      'Êtes-vous sûr de vouloir supprimer cette publication ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(deletePost(postId)).unwrap();
+              Alert.alert('Succès', 'Publication supprimée avec succès');
+              // Recharger le feed après suppression
+              setTimeout(() => {
+                loadFeed();
+              }, 1000);
+            } catch (error: any) {
+              Alert.alert('Erreur', error || 'Impossible de supprimer la publication');
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const handleEdit = (post: Post) => {
-    setEditingPost(post); 
+  // Gérer l'édition d'un post
+  const handleEdit = (post: PostFront) => {
+    console.log('✏️ Édition du post:', post._id);
+    setEditingPost(post);
+    setShowCreateModal(true);
   };
+
+  // Gérer la création réussie d'un post
+  const handleCreateSuccess = () => {
+    console.log('✅ Création/édition réussie');
+    setShowCreateModal(false);
+    setEditingPost(null);
+    setIsSubmitting(false);
+    
+    // Recharger le feed après un court délai
+    setTimeout(() => {
+      loadFeed();
+    }, 1000);
+  };
+
+  // Gérer l'annulation
+  const handleCancel = () => {
+    console.log('❌ Création/édition annulée');
+    setShowCreateModal(false);
+    setEditingPost(null);
+    setIsSubmitting(false);
+  };
+
+  // Gérer l'ouverture d'un post
+  const handlePostPress = (post: PostFront) => {
+    console.log('📖 Ouvrir le post:', post._id);
+    // Navigation vers la page de détail du post
+    // router.push(`/post/${post._id}`);
+  };
+
+  // Gérer l'ouverture du profil utilisateur
+  const handleUserPress = (userId: string) => {
+    console.log('👤 Ouvrir le profil:', userId);
+    // router.push(`/profile/${userId}`);
+  };
+
+  // Gérer l'ouverture des commentaires
+  const handleCommentPress = (post: PostFront) => {
+    console.log('💬 Ouvrir les commentaires:', post._id);
+    // Ouvrir modal ou page de commentaires
+  };
+
+  // Convertir les posts du feed en PostFront
+  const feedPosts: PostFront[] = (feed || []).map(post => 
+    convertToPostFront(post, currentUser?._id)
+  );
+
+  // Debug des données
+  console.log('📊 État actuel:', {
+    feedLength: feedPosts?.length,
+    feedLoading,
+    feedError,
+    pagination,
+    currentUser: currentUser?._id
+  });
+
+  // État de chargement initial
+  if (feedLoading && (!feedPosts || feedPosts.length === 0)) {
+    return (
+      <View className="flex-1 justify-center items-center bg-slate-50">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="text-slate-600 mt-4">Chargement des publications...</Text>
+      </View>
+    );
+  }
+
+  // Erreur de chargement
+  if (feedError && (!feedPosts || feedPosts.length === 0)) {
+    return (
+      <View className="flex-1 justify-center items-center bg-slate-50 p-6">
+        <Text className="text-red-500 text-lg mb-4">Erreur de chargement</Text>
+        <Text className="text-slate-600 text-center mb-6">
+          {feedError || 'Une erreur est survenue lors du chargement'}
+        </Text>
+        <TouchableOpacity 
+          onPress={loadFeed}
+          className="bg-blue-600 px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Aucun utilisateur connecté
+  if (!currentUser) {
+    return (
+      <View className="flex-1 justify-center items-center bg-slate-50 p-6">
+        <Text className="text-slate-600 text-xl font-semibold mb-3 text-center">
+          Connectez-vous
+        </Text>
+        <Text className="text-slate-500 text-center mb-6 leading-6">
+          Connectez-vous pour voir les publications de votre réseau
+        </Text>
+      </View>
+    );
+  }
 
   return (
-<>
-
-
-  <KeyboardAvoidingView
-  style={{ flex: 1 }}
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
-  keyboardVerticalOffset={80}>
-
-  <FlatList
-    data={posts}
-    keyExtractor={(item: Post, index) => item?._id ?? index.toString()}
-    renderItem={({ item }) => (
-      <PostItem
-        post={item}
-        onLike={handleLike}
-        onComment={handleComment}
-        onEdit={handleEdit}
-        onDelete={() => setPosts(prev => prev.filter(p => p._id !== item._id))}
+    <View className="flex-1 bg-slate-50">
+      
+      {/* Liste des posts */}
+      <FlatList
+        data={feedPosts}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item, index }) => {
+          console.log(`🎨 Rendu post ${index}:`, item._id);
+          return (
+            <PostCard
+              post={item}
+              onEdit={handleEdit}
+              onPress={handlePostPress}
+              onUserPress={handleUserPress}
+              onCommentPress={handleCommentPress}
+              onDelete={() => handleDelete(item._id)}
+              showActions={true}
+              variant="detailed"
+            />
+          );
+        }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
+          />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={() => (
+          <View className="flex-1 justify-center items-center py-20 px-6">
+            <Text className="text-slate-600 text-xl font-semibold mb-3 text-center">
+              Aucune publication pour le moment
+            </Text>
+            <Text className="text-slate-500 text-center mb-6 leading-6">
+              {currentUser 
+                ? "Suivez d'autres utilisateurs ou créez votre première publication !" 
+                : "Connectez-vous pour voir les publications"
+              }
+            </Text>
+            {currentUser && (
+              <TouchableOpacity 
+                onPress={() => setShowCreateModal(true)}
+                className="bg-blue-600 px-8 py-4 rounded-xl flex-row items-center"
+              >
+                <Plus size={20} color="white" />
+                <Text className="text-white font-semibold text-lg ml-2">
+                  Créer une publication
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+        ListFooterComponent={
+          feedLoading && feedPosts && feedPosts.length > 0 ? (
+            <View className="py-6">
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text className="text-slate-500 text-center mt-2">
+                Chargement des publications...
+              </Text>
+            </View>
+          ) : null
+        }
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: currentUser ? 100 : 32,
+        }}
+        showsVerticalScrollIndicator={false}
       />
-    )}
-    ListEmptyComponent={() => (
-      <Text className="text-center text-gray-500">Aucune publication trouvée.</Text>
-    )}
-    keyboardShouldPersistTaps="handled"
-    contentContainerStyle={{ paddingBottom: 100 }} // espace pour clavier
-  />
-</KeyboardAvoidingView>
 
-  
-    <Modal visible={!!editingPost} animationType="slide" onRequestClose={() => setEditingPost(null)} >
-      <BlurView intensity={50} tint={Platform.OS === 'ios' ? 'light' : 'dark'} style={{ flex: 1, justifyContent: 'center', alignItems: 'center'  }} >
-        <View style={{ width:'100%', padding: 20, backgroundColor: 'white', maxHeight:'80%', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, borderRadius: 10, }}>
-         {/* Bouton fermer */}
-          <TouchableOpacity onPress={() => setEditingPost(null)} style={{ position: 'absolute', top: 4, right: 6, zIndex: 10, padding: 8, }}
-            hitSlop={{ top: 5, bottom: 2, left: 10, right: 10 }} >
-            <MaterialIcons name="close" size={20} color="#333" />
-          </TouchableOpacity>
+      {/* Bouton flottant pour créer un post */}
+      {currentUser && !showCreateModal && (
+        <TouchableOpacity
+          onPress={() => setShowCreateModal(true)}
+          className="absolute bottom-6 right-6 bg-blue-600 w-16 h-16 rounded-full items-center justify-center shadow-xl active:bg-blue-700 shadow-black/25"
+        >
+          <Plus size={28} color="white" />
+        </TouchableOpacity>
+      )}
 
-          {editingPost && (
-            <NewPost initialPost={editingPost} onPostUpdated={(updatedPost) => {
-              setPosts((prevPosts) => prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)) );
-              setEditingPost(null);
-            }}
-            onClose={() => setEditingPost(null)} />
-          )}
+      {/* Modal de création/édition de post */}
+      <CreatePost
+        isVisible={showCreateModal}
+        onSuccess={handleCreateSuccess}
+        onCancel={handleCancel}
+        editPost={editingPost || undefined}
+      />
+
+      {/* Overlay de chargement pendant la soumission */}
+      {isSubmitting && (
+        <View className="absolute inset-0 bg-black/50 items-center justify-center z-50">
+          <View className="bg-white rounded-2xl p-6 items-center">
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text className="text-slate-700 font-medium mt-3">
+              {editingPost ? 'Modification...' : 'Publication...'}
+            </Text>
+          </View>
         </View>
-      </BlurView>
-    </Modal>
-
-</>
-
+      )}
+    </View>
   );
 };
 

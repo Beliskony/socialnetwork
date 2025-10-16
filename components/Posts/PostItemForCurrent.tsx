@@ -227,6 +227,10 @@ const PostItemForCurrent: React.FC<PostItemProps> = ({ post, onComment, onEdit, 
         </View>
       )}
 
+      {(post.text) && (
+        <Text className="text-left items-start flex justify-start">{post.text}</Text>
+      )}
+
       {(post.media?.images?.length || post.media?.videos?.length) && (
         <MediaSlider post={post} openImage={openImage} openVideo={openVideo} />
       )}

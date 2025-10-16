@@ -3,7 +3,7 @@ import { ScrollView, Text } from 'react-native';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import PostItem from './PostItem';
+import PostItem from './PostCard';
 import SkeletonPostItem from '../skeletons/SkeletonPostItem';
 
 const OtherProfilePostsList = () => {

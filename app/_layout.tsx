@@ -40,7 +40,10 @@ export default function RootLayout() {
         <SafeAreaView style={{ flex: 1 }}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            {/* NOUVEAU - Groupe d'authentification */}
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style='dark' />

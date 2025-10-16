@@ -1,103 +1,71 @@
-import { useEffect, useState } from "react";
-import { useNavigation } from "expo-router";
 import React from "react";
-import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { INotification } from "@/intefaces/notification.interfaces";
-import axios from "axios";
 
-const Notification = () => {
-  const navigation = useNavigation();
-  const [notifications, setNotifications] = useState<INotification[]>([]);
-  const correctUser = useSelector((state: RootState) => state.user);
-  const [loading, setLoading] = useState(true);
+interface Props {
+  notification: INotification;
+  onPress: (notification: INotification) => void;
+}
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await axios.get(
-        "https://apisocial-g8z6.onrender.com/api/notifications/getNotifications",
-        {
-          headers: { Authorization: `Bearer ${correctUser.token}` },
-        }
-      );
-
-      const fetched: INotification[] = response.data.reverse();
-      setNotifications(fetched);
-
-      console.log("Notifications fetched:", fetched);
-    } catch (error) {
-      console.error("Erreur lors du chargement des notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNotificationPress = (notification: INotification) => {
-    if (notification.type === "like" || notification.type === "comment") {
-      navigation.navigate({
-        name: "PostDetails",
-        params: { postId: notification.post?._id },
-      } as never);
-    } else if (notification.type === "follow") {
-      navigation.navigate({
-        name: "Profile",
-        params: { userId: notification.sender._id },
-      } as never);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
+  // Utiliser avatarUrl ou profilePicture selon ta donnée réelle
+  const senderImage = notification.sender.profilePicture || notification.sender.profilePicture || 'https://via.placeholder.com/48';
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      {loading ? (
-        <Text>Chargement des notifications...</Text>
-      ) : (
-        <ScrollView>
-          {notifications.map((notification) => (
-            <TouchableOpacity
-              key={notification._id}
-              onPress={() => handleNotificationPress(notification)}
-              className="bg-white p-4 rounded-lg shadow mb-4 my-1"
-            >
-              <View className="flex-row items-center">
-                <Image
-                  source={{ uri: notification.sender.profilePicture }}
-                  className="w-10 h-10 rounded-full mr-2"
-                />
+    <TouchableOpacity
+      onPress={() => onPress(notification)}
+      className="flex-row items-center bg-white rounded-xl px-4 py-3 mb-3 shadow-sm"
+      accessibilityLabel={`Notification de ${notification.sender.username}`}
+    >
+      <View className="relative mr-3">
+        <Image
+          source={{ uri: senderImage }}
+          className="w-12 h-12 rounded-full"
+        />
+        {!notification.isRead && (
+          <View className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-0 right-0" />
+        )}
+      </View>
 
-                <View className="flex-1">
-                  <Text className="font-bold">
-                    {notification.sender.username}
-                  </Text>
-                  <Text className="text-gray-500">
-                    {notification.type === "like"
-                      ? "a aimé votre post"
-                      : notification.type === "comment"
-                      ? "a commenté votre post"
-                      : notification.type === "follow"
-                      ? "vous suit"
-                      : ""}
-                  </Text>
-                  {notification.content && (
-                    <Text className="text-gray-500">{notification.content}</Text>
-                  )}
-                  <Text className="text-gray-400 text-xs">
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      <View className="flex-1">
+        <Text className="font-semibold text-sm text-black">
+          {notification.sender.username}
+        </Text>
+
+        <Text className="text-gray-500 text-xs">
+          {notification.type === "like"
+            ? "a aimé votre post"
+            : notification.type === "comment"
+            ? "vous a mentionné dans un commentaire"
+            : notification.type === "follow"
+            ? "a commencé à vous suivre"
+            : ""}
+        </Text>
+
+        {notification.post?.content && (
+          <Text className="text-gray-400 text-xs" numberOfLines={1}>
+            {notification.post.content}
+          </Text>
+        )}
+
+        <Text className="text-gray-400 text-[10px] mt-1">
+          {new Date(notification.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </View>
+
+      {notification.post && (
+        <Image
+          source={{
+            uri: "https://via.placeholder.com/48", // Remplace par l'image réelle du post si disponible
+          }}
+          className="w-10 h-10 rounded-lg ml-2"
+        />
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
-export default Notification;
+export default NotificationCard;
