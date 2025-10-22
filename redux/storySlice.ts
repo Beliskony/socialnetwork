@@ -63,6 +63,7 @@ export const uploadStoryMedia = async (
 // ==================== THUNKS ASYNCHRONES ====================
 
 // 📸 Créer une story
+// Dans storySlice.ts - Mettre à jour la thunk createStory
 export const createStory = createAsyncThunk<
   IStoryPopulated,
   { content: StoryContent },
@@ -77,6 +78,7 @@ export const createStory = createAsyncThunk<
       mediaUrl = await uploadStoryMedia(payload.content.data, payload.content.type);
     }
 
+    // ✅ CORRECTION : Structure adaptée au backend
     const body = {
       content: {
         type: payload.content.type,
@@ -90,7 +92,6 @@ export const createStory = createAsyncThunk<
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création de la story');
   }
 });
-
 // 👤 Récupérer mes stories
 export const getMyStories = createAsyncThunk<
   IStoryPopulated[],

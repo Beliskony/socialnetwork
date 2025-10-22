@@ -6,9 +6,12 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { toggleLike, toggleSave, deletePost } from '@/redux/postSlice';
+import { createComment, getCommentsByPost } from '@/redux/commentSlice'; // ✅ Import des actions commentaires
 import type { RootState, AppDispatch } from '@/redux/store';
 import { PostFront } from '@/intefaces/post.Interface';
 import {
@@ -18,7 +21,10 @@ import {
   Bookmark,
   MoreVertical,
   User,
+  Send,
+  X,
 } from 'lucide-react-native';
+import CommentCard from '@/components/Comments/CommentCard'; // ✅ Import du composant CommentCard
 
 interface PostCardProps {
   post: PostFront;
@@ -29,6 +35,7 @@ interface PostCardProps {
   onDelete?: () => void;
   showActions?: boolean;
   variant?: 'detailed' | 'compact';
+  showComments?: boolean; // ✅ Nouvelle prop pour afficher les commentaires
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -40,15 +47,20 @@ const PostCard: React.FC<PostCardProps> = ({
   onDelete,
   showActions = true,
   variant = 'detailed',
+  showComments = false, // ✅ Par défaut masqué
 }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [showFullText, setShowFullText] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [commentText, setCommentText] = useState(''); // ✅ État pour le commentaire
+  const [isCommenting, setIsCommenting] = useState(false); // ✅ État pour la création de commentaire
+  const [showCommentsSection, setShowCommentsSection] = useState(showComments); // ✅ État pour afficher/masquer les commentaires
 
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state: RootState) => state.user);
   const { loading } = useAppSelector((state: RootState) => state.posts);
+  const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments); // ✅ Récupération des commentaires
 
   // ✅ CORRECTION : Utiliser la nouvelle structure de l'API
   const postAuthor = post.author || {};
@@ -64,6 +76,38 @@ const PostCard: React.FC<PostCardProps> = ({
   if (!post || !post._id) {
     return null;
   }
+
+  // ✅ Fonction pour créer un commentaire
+  const handleCreateComment = async () => {
+    if (!commentText.trim() || !currentUser || isCommenting) return;
+    
+    setIsCommenting(true);
+    try {
+      await dispatch(createComment({
+        postId: post._id,
+        content: { text: commentText.trim() }
+      })).unwrap();
+      
+      setCommentText(''); // ✅ Réinitialiser le champ
+      Alert.alert('Succès', 'Commentaire publié !');
+      
+      // ✅ Recharger les commentaires après création
+      dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
+      
+    } catch (error: any) {
+      Alert.alert('Erreur', error || 'Impossible de publier le commentaire');
+    } finally {
+      setIsCommenting(false);
+    }
+  };
+
+  // ✅ Fonction pour charger les commentaires
+  const handleLoadComments = () => {
+    if (!showCommentsSection) {
+      dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
+    }
+    setShowCommentsSection(!showCommentsSection);
+  };
 
   // Gérer le like/unlike
   const handleLike = async () => {
@@ -198,7 +242,7 @@ const PostCard: React.FC<PostCardProps> = ({
     </View>
   );
 
-  // Rendu du contenu texte - ✅ CORRECTION : postContent.text au lieu de post.text
+  // Rendu du contenu texte
   const renderTextContent = () => {
     if (!postContent.text) return null;
 
@@ -223,7 +267,7 @@ const PostCard: React.FC<PostCardProps> = ({
     );
   };
 
-  // Rendu des médias - ✅ CORRECTION : postMedia.images et postMedia.videos
+  // Rendu des médias
   const renderMedia = () => {
     const images = postMedia.images || [];
     const videos = postMedia.videos || [];
@@ -246,7 +290,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 } rounded-xl overflow-hidden bg-slate-200`}
               >
                 <Image
-                  source={{ uri: image.url || image }} // ✅ Supporte les objets {url} ou strings
+                  source={{ uri: image.url || image }}
                   className="w-full h-full"
                   resizeMode="cover"
                   onLoadStart={() => setImageLoading(true)}
@@ -289,7 +333,82 @@ const PostCard: React.FC<PostCardProps> = ({
     );
   };
 
-  // Rendu des actions - ✅ CORRECTION : engagement.likes et engagement.comments
+  // ✅ Rendu du formulaire de commentaire
+  const renderCommentForm = () => (
+    <View className="px-4 pb-3 border-t border-slate-100 pt-3">
+      <View className="flex-row items-center">
+        <TextInput
+          value={commentText}
+          onChangeText={setCommentText}
+          placeholder="Ajouter un commentaire..."
+          placeholderTextColor="#94a3b8"
+          className="flex-1 bg-slate-50 rounded-full px-4 py-2 text-slate-800 text-sm border border-slate-200"
+          multiline
+          maxLength={1000}
+        />
+        <TouchableOpacity
+          onPress={handleCreateComment}
+          disabled={!commentText.trim() || isCommenting}
+          className="ml-2 bg-blue-600 p-2 rounded-full"
+        >
+          {isCommenting ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Send size={16} color="#ffffff" />
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // ✅ Rendu de la section commentaires
+  const renderCommentsSection = () => {
+    if (!showCommentsSection) return null;
+
+    return (
+      <View className="border-t border-slate-100">
+        {/* En-tête commentaires */}
+        <View className="flex-row items-center justify-between px-4 py-3 bg-slate-50">
+          <Text className="font-semibold text-slate-900">
+            Commentaires ({comments.length})
+          </Text>
+          <TouchableOpacity onPress={() => setShowCommentsSection(false)}>
+            <X size={16} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Liste des commentaires */}
+        {commentsLoading ? (
+          <View className="py-8 items-center">
+            <ActivityIndicator size="small" color="#3b82f6" />
+            <Text className="text-slate-500 mt-2">Chargement des commentaires...</Text>
+          </View>
+        ) : comments.length > 0 ? (
+          <ScrollView className="max-h-80">
+            {comments.map(comment => (
+              <CommentCard
+                key={comment._id}
+                comment={comment}
+                postId={post._id}
+                showReplies={true}
+                onReply={(comment) => console.log('Répondre à:', comment)}
+                onEdit={(comment) => console.log('Modifier:', comment)}
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View className="py-8 items-center">
+            <Text className="text-slate-500">Aucun commentaire pour le moment</Text>
+            <Text className="text-slate-400 text-sm mt-1">
+              Soyez le premier à commenter !
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Rendu des actions
   const renderActions = () => {
     if (!showActions) return null;
 
@@ -319,9 +438,9 @@ const PostCard: React.FC<PostCardProps> = ({
               </Text>
             </TouchableOpacity>
 
-            {/* Comment */}
+            {/* Comment - ✅ MODIFIÉ pour charger les commentaires */}
             <TouchableOpacity 
-              onPress={() => onCommentPress?.(post)}
+              onPress={handleLoadComments}
               className="flex-row items-center"
             >
               <MessageCircle size={22} color="#64748b" />
@@ -355,6 +474,9 @@ const PostCard: React.FC<PostCardProps> = ({
             )}
           </TouchableOpacity>
         </View>
+
+        {/* ✅ AJOUT : Formulaire de commentaire */}
+        {renderCommentForm()}
       </View>
     );
   };
@@ -384,6 +506,9 @@ const PostCard: React.FC<PostCardProps> = ({
       </TouchableOpacity>
 
       {renderActions()}
+      
+      {/* ✅ AJOUT : Section commentaires */}
+      {renderCommentsSection()}
     </View>
   );
 };

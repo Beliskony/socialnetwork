@@ -3,13 +3,14 @@ import { View, Text, Image, TouchableOpacity, TextInput, Alert } from "react-nat
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Heart, MessageCircle, MoreHorizontal, User, Edit, Trash2, Reply } from "lucide-react-native"
-import { toggleLikeComment, deleteComment, setCurrentComment } from "@/redux/commentSlice"
+import { toggleLikeComment, deleteComment, setCurrentComment, createComment } from "@/redux/commentSlice" // ✅ Ajout de createComment
 import type { RootState, AppDispatch } from "@/redux/store"
 import type { Comment } from "@/intefaces/comment.Interfaces"
 import { formatRelativeDate } from "@/utils/formatRelativeDate"
 
 interface CommentCardProps {
   comment: Comment
+  postId: string // ✅ AJOUT IMPORTANT : postId requis pour créer des réponses
   onReply?: (comment: Comment) => void
   onEdit?: (comment: Comment) => void
   showReplies?: boolean
@@ -18,6 +19,7 @@ interface CommentCardProps {
 
 const CommentCard: React.FC<CommentCardProps> = ({ 
   comment, 
+  postId, // ✅ Récupération du postId
   onReply, 
   onEdit,
   showReplies = false,
@@ -28,6 +30,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
   const [replyText, setReplyText] = useState("")
   const [isLiking, setIsLiking] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isReplying, setIsReplying] = useState(false) // ✅ État pour la création de réponse
 
   const dispatch = useDispatch<AppDispatch>()
   const { currentUser } = useSelector((state: RootState) => state.user)
@@ -79,7 +82,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
     )
   }
 
-  // Gestion des réponses
+  // ✅ CORRECTION : Gestion des réponses avec création réelle
   const handleReply = () => {
     if (!currentUser) {
       Alert.alert("Connexion requise", "Veuillez vous connecter pour répondre")
@@ -89,13 +92,27 @@ const CommentCard: React.FC<CommentCardProps> = ({
     setShowReplyInput(true)
   }
 
-  const handleSubmitReply = () => {
-    if (!replyText.trim()) return
+  const handleSubmitReply = async () => {
+    if (!replyText.trim() || !currentUser || isReplying) return
     
-    // TODO: Intégrer avec createComment thunk
-    Alert.alert("Info", "Fonctionnalité de réponse à implémenter")
-    setReplyText("")
-    setShowReplyInput(false)
+    setIsReplying(true)
+    try {
+      // ✅ Création de la réponse via Redux
+      await dispatch(createComment({
+        postId: postId, // ✅ Utilisation du postId
+        content: { text: replyText.trim() },
+        parentComment: comment._id // ✅ Réponse à ce commentaire
+      })).unwrap()
+      
+      setReplyText("")
+      setShowReplyInput(false)
+      Alert.alert("Succès", "Réponse publiée !")
+      
+    } catch (error: any) {
+      Alert.alert("Erreur", error || "Impossible de publier la réponse")
+    } finally {
+      setIsReplying(false)
+    }
   }
 
   return (
@@ -270,13 +287,16 @@ const CommentCard: React.FC<CommentCardProps> = ({
               placeholderTextColor="#94a3b8"
               className="flex-1 bg-slate-50 rounded-full px-4 py-2 text-slate-800 text-sm border border-slate-200"
               multiline
+              maxLength={1000}
             />
             <TouchableOpacity
               onPress={handleSubmitReply}
-              disabled={!replyText.trim()}
+              disabled={!replyText.trim() || isReplying}
               className="ml-2 bg-blue-600 px-3 py-2 rounded-full"
             >
-              <Text className="text-white text-sm font-medium">Envoyer</Text>
+              <Text className="text-white text-sm font-medium">
+                {isReplying ? "..." : "Envoyer"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

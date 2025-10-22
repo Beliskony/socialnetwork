@@ -151,16 +151,19 @@ export const getCommentReplies = createAsyncThunk<
 
 // ❤️ Like/Unlike un commentaire
 export const toggleLikeComment = createAsyncThunk<
-  { commentId: string; likes: string[] },
+  { commentId: string; likes: string[]; likesCount: number }, // ← Ajouter likesCount
   string,
   { rejectValue: string; state: RootState }
 >('comments/toggleLike', async (commentId, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
     const response = await api.post(`/comments/${commentId}/like`, {}, { headers });
+    
+    // Adapter selon ce que retourne réellement ton backend
     return {
       commentId,
-      likes: response.data.likes || []
+      likes: response.data.engagement?.likes || response.data.likes || [],
+      likesCount: response.data.engagement?.likesCount || response.data.likes?.length || 0
     };
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du like');
@@ -378,19 +381,19 @@ const commentSlice = createSlice({
 
       // Toggle Like
       .addCase(toggleLikeComment.fulfilled, (state, action) => {
-        const { commentId, likes } = action.payload;
-        
-        const updateCommentLikes = (comment: Comment) => {
-          if (comment._id === commentId) {
-            comment.engagement.likes = likes;
-            comment.engagement.likesCount = likes.length;
-          }
-        };
+  const { commentId, likes, likesCount } = action.payload;
+  
+  const updateCommentLikes = (comment: Comment) => {
+    if (comment._id === commentId) {
+      comment.engagement.likes = likes;
+      comment.engagement.likesCount = likesCount;
+    }
+  };
 
-        state.comments.forEach(updateCommentLikes);
-        state.replies.forEach(updateCommentLikes);
-        state.popularComments.forEach(updateCommentLikes);
-      })
+  state.comments.forEach(updateCommentLikes);
+  state.replies.forEach(updateCommentLikes);
+  state.popularComments.forEach(updateCommentLikes);
+})
 
       // Update Comment
       .addCase(updateComment.fulfilled, (state, action) => {

@@ -91,7 +91,9 @@ export const loginUser = createAsyncThunk<
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    console.log('🌐 URL appelée:', API_CONFIG.BASE_URL);
+    console.log('🔄 Tentative de login avec:', credentials.identifiant);
+  console.log('🌐 URL complète:', `${API_CONFIG.BASE_URL}/login`);
+  console.log('⏱️ Timeout configuré:', API_CONFIG.TIMEOUT, 'ms');
 
     const authData = data.data;
 
