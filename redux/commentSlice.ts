@@ -26,11 +26,14 @@ const api = axios.create({
   baseURL: 'https://apisocial-g8z6.onrender.com/api',
 });
 
-// Headers d'authentification
+// Headers d'authentification - CORRIGÉ
 const getAuthHeaders = (getState: () => unknown) => {
   const token = (getState() as RootState).user.token;
-  if (!token) throw new Error('Token manquant, veuillez vous connecter');
-  return { Authorization: `Bearer ${token}` };
+  const headers: any = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 };
 
 // Upload Cloudinary pour les médias des commentaires
@@ -119,17 +122,30 @@ export const createComment = createAsyncThunk<
   }
 });
 
-// 📖 Récupérer les commentaires d'un post
+// 📖 Récupérer les commentaires d'un post - CORRIGÉ
 export const getCommentsByPost = createAsyncThunk<
   { comments: Comment[]; total: number; pagination?: any },
   { postId: string; page?: number; limit?: number },
   { rejectValue: string; state: RootState }
 >('comments/getCommentsByPost', async ({ postId, page = 1, limit = 20 }, { getState, rejectWithValue }) => {
   try {
+    console.log('🔄 getCommentsByPost - Début', { postId, page, limit });
+    
     const headers = getAuthHeaders(getState);
     const response = await api.get(`/posts/${postId}/comments?page=${page}&limit=${limit}`, { headers });
+    
+    console.log('✅ getCommentsByPost - Succès', response.data);
     return response.data;
   } catch (err: any) {
+    console.error('❌ getCommentsByPost - Erreur:', {
+      status: err.response?.status,
+      message: err.response?.data?.message,
+      url: err.config?.url
+    });
+    
+    if (err.response?.status === 404) {
+      return rejectWithValue('Post non trouvé');
+    }
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des commentaires');
   }
 });
@@ -149,9 +165,9 @@ export const getCommentReplies = createAsyncThunk<
   }
 });
 
-// ❤️ Like/Unlike un commentaire
+// ❤️ Like/Unlike un commentaire - CORRIGÉ
 export const toggleLikeComment = createAsyncThunk<
-  { commentId: string; likes: string[]; likesCount: number }, // ← Ajouter likesCount
+  { commentId: string; likes: string[]; likesCount: number },
   string,
   { rejectValue: string; state: RootState }
 >('comments/toggleLike', async (commentId, { getState, rejectWithValue }) => {
@@ -159,11 +175,13 @@ export const toggleLikeComment = createAsyncThunk<
     const headers = getAuthHeaders(getState);
     const response = await api.post(`/comments/${commentId}/like`, {}, { headers });
     
-    // Adapter selon ce que retourne réellement ton backend
+    console.log('🔍 toggleLike response:', response.data); // Pour debug
+    
+    // Structure adaptative selon la réponse du backend
     return {
       commentId,
-      likes: response.data.engagement?.likes || response.data.likes || [],
-      likesCount: response.data.engagement?.likesCount || response.data.likes?.length || 0
+      likes: response.data.likes || response.data.engagement?.likes || [],
+      likesCount: response.data.likesCount || response.data.engagement?.likesCount || 0
     };
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du like');
@@ -315,6 +333,20 @@ const commentSlice = createSlice({
         }
       }
     },
+    // Réinitialiser les commentaires
+    resetComments: (state) => {
+      state.comments = [];
+      state.replies = [];
+      state.popularComments = [];
+      state.currentComment = null;
+      state.error = null;
+      state.pagination = {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      };
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -354,17 +386,25 @@ const commentSlice = createSlice({
       })
       .addCase(getCommentsByPost.fulfilled, (state, action) => {
         state.loading = false;
-        state.comments = action.payload.comments;
+        state.comments = action.payload.comments || [];
+        
+        // Mettre à jour la pagination
         if (action.payload.pagination) {
           state.pagination = {
             ...state.pagination,
             ...action.payload.pagination,
           };
         }
+        
+        // Mettre à jour le total si disponible
+        if (action.payload.total !== undefined) {
+          state.pagination.total = action.payload.total;
+        }
       })
       .addCase(getCommentsByPost.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.comments = []; // Réinitialiser en cas d'erreur
       })
 
       // Get Comment Replies
@@ -373,27 +413,28 @@ const commentSlice = createSlice({
       })
       .addCase(getCommentReplies.fulfilled, (state, action) => {
         state.repliesLoading = false;
-        state.replies = action.payload.replies;
+        state.replies = action.payload.replies || [];
       })
       .addCase(getCommentReplies.rejected, (state) => {
         state.repliesLoading = false;
       })
 
-      // Toggle Like
+      // Toggle Like - CORRIGÉ
       .addCase(toggleLikeComment.fulfilled, (state, action) => {
-  const { commentId, likes, likesCount } = action.payload;
-  
-  const updateCommentLikes = (comment: Comment) => {
-    if (comment._id === commentId) {
-      comment.engagement.likes = likes;
-      comment.engagement.likesCount = likesCount;
-    }
-  };
+        const { commentId, likes, likesCount } = action.payload;
+        
+        const updateCommentInArray = (comments: Comment[]) => {
+          const comment = comments.find(c => c._id === commentId);
+          if (comment) {
+            comment.engagement.likes = likes;
+            comment.engagement.likesCount = likesCount;
+          }
+        };
 
-  state.comments.forEach(updateCommentLikes);
-  state.replies.forEach(updateCommentLikes);
-  state.popularComments.forEach(updateCommentLikes);
-})
+        updateCommentInArray(state.comments);
+        updateCommentInArray(state.replies);
+        updateCommentInArray(state.popularComments);
+      })
 
       // Update Comment
       .addCase(updateComment.fulfilled, (state, action) => {
@@ -402,7 +443,7 @@ const commentSlice = createSlice({
         const updateInArray = (array: Comment[]) => {
           const index = array.findIndex(c => c._id === updatedComment._id);
           if (index !== -1) {
-            array[index] = updatedComment;
+            array[index] = { ...array[index], ...updatedComment };
           }
         };
 
@@ -428,10 +469,14 @@ const commentSlice = createSlice({
 
       // Get Popular Comments
       .addCase(getPopularComments.fulfilled, (state, action) => {
-        state.popularComments = action.payload;
+        state.popularComments = action.payload || [];
       })
 
-     
+      // Get Comment Stats
+      .addCase(getCommentStats.fulfilled, (state, action) => {
+        // Les stats sont généralement gérées localement dans le composant
+        // Mais vous pouvez les stocker dans le state si nécessaire
+      });
   },
 });
 
@@ -440,7 +485,8 @@ export const {
   clearReplies, 
   setCurrentComment, 
   toggleLikeOptimistic,
-  addReplyOptimistic 
+  addReplyOptimistic,
+  resetComments 
 } = commentSlice.actions;
 
 export default commentSlice.reducer;
@@ -462,3 +508,5 @@ export const selectCommentById = (commentId: string) => (state: RootState) =>
 
 export const selectRepliesByCommentId = (commentId: string) => (state: RootState) =>
   state.comments.replies.filter(reply => reply.parentComment === commentId);
+
+export const selectCommentsPagination = (state: RootState) => state.comments.pagination;

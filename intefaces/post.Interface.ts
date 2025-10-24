@@ -220,6 +220,7 @@ const createEmptyPostFront = (): any => ({
   author: {
     _id: 'unknown-user',
     username: 'Utilisateur inconnu',
+    profilePicture: undefined,
   },
   content: {
     text: '',
@@ -274,9 +275,16 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
     console.error('❌ Post est undefined dans convertToPostFront');
     return createEmptyPostFront();
   }
+  console.log('📥 Données brutes reçues:', {
+  postRaw: post,
+  userRaw: post.user,
+  authorRaw: post.author,
+  profilePicture: post.user?.profilePicture || post.author?.profilePicture
+});
 
   // Vérifier la structure du post
   const user = post.user || post.author || {};
+
   
   if (!user._id) {
     console.warn('⚠️ Post sans utilisateur valide:', { 
@@ -292,7 +300,7 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
     author: {
       _id: user._id || 'unknown-user',
       username: user.username || user.name || 'Utilisateur inconnu',
-      profilePicture: user.profilePicture || user.avatar,
+      profilePicture: user.profile.profilePicture || user.avatar,
     },
     content: {
       text: post.text || post.content?.text || '',

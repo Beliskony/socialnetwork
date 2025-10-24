@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -101,13 +101,7 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  // ✅ Fonction pour charger les commentaires
-  const handleLoadComments = () => {
-    if (!showCommentsSection) {
-      dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
-    }
-    setShowCommentsSection(!showCommentsSection);
-  };
+  
 
   // Gérer le like/unlike
   const handleLike = async () => {
@@ -136,6 +130,29 @@ const PostCard: React.FC<PostCardProps> = ({
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+  // ✅ Charger les commentaires initiaux si showComments est true
+  if (showComments) {
+    dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
+    setShowCommentsSection(true);
+  }
+}, [showComments, post._id, dispatch]);
+
+// ✅ Ajoutez aussi cette fonction pour mieux gérer le chargement des commentaires
+const handleLoadComments = async () => {
+  if (!showCommentsSection) {
+    try {
+      await dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap();
+      setShowCommentsSection(true);
+    } catch (error) {
+      console.error('Erreur chargement commentaires:', error);
+      Alert.alert('Erreur', 'Impossible de charger les commentaires');
+    }
+  } else {
+    setShowCommentsSection(false);
+  }
+};
 
   // Gérer la suppression
   const handleDelete = () => {
@@ -194,6 +211,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Rendu du header avec infos utilisateur
   const renderHeader = () => (
+    
     <View className="flex-row items-center justify-between p-4 pb-3">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
@@ -201,7 +219,7 @@ const PostCard: React.FC<PostCardProps> = ({
       >
         {postAuthor.profilePicture ? (
           <Image
-            source={{ uri: postAuthor.profilePicture }}
+            source={{ uri: postAuthor.profilePicture}}
             className="w-10 h-10 rounded-full"
           />
         ) : (
@@ -384,13 +402,13 @@ const PostCard: React.FC<PostCardProps> = ({
             <Text className="text-slate-500 mt-2">Chargement des commentaires...</Text>
           </View>
         ) : comments.length > 0 ? (
-          <ScrollView className="max-h-80">
+          <ScrollView className="max-h-80" >
             {comments.map(comment => (
               <CommentCard
                 key={comment._id}
                 comment={comment}
                 postId={post._id}
-                showReplies={true}
+                showReplies={false}
                 onReply={(comment) => console.log('Répondre à:', comment)}
                 onEdit={(comment) => console.log('Modifier:', comment)}
               />
