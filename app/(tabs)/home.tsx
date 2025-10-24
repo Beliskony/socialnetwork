@@ -1,5 +1,4 @@
 import Actuality from '@/components/homescreen/Actuality'
-import { useLoadUser } from '@/components/LoadUser'
 import { View } from 'react-native'
 
 

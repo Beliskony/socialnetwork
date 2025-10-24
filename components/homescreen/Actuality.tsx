@@ -1,6 +1,6 @@
 
 import PostsList from '../Posts/PostList'
-import { View, ScrollView } from 'react-native'
+import { ScrollView } from 'react-native'
 import HeaderOfApp from './HeaderOfApp'
 
 

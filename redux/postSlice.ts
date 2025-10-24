@@ -257,7 +257,17 @@ export const getFeed = createAsyncThunk<
     
     const response = await api.get(`/post/feed?page=${page}&limit=${limit}`, { headers });
     
-    console.log('📦 Réponse feed:', response.data);
+    console.log('📦 Réponse feed complète:', response.data);
+    console.log('📊 Données reçues:', response.data.data?.length || 0, 'posts');
+
+       // ✅ DEBUG: Afficher les auteurs des posts reçus
+    if (response.data.data && Array.isArray(response.data.data)) {
+      console.log('👥 Auteurs des posts:', response.data.data.map((post: any) => ({
+        auteur: post.author?.username,
+        id: post.author?._id,
+        texte: post.content?.text?.substring(0, 50) + '...'
+      })));
+    }
 
     if (!response.data.success) {
       throw new Error(response.data.message);
@@ -651,7 +661,7 @@ const postSlice = createSlice({
       })
       .addCase(getFeed.fulfilled, (state, action) => {
         state.feedLoading = false;
-        
+        console.log('✅ Feed chargé:', action.payload.posts.length, 'posts');
         if (action.meta.arg.page === 1 || action.meta.arg.refresh) {
           state.feed = action.payload.posts;
         } else {
