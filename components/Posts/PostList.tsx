@@ -306,23 +306,7 @@ const PostsList = () => {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Bouton flottant pour créer un post */}
-      {currentUser && !showCreateModal && (
-        <TouchableOpacity
-          onPress={() => setShowCreateModal(true)}
-          className="absolute bottom-6 right-6 bg-blue-600 w-16 h-16 rounded-full items-center justify-center shadow-xl active:bg-blue-700 shadow-black/25"
-        >
-          <Plus size={28} color="white" />
-        </TouchableOpacity>
-      )}
-
-      {/* Modal de création/édition de post */}
-      <CreatePost
-        isVisible={showCreateModal}
-        onSuccess={handleCreateSuccess}
-        onCancel={handleCancel}
-        editPost={editingPost || undefined}
-      />
+      
 
       {/* Overlay de chargement pendant la soumission */}
       {isSubmitting && (

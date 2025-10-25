@@ -26,10 +26,4 @@ export default function StartScreen() {
     checkAuth();
   }, [token, currentUser]);
 
-  return (
-    <View className="flex-1 justify-center items-center bg-white">
-      <ActivityIndicator size="large" color="#3b82f6" />
-      <Text className="text-slate-600 mt-4">Chargement...</Text>
-    </View>
-  );
 }

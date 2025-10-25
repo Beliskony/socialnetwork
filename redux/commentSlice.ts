@@ -3,7 +3,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from './store';
 import { Platform } from 'react-native';
-import { Comment, CommentState, ICommentFront, IUserPopulated } from '@/intefaces/comment.Interfaces';
+import { Comment, CommentState, ICommentFront, IAuthor } from '@/intefaces/comment.Interfaces';
 
 const initialState: CommentState = {
   comments: [],
@@ -86,6 +86,8 @@ export const createComment = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('comments/createComment', async (payload, { getState, rejectWithValue }) => {
   try {
+    console.log('🔄 createComment - Début', payload);
+
     const headers = getAuthHeaders(getState);
     const isCloudinaryUrl = (url: string) => url.startsWith('https://res.cloudinary.com/');
 
@@ -115,7 +117,9 @@ export const createComment = createAsyncThunk<
       metadata: payload.metadata,
     };
 
-    const response = await api.post(`/posts/${payload.postId}/comments`, body, { headers });
+    console.log('🔄 createComment - Body prêt', body);
+
+    const response = await api.post(`/comment/posts/${payload.postId}/comments`, body, { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du commentaire');
@@ -132,7 +136,7 @@ export const getCommentsByPost = createAsyncThunk<
     console.log('🔄 getCommentsByPost - Début', { postId, page, limit });
     
     const headers = getAuthHeaders(getState);
-    const response = await api.get(`/posts/${postId}/comments?page=${page}&limit=${limit}`, { headers });
+    const response = await api.get(`/comment/posts/${postId}/comments`, { headers });
     
     console.log('✅ getCommentsByPost - Succès', response.data);
     return response.data;
@@ -157,8 +161,13 @@ export const getCommentReplies = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('comments/getCommentReplies', async ({ commentId, page = 1, limit = 20 }, { getState, rejectWithValue }) => {
   try {
+    console.log('🔄 getCommentReplies - Début', { commentId, page, limit });
+
     const headers = getAuthHeaders(getState);
-    const response = await api.get(`/comments/${commentId}/replies?page=${page}&limit=${limit}`, { headers });
+    const response = await api.get(`/comment/comments/${commentId}/replies?page=${page}&limit=${limit}`, { headers });
+
+    console.log('✅ getCommentReplies - Succès', response.data);
+
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des réponses');
@@ -172,8 +181,10 @@ export const toggleLikeComment = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('comments/toggleLike', async (commentId, { getState, rejectWithValue }) => {
   try {
+    console.log('🔄 toggleLikeComment - Début', commentId);
+    
     const headers = getAuthHeaders(getState);
-    const response = await api.post(`/comments/${commentId}/like`, {}, { headers });
+    const response = await api.post(`/comment/comments/${commentId}/like`, {}, { headers });
     
     console.log('🔍 toggleLike response:', response.data); // Pour debug
     
@@ -230,7 +241,7 @@ export const updateComment = createAsyncThunk<
       metadata: payload.metadata,
     };
 
-    const response = await api.put(`/comments/${payload.commentId}`, body, { headers });
+    const response = await api.put(`/comment/comments/${payload.commentId}`, body, { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la mise à jour du commentaire');
@@ -245,7 +256,7 @@ export const deleteComment = createAsyncThunk<
 >('comments/deleteComment', async (commentId, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    await api.delete(`/comments/${commentId}`, { headers });
+    await api.delete(`/comment/comments/${commentId}`, { headers });
     return commentId;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression du commentaire');
@@ -260,7 +271,7 @@ export const getPopularComments = createAsyncThunk<
 >('comments/getPopularComments', async ({ postId, limit = 10 }, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    const response = await api.get(`/posts/${postId}/comments/popular?limit=${limit}`, { headers });
+    const response = await api.get(`/comment/posts/${postId}/comments/popular?limit=${limit}`, { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des commentaires populaires');
@@ -275,7 +286,7 @@ export const getCommentStats = createAsyncThunk<
 >('comments/getCommentStats', async (postId, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    const response = await api.get(`/posts/${postId}/comments/stats`, { headers });
+    const response = await api.get(`/comment/posts/${postId}/comments/stats`, { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des statistiques');

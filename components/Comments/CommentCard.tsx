@@ -1,53 +1,83 @@
 // components/Comments/CommentCard.tsx
 import { View, Text, Image, TouchableOpacity, TextInput, Alert } from "react-native"
-import { useState } from "react"
+import { useState, useEffect } from "react" // ✅ Ajout de useEffect
 import { useDispatch, useSelector } from "react-redux"
-import { Heart, MessageCircle, MoreHorizontal, User, Edit, Trash2, Reply } from "lucide-react-native"
-import { toggleLikeComment, deleteComment, setCurrentComment, createComment } from "@/redux/commentSlice" // ✅ Ajout de createComment
+import { Heart, MessageCircle, MoreHorizontal, User, Edit, Trash2, Reply, Send, X } from "lucide-react-native"
+import { toggleLikeComment, deleteComment, setCurrentComment, createComment, getCommentReplies, updateComment } from "@/redux/commentSlice"
 import type { RootState, AppDispatch } from "@/redux/store"
 import type { Comment } from "@/intefaces/comment.Interfaces"
 import { formatRelativeDate } from "@/utils/formatRelativeDate"
 
 interface CommentCardProps {
   comment: Comment
-  postId: string // ✅ AJOUT IMPORTANT : postId requis pour créer des réponses
+  postId: string
   onReply?: (comment: Comment) => void
   onEdit?: (comment: Comment) => void
   showReplies?: boolean
   isReply?: boolean
+  onShowReplies?: (commentId: string) => void
 }
 
 const CommentCard: React.FC<CommentCardProps> = ({ 
   comment, 
-  postId, // ✅ Récupération du postId
+  postId,
   onReply, 
   onEdit,
   showReplies = false,
-  isReply = false
+  isReply = false,
+  onShowReplies
 }) => {
   const [showOptions, setShowOptions] = useState(false)
   const [showReplyInput, setShowReplyInput] = useState(false)
+  const [showEditInput, setShowEditInput] = useState(false)
   const [replyText, setReplyText] = useState("")
+  const [editText, setEditText] = useState(comment.content?.text || "")
   const [isLiking, setIsLiking] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isReplying, setIsReplying] = useState(false) // ✅ État pour la création de réponse
+  const [isReplying, setIsReplying] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false)
 
   const dispatch = useDispatch<AppDispatch>()
   const { currentUser } = useSelector((state: RootState) => state.user)
-  const { repliesLoading } = useSelector((state: RootState) => state.comments)
+  const { replies } = useSelector((state: RootState) => state.comments)
 
-  // Vérifications de sécurité
-  const isOwnComment = currentUser?._id === comment.author._id
-  const isLiked = currentUser?._id && comment.engagement.likes.includes(currentUser._id)
-  const likesCount = comment.engagement.likesCount
-  const repliesCount = comment.engagement.repliesCount
+  // ✅ LOG DE DEBUG - Structure du commentaire
+  useEffect(() => {
+    console.log('🔍 CommentCard - Comment structure:', {
+      id: comment._id,
+      hasId: !!comment._id,
+      idType: typeof comment._id,
+      author: comment.author?.username,
+      repliesCount: comment.engagement?.repliesCount,
+      parentComment: comment.parentComment,
+      isReply: isReply
+    });
+  }, [comment, isReply]);
 
-  // Gestion des likes
+  // ✅ Vérifications de sécurité
+  const getAuthorProfilePicture = () => {
+    return comment.author?.profile?.profilePicture || comment.author?.profilePicture || null
+  }
+
+  const getAuthorUsername = () => {
+    return comment.author?.username || 'Utilisateur inconnu'
+  }
+
+  const isOwnComment = currentUser?._id === comment.author?._id
+  const isLiked = currentUser?._id && comment.engagement?.likes?.includes(currentUser._id)
+  const likesCount = comment.engagement?.likesCount || 0
+  const repliesCount = comment.engagement?.repliesCount || 0
+  
+  const commentReplies = replies.filter(reply => reply.parentComment === comment._id)
+
+  // ✅ LIKE/UNLIKE
   const handleLike = async () => {
     if (!currentUser || isLiking) return
     
     setIsLiking(true)
     try {
+      console.log('❤️ Liking comment:', comment._id);
       await dispatch(toggleLikeComment(comment._id)).unwrap()
     } catch (error: any) {
       Alert.alert("Erreur", error || "Impossible de liker le commentaire")
@@ -56,7 +86,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
     }
   }
 
-  // Gestion de la suppression
+  // ✅ SUPPRESSION
   const handleDelete = () => {
     Alert.alert(
       "Supprimer le commentaire",
@@ -69,12 +99,14 @@ const CommentCard: React.FC<CommentCardProps> = ({
           onPress: async () => {
             setIsDeleting(true)
             try {
+              console.log('🗑️ Deleting comment:', comment._id);
               await dispatch(deleteComment(comment._id)).unwrap()
               Alert.alert("Succès", "Commentaire supprimé")
             } catch (error: any) {
               Alert.alert("Erreur", error || "Impossible de supprimer le commentaire")
             } finally {
               setIsDeleting(false)
+              setShowOptions(false)
             }
           },
         },
@@ -82,14 +114,14 @@ const CommentCard: React.FC<CommentCardProps> = ({
     )
   }
 
-  // ✅ CORRECTION : Gestion des réponses avec création réelle
+  // ✅ RÉPONSE
   const handleReply = () => {
     if (!currentUser) {
       Alert.alert("Connexion requise", "Veuillez vous connecter pour répondre")
       return
     }
-    onReply?.(comment)
     setShowReplyInput(true)
+    onReply?.(comment)
   }
 
   const handleSubmitReply = async () => {
@@ -97,22 +129,113 @@ const CommentCard: React.FC<CommentCardProps> = ({
     
     setIsReplying(true)
     try {
-      // ✅ Création de la réponse via Redux
+      console.log('🆕 Creating reply to comment:', comment._id);
       await dispatch(createComment({
-        postId: postId, // ✅ Utilisation du postId
+        postId: postId,
         content: { text: replyText.trim() },
-        parentComment: comment._id // ✅ Réponse à ce commentaire
+        parentComment: comment._id
       })).unwrap()
       
       setReplyText("")
       setShowReplyInput(false)
-      Alert.alert("Succès", "Réponse publiée !")
-      
     } catch (error: any) {
       Alert.alert("Erreur", error || "Impossible de publier la réponse")
     } finally {
       setIsReplying(false)
     }
+  }
+
+  const handleCancelReply = () => {
+    setReplyText("")
+    setShowReplyInput(false)
+  }
+
+  // ✅ MODIFICATION
+  const handleEdit = () => {
+    setEditText(comment.content?.text || "")
+    setShowEditInput(true)
+    setShowOptions(false)
+  }
+
+  const handleSubmitEdit = async () => {
+    if (!editText.trim() || !currentUser || isEditing) return
+    
+    setIsEditing(true)
+    try {
+      console.log('✏️ Updating comment:', comment._id);
+      await dispatch(updateComment({
+        commentId: comment._id,
+        content: { 
+          text: editText.trim(),
+          media: comment.content?.media
+        }
+      })).unwrap()
+      
+      setShowEditInput(false)
+      Alert.alert("Succès", "Commentaire modifié")
+    } catch (error: any) {
+      Alert.alert("Erreur", error || "Impossible de modifier le commentaire")
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditText(comment.content?.text || "")
+    setShowEditInput(false)
+  }
+
+  // ✅ CORRIGÉ : CHARGEMENT DES RÉPONSES AVEC VÉRIFICATION
+  const handleLoadReplies = async () => {
+    // ✅ VÉRIFICATION CRITIQUE
+    if (isLoadingReplies || !comment._id) {
+      console.log('❌ Cannot load replies:', {
+        isLoading: isLoadingReplies,
+        hasCommentId: !!comment._id,
+        commentId: comment._id
+      });
+      return;
+    }
+    
+    setIsLoadingReplies(true);
+    try {
+      console.log('🔄 Loading replies for comment:', comment._id);
+      
+      await dispatch(getCommentReplies({ 
+        commentId: comment._id, 
+        page: 1, 
+        limit: 20 
+      })).unwrap()
+      
+      console.log('✅ Replies loaded successfully for comment:', comment._id);
+      onShowReplies?.(comment._id);
+    } catch (error: any) {
+      console.error('❌ Error loading replies:', error);
+      Alert.alert("Erreur", "Impossible de charger les réponses");
+    } finally {
+      setIsLoadingReplies(false);
+    }
+  }
+
+  // ✅ AVATAR
+  const renderAvatar = () => {
+    const profilePicture = getAuthorProfilePicture()
+    
+    if (profilePicture && profilePicture.startsWith('http')) {
+      return (
+        <Image
+          source={{ uri: profilePicture }}
+          className="w-8 h-8 rounded-full"
+          onError={() => console.log('❌ Image error for:', profilePicture)}
+        />
+      )
+    }
+    
+    return (
+      <View className="w-8 h-8 rounded-full bg-slate-200 items-center justify-center">
+        <User size={16} color="#64748b" />
+      </View>
+    )
   }
 
   return (
@@ -121,42 +244,33 @@ const CommentCard: React.FC<CommentCardProps> = ({
       {/* Header */}
       <View className="flex-row items-start justify-between mb-3">
         <View className="flex-row items-center flex-1">
-          {/* Avatar */}
-          {comment.author.profilePicture ? (
-            <Image
-              source={{ uri: comment.author.profilePicture }}
-              className="w-8 h-8 rounded-full"
-            />
-          ) : (
-            <View className="w-8 h-8 rounded-full bg-slate-200 items-center justify-center">
-              <User size={16} color="#64748b" />
-            </View>
-          )}
+          {renderAvatar()}
           
-          {/* User info */}
           <View className="ml-3 flex-1">
             <Text className="font-semibold text-slate-900 text-sm">
-              {comment.author.username}
+              {getAuthorUsername()}
             </Text>
             <Text className="text-slate-500 text-xs">
               {formatRelativeDate(comment.createdAt)}
-              {comment.metadata.isEdited && " • Modifié"}
+              {comment.metadata?.isEdited && " • Modifié"}
             </Text>
           </View>
         </View>
 
-        {/* Options menu */}
-        <TouchableOpacity 
-          onPress={() => setShowOptions(!showOptions)}
-          disabled={isDeleting}
-          className="p-1"
-        >
-          {isDeleting ? (
-            <Text className="text-slate-400 text-xs">Suppression...</Text>
-          ) : (
-            <MoreHorizontal size={16} color="#64748b" />
-          )}
-        </TouchableOpacity>
+        {/* Options menu - seulement si l'utilisateur est connecté */}
+        {currentUser && (
+          <TouchableOpacity 
+            onPress={() => setShowOptions(!showOptions)}
+            disabled={isDeleting}
+            className="p-1"
+          >
+            {isDeleting ? (
+              <Text className="text-slate-400 text-xs">Suppression...</Text>
+            ) : (
+              <MoreHorizontal size={16} color="#64748b" />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Options dropdown */}
@@ -165,10 +279,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
           {isOwnComment ? (
             <>
               <TouchableOpacity
-                onPress={() => {
-                  setShowOptions(false)
-                  onEdit?.(comment)
-                }}
+                onPress={handleEdit}
                 className="flex-row items-center px-3 py-2"
               >
                 <Edit size={14} color="#64748b" className="mr-2" />
@@ -176,10 +287,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
               </TouchableOpacity>
               <View className="h-px bg-slate-200" />
               <TouchableOpacity
-                onPress={() => {
-                  setShowOptions(false)
-                  handleDelete()
-                }}
+                onPress={handleDelete}
                 className="flex-row items-center px-3 py-2"
               >
                 <Trash2 size={14} color="#ef4444" className="mr-2" />
@@ -197,42 +305,76 @@ const CommentCard: React.FC<CommentCardProps> = ({
         </View>
       )}
 
-      {/* Content */}
-      <View className="mb-3">
-        <Text className="text-slate-800 text-sm leading-5">
-          {comment.content.text}
-        </Text>
-
-        {/* Media dans les commentaires */}
-        {comment.content.media && (
-          <View className="mt-2">
-            {/* Images */}
-            {comment.content.media.images && comment.content.media.images.length > 0 && (
-              <View className="flex-row flex-wrap gap-2">
-                {comment.content.media.images.map((image, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: image }}
-                    className="w-20 h-20 rounded-lg"
-                    resizeMode="cover"
-                  />
-                ))}
-              </View>
-            )}
-            
-            {/* Videos */}
-            {comment.content.media.videos && comment.content.media.videos.length > 0 && (
-              <View className="bg-slate-100 rounded-lg p-3">
-                <Text className="text-slate-600 text-sm">🎥 Vidéo joint</Text>
-              </View>
-            )}
+      {/* CONTENU - Mode édition ou affichage */}
+      {showEditInput ? (
+        // ✅ MODE ÉDITION
+        <View className="mb-3">
+          <TextInput
+            value={editText}
+            onChangeText={setEditText}
+            placeholder="Modifier votre commentaire..."
+            placeholderTextColor="#94a3b8"
+            className="bg-slate-50 rounded-lg px-4 py-3 text-slate-800 text-sm border border-slate-200"
+            multiline
+            numberOfLines={3}
+            maxLength={1000}
+          />
+          <View className="flex-row justify-end mt-2 space-x-2">
+            <TouchableOpacity
+              onPress={handleCancelEdit}
+              disabled={isEditing}
+              className="px-4 py-2 border border-slate-300 rounded-lg"
+            >
+              <Text className="text-slate-600 text-sm">Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSubmitEdit}
+              disabled={!editText.trim() || isEditing}
+              className="px-4 py-2 bg-blue-600 rounded-lg flex-row items-center"
+            >
+              <Send size={14} color="white" className="mr-1" />
+              <Text className="text-white text-sm font-medium">
+                {isEditing ? "..." : "Modifier"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      ) : (
+        // ✅ MODE AFFICHAGE
+        <View className="mb-3">
+          <Text className="text-slate-800 text-sm leading-5">
+            {comment.content?.text || 'Contenu non disponible'}
+          </Text>
 
-      {/* Actions */}
+          {/* Media */}
+          {comment.content?.media && (
+            <View className="mt-2">
+              {comment.content.media.images && comment.content.media.images.length > 0 && (
+                <View className="flex-row flex-wrap gap-2">
+                  {comment.content.media.images.map((image, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: image }}
+                      className="w-20 h-20 rounded-lg"
+                      resizeMode="cover"
+                    />
+                  ))}
+                </View>
+              )}
+              
+              {comment.content.media.videos && comment.content.media.videos.length > 0 && (
+                <View className="bg-slate-100 rounded-lg p-3">
+                  <Text className="text-slate-600 text-sm">🎥 Vidéo jointe</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ACTIONS */}
       <View className="flex-row items-center justify-between border-t border-slate-100 pt-3">
-        {/* Like button */}
+        {/* Like */}
         <TouchableOpacity 
           onPress={handleLike}
           disabled={!currentUser || isLiking}
@@ -248,8 +390,8 @@ const CommentCard: React.FC<CommentCardProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* Reply button - seulement pour les commentaires principaux */}
-        {!isReply && (
+        {/* Reply - seulement pour les commentaires principaux */}
+        {!isReply && !showEditInput && (
           <TouchableOpacity 
             onPress={handleReply}
             disabled={!currentUser}
@@ -257,46 +399,69 @@ const CommentCard: React.FC<CommentCardProps> = ({
           >
             <Reply size={16} color="#64748b" />
             <Text className="ml-1 text-xs text-slate-600">
-              Répondre {repliesCount > 0 && `(${repliesCount})`}
+              Répondre
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* View replies button */}
-        {showReplies && repliesCount > 0 && (
+        {/* View replies */}
+        {!isReply && repliesCount > 0 && !showEditInput && (
           <TouchableOpacity 
-            onPress={() => dispatch(setCurrentComment(comment as any))}
+            onPress={handleLoadReplies}
+            disabled={isLoadingReplies || !comment._id} // ✅ Désactiver si pas d'ID
             className="flex-row items-center"
           >
             <MessageCircle size={14} color="#3b82f6" />
             <Text className="ml-1 text-xs text-blue-600">
-              Voir {repliesCount} réponse{repliesCount > 1 ? 's' : ''}
+              {isLoadingReplies ? 'Chargement...' : `Voir ${repliesCount} réponse${repliesCount > 1 ? 's' : ''}`}
             </Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Reply input */}
+      {/* RÉPONSES CHARGÉES */}
+      {commentReplies.length > 0 && (
+        <View className="mt-3 border-t border-slate-100 pt-3">
+          {commentReplies.map(reply => (
+            <CommentCard
+              key={reply._id}
+              comment={reply}
+              postId={postId}
+              isReply={true}
+              onShowReplies={onShowReplies}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* INPUT RÉPONSE */}
       {showReplyInput && (
         <View className="mt-3 pt-3 border-t border-slate-100">
+          <View className="flex-row items-center mb-2">
+            <Text className="text-slate-700 text-sm font-medium flex-1">
+              Répondre à {getAuthorUsername()}
+            </Text>
+            <TouchableOpacity onPress={handleCancelReply}>
+              <X size={16} color="#64748b" />
+            </TouchableOpacity>
+          </View>
           <View className="flex-row items-center">
             <TextInput
               value={replyText}
               onChangeText={setReplyText}
-              placeholder="Écrire une réponse..."
+              placeholder="Écrire votre réponse..."
               placeholderTextColor="#94a3b8"
-              className="flex-1 bg-slate-50 rounded-full px-4 py-2 text-slate-800 text-sm border border-slate-200"
+              className="flex-1 bg-slate-50 rounded-lg px-4 py-3 text-slate-800 text-sm border border-slate-200"
               multiline
+              numberOfLines={3}
               maxLength={1000}
             />
             <TouchableOpacity
               onPress={handleSubmitReply}
               disabled={!replyText.trim() || isReplying}
-              className="ml-2 bg-blue-600 px-3 py-2 rounded-full"
+              className="ml-2 bg-blue-600 p-3 rounded-lg"
             >
-              <Text className="text-white text-sm font-medium">
-                {isReplying ? "..." : "Envoyer"}
-              </Text>
+              <Send size={16} color="white" />
             </TouchableOpacity>
           </View>
         </View>

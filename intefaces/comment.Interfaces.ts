@@ -1,15 +1,36 @@
 // types/comment.types.ts
-export interface IUserPopulated {
+
+// ✅ Interface pour la structure réelle de l'API
+export interface IAuthor {
   _id: string;
   username: string;
+  profile?: {
+    profilePicture?: string;
+  };
+  // Support pour les deux structures
   profilePicture?: string;
+}
+
+export interface IReplyPreview {
+  _id: string;
+  content: {
+    text: string;
+  };
+  author: string | IAuthor; // Peut être ID ou objet peuplé
+  createdAt: string;
+  engagement: {
+    likes: string[];
+    likesCount: number;
+    replies: string[];
+    repliesCount: number;
+  };
 }
 
 export interface Comment {
   _id: string;
-  author: IUserPopulated;
+  author: IAuthor; // ✅ Structure corrigée
   post: string;
-  parentComment?: string;
+  parentComment?: string | null;
   content: {
     text: string;
     media?: {
@@ -20,7 +41,7 @@ export interface Comment {
   engagement: {
     likes: string[];
     likesCount: number;
-    replies: string[];
+    replies: any[]; // ✅ Peut être IDs ou objets partiels
     repliesCount: number;
   };
   metadata: {
@@ -38,15 +59,16 @@ export interface Comment {
   type: 'comment' | 'reply';
   createdAt: string;
   updatedAt: string;
+  id?: string; // ✅ Support pour la transformation
 }
 
 export interface ICommentFront {
   _id: string;
-  author: IUserPopulated;
+  author: IAuthor; // ✅ Même structure que Comment
   post: string;
   parentComment?: {
     _id: string;
-    author: IUserPopulated;
+    author: IAuthor;
     content: {
       text: string;
       media?: {
@@ -63,13 +85,13 @@ export interface ICommentFront {
     };
   };
   engagement: {
-    likes: IUserPopulated[];
+    likes: string[]; // ✅ Reste string[] pour correspondre à l'API
     likesCount: number;
-    replies: string[];
+    replies: string[]; // ✅ Reste string[] 
     repliesCount: number;
   };
   metadata: {
-    mentions: IUserPopulated[];
+    mentions: string[]; // ✅ IDs plutôt que objets peuplés
     hashtags: string[];
     isEdited: boolean;
     lastEditedAt?: string;
@@ -100,3 +122,16 @@ export interface CommentState {
     totalPages: number;
   };
 }
+
+// ✅ Utilitaires pour accéder aux données de manière sécurisée
+export const getAuthorProfilePicture = (author: IAuthor): string | null => {
+  return author.profile?.profilePicture || author.profilePicture || null;
+};
+
+export const getAuthorUsername = (author: IAuthor): string => {
+  return author.username || 'Utilisateur inconnu';
+};
+
+export const isReplyPreview = (reply: string | IReplyPreview): reply is IReplyPreview => {
+  return typeof reply === 'object' && reply !== null && '_id' in reply;
+};

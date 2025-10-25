@@ -10,8 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { toggleLike, toggleSave, deletePost } from '@/redux/postSlice';
-import { createComment, getCommentsByPost } from '@/redux/commentSlice'; // ✅ Import des actions commentaires
+import { toggleLike, toggleSave, deletePost, getFeed } from '@/redux/postSlice';
+import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { PostFront } from '@/intefaces/post.Interface';
 import {
@@ -24,7 +24,7 @@ import {
   Send,
   X,
 } from 'lucide-react-native';
-import CommentCard from '@/components/Comments/CommentCard'; // ✅ Import du composant CommentCard
+import CommentCard from '@/components/Comments/CommentCard';
 
 interface PostCardProps {
   post: PostFront;
@@ -35,7 +35,7 @@ interface PostCardProps {
   onDelete?: () => void;
   showActions?: boolean;
   variant?: 'detailed' | 'compact';
-  showComments?: boolean; // ✅ Nouvelle prop pour afficher les commentaires
+  showComments?: boolean;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -47,112 +47,166 @@ const PostCard: React.FC<PostCardProps> = ({
   onDelete,
   showActions = true,
   variant = 'detailed',
-  showComments = false, // ✅ Par défaut masqué
+  showComments = false,
 }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [showFullText, setShowFullText] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [commentText, setCommentText] = useState(''); // ✅ État pour le commentaire
-  const [isCommenting, setIsCommenting] = useState(false); // ✅ État pour la création de commentaire
-  const [showCommentsSection, setShowCommentsSection] = useState(showComments); // ✅ État pour afficher/masquer les commentaires
+  const [commentText, setCommentText] = useState('');
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [showCommentsSection, setShowCommentsSection] = useState(showComments);
+  
+  // ✅ ÉTATS POUR GÉRER LE LIKE AVEC SYNCHRO DB
+  const [isLiking, setIsLiking] = useState(false);
+  const [localIsLiked, setLocalIsLiked] = useState(false);
+  const [localLikesCount, setLocalLikesCount] = useState(0);
 
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state: RootState) => state.user);
   const { loading } = useAppSelector((state: RootState) => state.posts);
-  const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments); // ✅ Récupération des commentaires
+  const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments);
 
-  // ✅ CORRECTION : Utiliser la nouvelle structure de l'API
+  // ✅ STRUCTURE DE L'API
   const postAuthor = post.author || {};
   const postContent = post.content || {};
   const postMedia = postContent.media || {};
   const engagement = post.engagement || {};
   
   const isOwnPost = currentUser?._id === postAuthor._id;
-  const isLiked = engagement.likes?.includes(currentUser?._id || '');
   const MAX_TEXT_LENGTH = 150;
+
+  // ✅ INITIALISATION BASÉE SUR LA DB
+  useEffect(() => {
+    // Vérifier l'état réel dans la base de données
+    const dbIsLiked = engagement.likes?.includes(currentUser?._id || '');
+    const dbLikesCount = engagement.likesCount || engagement.likes?.length || 0;
+    
+    setLocalIsLiked(dbIsLiked);
+    setLocalLikesCount(dbLikesCount);
+  }, [post._id, engagement, currentUser]);
 
   // Si le post est invalide, on ne rend rien
   if (!post || !post._id) {
     return null;
   }
 
-  // ✅ Fonction pour créer un commentaire
+  // ✅ FONCTION LIKE AVEC SYNCHRONISATION DB
+  const handleLike = async () => {
+    if (!currentUser || isLiking) return;
+    
+    // ✅ Sauvegarder l'état précédent pour rollback
+    const previousIsLiked = localIsLiked;
+    const previousLikesCount = localLikesCount;
+    
+    // ✅ Mise à jour optimiste IMMÉDIATE
+    setLocalIsLiked(!previousIsLiked);
+    setLocalLikesCount(previousIsLiked ? previousLikesCount - 1 : previousLikesCount + 1);
+    setIsLiking(true);
+    
+    try {
+      console.log(`🔄 Tentative de ${previousIsLiked ? 'unlike' : 'like'} pour le post ${post._id}`);
+      
+      // ✅ Appel API pour synchroniser avec la DB
+      const result = await dispatch(toggleLike(post._id)).unwrap();
+      
+      console.log(`✅ ${previousIsLiked ? 'Unlike' : 'Like'} réussi:`, result);
+      
+      // ✅ FORCER LE RECHARGEMENT DU FEED POUR SYNCHRONISATION
+      //await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+      
+    } catch (error: any) {
+      console.error('❌ Erreur like:', error);
+      
+      // ✅ ROLLBACK IMMÉDIAT en cas d'erreur
+      setLocalIsLiked(previousIsLiked);
+      setLocalLikesCount(previousLikesCount);
+      
+      Alert.alert(
+        'Erreur', 
+        error?.message || 'Impossible de liker la publication. Vérification de l\'état actuel...'
+      );
+      
+      // ✅ FORCER LA RESYNCHRONISATION AVEC LA DB
+      try {
+        await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+      } catch (refreshError) {
+        console.error('❌ Erreur resynchronisation:', refreshError);
+      }
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  // ✅ FONCTION SAUVEGARDE AVEC SYNCHRO DB
+  const handleSave = async () => {
+    if (!currentUser || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      await dispatch(toggleSave(post._id)).unwrap();
+      
+      // ✅ Resynchroniser après sauvegarde
+      await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+      
+    } catch (error: any) {
+      Alert.alert('Erreur', error?.message || 'Impossible de sauvegarder la publication');
+      
+      // Resynchroniser en cas d'erreur
+      await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ✅ FONCTION COMMENTAIRE AVEC SYNCHRO DB
   const handleCreateComment = async () => {
     if (!commentText.trim() || !currentUser || isCommenting) return;
     
     setIsCommenting(true);
+    
     try {
       await dispatch(createComment({
         postId: post._id,
         content: { text: commentText.trim() }
       })).unwrap();
       
-      setCommentText(''); // ✅ Réinitialiser le champ
-      Alert.alert('Succès', 'Commentaire publié !');
+      setCommentText('');
       
-      // ✅ Recharger les commentaires après création
-      dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
+      // ✅ Recharger les commentaires ET le feed
+      await Promise.all([
+        dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap(),
+        dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap()
+      ]);
       
     } catch (error: any) {
-      Alert.alert('Erreur', error || 'Impossible de publier le commentaire');
+      Alert.alert('Erreur', error?.message || 'Impossible de publier le commentaire');
     } finally {
       setIsCommenting(false);
     }
   };
 
-  
-
-  // Gérer le like/unlike
-  const handleLike = async () => {
-    if (isLiking || !currentUser) return;
-    
-    setIsLiking(true);
-    try {
-      await dispatch(toggleLike(post._id)).unwrap();
-    } catch (error: any) {
-      Alert.alert('Erreur', error || 'Impossible de liker la publication');
-    } finally {
-      setIsLiking(false);
-    }
-  };
-
-  // Gérer la sauvegarde
-  const handleSave = async () => {
-    if (isSaving || !currentUser) return;
-    
-    setIsSaving(true);
-    try {
-      await dispatch(toggleSave(post._id)).unwrap();
-    } catch (error: any) {
-      Alert.alert('Erreur', error || 'Impossible de sauvegarder la publication');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   useEffect(() => {
-  // ✅ Charger les commentaires initiaux si showComments est true
-  if (showComments) {
-    dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
-    setShowCommentsSection(true);
-  }
-}, [showComments, post._id, dispatch]);
-
-// ✅ Ajoutez aussi cette fonction pour mieux gérer le chargement des commentaires
-const handleLoadComments = async () => {
-  if (!showCommentsSection) {
-    try {
-      await dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap();
+    // ✅ Charger les commentaires initiaux si showComments est true
+    if (showComments) {
+      dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 }));
       setShowCommentsSection(true);
-    } catch (error) {
-      console.error('Erreur chargement commentaires:', error);
-      Alert.alert('Erreur', 'Impossible de charger les commentaires');
     }
-  } else {
-    setShowCommentsSection(false);
-  }
-};
+  }, [showComments, post._id, dispatch]);
+
+  // ✅ GESTION DES COMMENTAIRES
+  const handleLoadComments = async () => {
+    if (!showCommentsSection) {
+      try {
+        await dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap();
+        setShowCommentsSection(true);
+      } catch (error) {
+        console.error('Erreur chargement commentaires:', error);
+        Alert.alert('Erreur', 'Impossible de charger les commentaires');
+      }
+    } else {
+      setShowCommentsSection(false);
+    }
+  };
 
   // Gérer la suppression
   const handleDelete = () => {
@@ -169,7 +223,7 @@ const handleLoadComments = async () => {
               await dispatch(deletePost(post._id)).unwrap();
               onDelete?.();
             } catch (error: any) {
-              Alert.alert('Erreur', error || 'Impossible de supprimer la publication');
+              Alert.alert('Erreur', error?.message || 'Impossible de supprimer la publication');
             }
           },
         },
@@ -177,29 +231,21 @@ const handleLoadComments = async () => {
     );
   };
 
-  // Afficher les options (menu déroulant)
+  // ✅ Afficher les options SEULEMENT si l'utilisateur est l'auteur
   const showOptions = () => {
+    if (!isOwnPost) return;
+
     const options = [
       { text: 'Annuler', style: 'cancel' as const },
-      ...(isOwnPost
-        ? [
-            {
-              text: 'Modifier',
-              onPress: () => onEdit?.(post),
-            },
-            {
-              text: 'Supprimer',
-              style: 'destructive' as const,
-              onPress: handleDelete,
-            },
-          ]
-        : [
-            {
-              text: 'Signaler',
-              style: 'destructive' as const,
-              onPress: () => Alert.alert('Signalement', 'Publication signalée'),
-            },
-          ]),
+      {
+        text: 'Modifier',
+        onPress: () => onEdit?.(post),
+      },
+      {
+        text: 'Supprimer',
+        style: 'destructive' as const,
+        onPress: handleDelete,
+      },
       {
         text: 'Partager',
         onPress: () => Alert.alert('Partager', 'Fonction de partage'),
@@ -211,7 +257,6 @@ const handleLoadComments = async () => {
 
   // Rendu du header avec infos utilisateur
   const renderHeader = () => (
-    
     <View className="flex-row items-center justify-between p-4 pb-3">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
@@ -242,7 +287,6 @@ const handleLoadComments = async () => {
               }) : 'Date inconnue'}
             </Text>
             
-            {/* Indicateur de statut de modification */}
             {post.createdAt && post.updatedAt && post.createdAt !== post.updatedAt && (
               <Text className="text-slate-400 text-xs ml-2">
                 • modifié
@@ -252,7 +296,7 @@ const handleLoadComments = async () => {
         </View>
       </TouchableOpacity>
 
-      {showActions && (
+      {showActions && isOwnPost && (
         <TouchableOpacity onPress={showOptions} className="p-2">
           <MoreVertical size={20} color="#64748b" />
         </TouchableOpacity>
@@ -285,7 +329,7 @@ const handleLoadComments = async () => {
     );
   };
 
-  // Rendu des médias
+  // Rendu des médias (inchangé)
   const renderMedia = () => {
     const images = postMedia.images || [];
     const videos = postMedia.videos || [];
@@ -426,37 +470,33 @@ const handleLoadComments = async () => {
     );
   };
 
-  // Rendu des actions
+  // ✅ RENDU DES ACTIONS AVEC SYNCHRO DB
   const renderActions = () => {
     if (!showActions) return null;
 
     return (
       <View className="px-4 pb-3">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center space-x-6">
-            {/* Like */}
+          <View className="flex-row items-center space-x-2 gap-x-6">
+            {/* ✅ BOUTON LIKE AVEC ÉTAT DB */}
             <TouchableOpacity 
               onPress={handleLike}
-              disabled={isLiking || !currentUser}
+              disabled={!currentUser || isLiking}
               className="flex-row items-center"
             >
-              {isLiking ? (
-                <ActivityIndicator size="small" color="#ef4444" />
-              ) : (
+              
                 <Heart 
                   size={22} 
-                  color={isLiked ? "#ef4444" : "#64748b"} 
-                  fill={isLiked ? "#ef4444" : "transparent"} 
+                  color={localIsLiked ? "#ef4444" : "#64748b"} 
+                  fill={localIsLiked ? "#ef4444" : "transparent"} 
                 />
-              )}
-              <Text className={`ml-2 font-medium ${
-                isLiked ? 'text-red-500' : 'text-slate-600'
-              }`}>
-                {engagement.likesCount || engagement.likes?.length || 0}
+            
+              <Text className={`ml-2 font-medium ${localIsLiked ? 'text-red-500' : 'text-slate-600'}`}>
+                {localLikesCount}
               </Text>
             </TouchableOpacity>
 
-            {/* Comment - ✅ MODIFIÉ pour charger les commentaires */}
+            {/* ✅ COMMENTAIRES */}
             <TouchableOpacity 
               onPress={handleLoadComments}
               className="flex-row items-center"
@@ -493,7 +533,7 @@ const handleLoadComments = async () => {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ AJOUT : Formulaire de commentaire */}
+        {/* ✅ Formulaire de commentaire */}
         {renderCommentForm()}
       </View>
     );
@@ -525,7 +565,7 @@ const handleLoadComments = async () => {
 
       {renderActions()}
       
-      {/* ✅ AJOUT : Section commentaires */}
+      {/* ✅ Section commentaires */}
       {renderCommentsSection()}
     </View>
   );

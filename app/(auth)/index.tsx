@@ -24,7 +24,7 @@ export default function AuthHomeScreen() {
           {/* Bouton Inscription */}
           <TouchableOpacity
             onPress={() => router.push("../SignIn")}
-            className="w-full h-16 bg-blue-600 rounded-2xl justify-center items-center flex-row space-x-3"
+            className="w-full h-16 bg-blue-600 rounded-2xl justify-center items-center flex-row space-x-3 gap-x-2"
           >
             <UserPlus size={20} color="#FFFFFF" />
             <Text className="text-white text-lg font-semibold">
@@ -35,7 +35,7 @@ export default function AuthHomeScreen() {
           {/* Bouton Connexion */}
           <TouchableOpacity
             onPress={() => router.push("../Login")}
-            className="w-full h-16 bg-white border-2 border-slate-200 rounded-2xl justify-center items-center flex-row space-x-3"
+            className="w-full h-16 bg-white border-2 border-slate-200 rounded-2xl justify-center items-center flex-row space-x-3 gap-x-2"
           >
             <LogIn size={20} color="#374151" />
             <Text className="text-slate-900 text-lg font-semibold">
