@@ -113,7 +113,7 @@ export const createComment = createAsyncThunk<
           videos: [...(payload.content.media?.videos?.filter(isCloudinaryUrl) || []), ...uploadedVideos],
         },
       },
-      parentComment: payload.parentComment,
+      parentComment: payload.parentComment && typeof payload.parentComment === 'string' ? payload.parentComment : undefined,
       metadata: payload.metadata,
     };
 
@@ -122,6 +122,7 @@ export const createComment = createAsyncThunk<
     const response = await api.post(`/comment/posts/${payload.postId}/comments`, body, { headers });
     return response.data;
   } catch (err: any) {
+    console.error('❌ createComment - Erreur:', err.response?.data || err.message);
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création du commentaire');
   }
 });

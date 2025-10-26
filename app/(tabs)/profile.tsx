@@ -3,13 +3,13 @@ import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, Alert 
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/redux/store"
-import MePost from "@/components/Posts/MePost"
-import { formatCount } from "@/services/Compteur"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppDispatch } from "@/redux/hooks"
 import { logout } from "@/redux/userSlice"
 import { router } from "expo-router"
-import { Settings, Edit3, Share2, Mail, Camera } from "lucide-react-native"
+import { Settings, Edit3, Share2, Mail, Camera, LogOut } from "lucide-react-native"
+import ProfilePostsList from "@/components/Posts/ProfilPostList"
+import { formatCount } from "@/services/Compteur"
 
 function ProfileScreen() {
   const { currentUser, token } = useSelector((state: RootState) => state.user)
@@ -17,9 +17,16 @@ function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'likes'>('posts')
 
+  // Charger les données au montage
+  useEffect(() => {
+    if (currentUser?._id) {
+      console.log('👤 Profil utilisateur chargé:', currentUser._id)
+    }
+  }, [currentUser?._id])
+
   const onRefresh = async () => {
     setRefreshing(true)
-    // TODO: Implémenter le refresh des données utilisateur
+    // Ici tu peux recharger les infos utilisateur si nécessaire
     // await dispatch(getCurrentUser()).unwrap()
     setTimeout(() => setRefreshing(false), 1000)
   }
@@ -35,7 +42,7 @@ function ProfileScreen() {
           style: "destructive",
           onPress: () => {
             dispatch(logout())
-            //router.replace('/(auth)/login')
+            router.replace('../../(auth)/login')
           }
         }
       ]
@@ -43,12 +50,29 @@ function ProfileScreen() {
   }
 
   const handleEditProfile = () => {
-    //router.push('/(modals)/edit-profile')
+    router.push('../../(modals)/editProfile')
+  
   }
 
   const handleShareProfile = () => {
-    // TODO: Implémenter le partage de profil
     Alert.alert("Partager", "Fonctionnalité de partage à implémenter")
+  }
+
+  // Handlers pour ProfilePostsList
+  const handlePostPress = (post: any) => {
+    console.log('Post press:', post._id)
+    // router.push(`/post/${post._id}`)
+  }
+
+  const handleUserPress = (userId: string) => {
+    if (userId !== currentUser?._id) {
+      console.log('User press:', userId)
+      // router.push(`/profile/${userId}`)
+    }
+  }
+
+  const handleCommentPress = (post: any) => {
+    console.log('Comment press:', post._id)
   }
 
   if (!currentUser || !token) {
@@ -59,7 +83,7 @@ function ProfileScreen() {
         </Text>
         <TouchableOpacity 
           className="bg-blue-600 px-6 py-3 rounded-full active:bg-blue-700"
-          //onPress={() => router.push('/(auth)/login')}
+          onPress={() => router.push('../../(auth)/login')}
         >
           <Text className="text-white font-semibold">Se connecter</Text>
         </TouchableOpacity>
@@ -67,7 +91,6 @@ function ProfileScreen() {
     )
   }
 
-  // Calcul des statistiques depuis l'interface User
   const stats = {
     posts: currentUser.content?.posts?.length || 0,
     followers: currentUser.social?.followers?.length || 0,
@@ -91,7 +114,7 @@ function ProfileScreen() {
         <View className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 relative">
           {currentUser.profile?.coverPicture ? (
             <Image 
-              source={{ uri: currentUser.profile.coverPicture }} 
+              source={{ uri: 'https://i.pinimg.com/736x/36/66/bc/3666bc58de7588bcae1204ca79c12f50.jpg' }} 
               className="w-full h-full"
               resizeMode="cover" 
             />
@@ -100,7 +123,7 @@ function ProfileScreen() {
           )}
           
           {/* Boutons d'action header */}
-          <View className="absolute top-12 right-4 flex-row space-x-2">
+          <View className="absolute top-12 right-4 flex-row space-x-2 gap-x-3">
             <TouchableOpacity 
               className="w-10 h-10 bg-white/20 rounded-full items-center justify-center active:bg-white/30"
               onPress={handleShareProfile}
@@ -109,9 +132,9 @@ function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity 
               className="w-10 h-10 bg-white/20 rounded-full items-center justify-center active:bg-white/30"
-              //onPress={() => router.push('/(modals)/settings')}
+              onPress={handleLogout}
             >
-              <Settings size={20} color="white" />
+              <LogOut size={20} color="white" />
             </TouchableOpacity>
           </View>
         </View>
@@ -147,7 +170,6 @@ function ProfileScreen() {
           <View className="ml-36 pb-4">
             <Text className="text-2xl font-bold text-slate-900">
               {currentUser.profile?.fullName || currentUser.username}
-  
             </Text>
             <Text className="text-slate-500 mt-1">@{currentUser.username}</Text>
             
@@ -178,12 +200,6 @@ function ProfileScreen() {
               <Text className="text-white font-semibold ml-2">Modifier le profil</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              className="w-12 h-12 border-2 border-slate-200 rounded-xl items-center justify-center active:bg-slate-50"
-              onPress={() => Alert.alert("Messages", "Fonctionnalité messages à implémenter")}
-            >
-              <Mail size={20} color="#64748b" />
-            </TouchableOpacity>
           </View>
 
           {/* Statistiques */}
@@ -212,12 +228,11 @@ function ProfileScreen() {
         </View>
 
         {/* Navigation par onglets */}
-        <View className="bg-white mt-2 mx-4 rounded-xl shadow-sm border border-slate-200">
+        <View className="bg-white mt-2 mx-1 rounded-xl shadow-sm border border-slate-200">
           <View className="flex-row border-b border-slate-100">
             {[
               { id: 'posts' as const, label: 'Publications' },
-              { id: 'media' as const, label: 'Médias' },
-              { id: 'likes' as const, label: 'J\'aime' }
+              
             ].map((tab) => (
               <TouchableOpacity 
                 key={tab.id}
@@ -235,19 +250,16 @@ function ProfileScreen() {
 
           {/* Contenu des onglets */}
           <View className="min-h-96">
-            {activeTab === 'posts' && <MePost />}
-            {activeTab === 'media' && (
-              <View className="items-center py-12">
-                <Text className="text-slate-500 text-lg mb-2">Aucun média</Text>
-                <Text className="text-slate-400 text-sm">Les photos et vidéos que vous publiez apparaîtront ici</Text>
-              </View>
+            {activeTab === 'posts' && (
+              <ProfilePostsList
+                userId={currentUser._id}
+                showActions={true}
+                onPostPress={handlePostPress}
+                onUserPress={handleUserPress}
+                onCommentPress={handleCommentPress}
+              />
             )}
-            {activeTab === 'likes' && (
-              <View className="items-center py-12">
-                <Text className="text-slate-500 text-lg mb-2">Aucun like</Text>
-                <Text className="text-slate-400 text-sm">Les posts que vous likez apparaîtront ici</Text>
-              </View>
-            )}
+            
           </View>
         </View>
 

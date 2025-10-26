@@ -14,7 +14,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Configuration
 const API_CONFIG = {
   BASE_URL: 'https://apisocial-g8z6.onrender.com/api/user',
-  TIMEOUT: 10000,
 };
 
 const initialState: UserState = {
@@ -31,7 +30,7 @@ const initialState: UserState = {
 // Helper pour les appels API
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+ 
   
 
   try {
@@ -44,7 +43,6 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
       signal: controller.signal,
     });
 
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +56,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 
     return data;
   } catch (error: any) {
-    clearTimeout(timeoutId);
+  
     if (error.name === 'AbortError') {
       throw new Error('Request timeout');
     }
@@ -93,7 +91,7 @@ export const loginUser = createAsyncThunk<
     });
     console.log('🔄 Tentative de login avec:', credentials.identifiant);
   console.log('🌐 URL complète:', `${API_CONFIG.BASE_URL}/login`);
-  console.log('⏱️ Timeout configuré:', API_CONFIG.TIMEOUT, 'ms');
+  
 
     const authData = data.data;
 

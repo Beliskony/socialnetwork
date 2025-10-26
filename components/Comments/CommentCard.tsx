@@ -3,7 +3,8 @@ import { View, Text, Image, TouchableOpacity, TextInput, Alert } from "react-nat
 import { useState, useEffect } from "react" // ✅ Ajout de useEffect
 import { useDispatch, useSelector } from "react-redux"
 import { Heart, MessageCircle, MoreHorizontal, User, Edit, Trash2, Reply, Send, X } from "lucide-react-native"
-import { toggleLikeComment, deleteComment, setCurrentComment, createComment, getCommentReplies, updateComment } from "@/redux/commentSlice"
+import { toggleLikeComment, deleteComment, setCurrentComment, createComment, getCommentReplies, updateComment, getCommentsByPost } from "@/redux/commentSlice"
+import { getFeed } from "@/redux/postSlice"
 import type { RootState, AppDispatch } from "@/redux/store"
 import type { Comment } from "@/intefaces/comment.Interfaces"
 import { formatRelativeDate } from "@/utils/formatRelativeDate"
@@ -101,6 +102,12 @@ const CommentCard: React.FC<CommentCardProps> = ({
             try {
               console.log('🗑️ Deleting comment:', comment._id);
               await dispatch(deleteComment(comment._id)).unwrap()
+
+               // ✅ ACTUALISATION SIMPLE : Recharger les commentaires et le feed
+            await Promise.all([
+              dispatch(getCommentsByPost({ postId: postId, page: 1, limit: 10 })),
+              dispatch(getFeed({ page: 1, limit: 20, refresh: true })),
+            ]);
               Alert.alert("Succès", "Commentaire supprimé")
             } catch (error: any) {
               Alert.alert("Erreur", error || "Impossible de supprimer le commentaire")
@@ -135,6 +142,13 @@ const CommentCard: React.FC<CommentCardProps> = ({
         content: { text: replyText.trim() },
         parentComment: comment._id
       })).unwrap()
+
+      // ✅ ACTUALISATION SIMPLE : Recharger les commentaires et le feed
+    await Promise.all([
+      dispatch(getCommentsByPost({ postId: postId, page: 1, limit: 10 })),
+
+    ]);
+
       
       setReplyText("")
       setShowReplyInput(false)

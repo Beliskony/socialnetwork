@@ -1,5 +1,5 @@
 // types/story.types.ts
-import { IUserPopulated } from "./comment.Interfaces";
+import { IAuthor } from "./comment.Interfaces";
 
 export interface StoryContent {
   type: 'image' | 'video';
@@ -17,7 +17,7 @@ export interface Story {
 
 export interface IStoryPopulated {
   _id: string;
-  userId: IUserPopulated;
+  userId: IAuthor;
   content: StoryContent;
   viewedBy: string[];
   createdAt: string;

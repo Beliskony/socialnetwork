@@ -122,7 +122,7 @@ const LoginScreen = () => {
           </View>
 
           {/* Formulaire */}
-          <View className="space-y-6">
+          <View className="space-y-6 gap-y-4">
             {/* Champ Identifiant */}
             <View className="space-y-2">
               <Text className="text-sm font-medium text-slate-700">

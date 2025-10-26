@@ -47,7 +47,7 @@ export const fetchNotificationsAsync = createAsyncThunk<
       if (!token) return rejectWithValue('Token non trouvé');
 
       const response = await axios.get(
-        'https://apisocial-g8z6.onrender.com/api/notifications',
+        'https://apisocial-g8z6.onrender.com/api/notifications/',
         { 
           params: {
             page: (params as any).page || 1,
@@ -81,7 +81,7 @@ export const fetchMoreNotificationsAsync = createAsyncThunk<
       if (!token) return rejectWithValue('Token non trouvé');
 
       const response = await axios.get(
-        'https://apisocial-g8z6.onrender.com/api/notifications',
+        'https://apisocial-g8z6.onrender.com/api/notifications/',
         { 
           params: { page, limit },
           headers: { Authorization: `Bearer ${token}` } 

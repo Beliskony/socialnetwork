@@ -1,12 +1,12 @@
 // types/notifications.types.ts
-import { IUserPopulated } from "./comment.Interfaces";
+import { IAuthor } from "./comment.Interfaces";
 
 export type NotificationType = 'like' | 'comment' | 'follow' | 'new_post' | 'mention';
 
 export interface INotification {
   _id: string;
   recipient: string;
-  sender: IUserPopulated;
+  sender: IAuthor;
   type: NotificationType;
   post?: {
     _id: string;

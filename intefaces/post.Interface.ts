@@ -1,9 +1,9 @@
 // types/post.types.ts
-import { ICommentFront, IUserPopulated } from "./comment.Interfaces";
+import { ICommentFront, IAuthor } from "./comment.Interfaces";
 
 export interface Post {
   _id: string;
-  user: IUserPopulated;
+  user: IAuthor;
   text?: string;
   media?: {
     images?: string[];

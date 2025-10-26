@@ -175,7 +175,6 @@ const PostCard: React.FC<PostCardProps> = ({
       // ✅ Recharger les commentaires ET le feed
       await Promise.all([
         dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap(),
-        dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap()
       ]);
       
     } catch (error: any) {
