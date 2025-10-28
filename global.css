@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Configuration du dark mode */
+@layer base {
+  :root {
+    --color-primary: #ffffff;
+    --color-secondary: #f8fafc;
+    --color-text: #1f2937;
+    /* Ajoutez d'autres variables CSS si nécessaire */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-primary: #0f172a;
+      --color-secondary: #1e293b;
+      --color-text: #f1f5f9;
+    }
+  }
+
+  .dark {
+    --color-primary: #0f172a;
+    --color-secondary: #1e293b;
+    --color-text: #f1f5f9;
+  }
+}

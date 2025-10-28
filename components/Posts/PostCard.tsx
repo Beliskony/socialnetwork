@@ -14,6 +14,7 @@ import { toggleLike, toggleSave, deletePost, getFeed } from '@/redux/postSlice';
 import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { PostFront } from '@/intefaces/post.Interface';
+import { useTheme } from '@/hooks/toggleChangeTheme';
 import {
   Heart,
   MessageCircle,
@@ -54,6 +55,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const { isDark } = useTheme();
   const [showCommentsSection, setShowCommentsSection] = useState(showComments);
   
   // ✅ ÉTATS POUR GÉRER LE LIKE AVEC SYNCHRO DB
@@ -256,7 +258,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Rendu du header avec infos utilisateur
   const renderHeader = () => (
-    <View className="flex-row items-center justify-between p-4 pb-3">
+    <View className="flex-row items-center justify-between p-4 pb-3 dark:bg-black">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
         onPress={() => postAuthor._id && onUserPress?.(postAuthor._id)}
@@ -273,11 +275,11 @@ const PostCard: React.FC<PostCardProps> = ({
         )}
         
         <View className="ml-3 flex-1">
-          <Text className="font-semibold text-slate-900 text-base">
+          <Text className="font-semibold text-slate-900 dark:text-gray-200 text-base">
             {postAuthor.username || 'Utilisateur inconnu'}
           </Text>
           <View className="flex-row items-center mt-1">
-            <Text className="text-slate-500 text-sm">
+            <Text className="text-slate-500 dark:text-gray-400 text-sm">
               {post.createdAt ? new Date(post.createdAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'short',
@@ -313,8 +315,8 @@ const PostCard: React.FC<PostCardProps> = ({
       : postContent.text;
 
     return (
-      <View className="px-4 pb-3">
-        <Text className="text-slate-900 text-base leading-6">
+      <View className="px-4 pb-3 dark:bg-black">
+        <Text className="text-slate-900 dark:text-gray-100 text-base leading-6">
           {displayText}
         </Text>
         {postContent.text.length > MAX_TEXT_LENGTH && (
@@ -336,7 +338,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (images.length === 0 && videos.length === 0) return null;
 
     return (
-      <View className="px-4 pb-3">
+      <View className="px-4 pb-3 dark:bg-black">
         {/* Images */}
         {images.length > 0 && (
           <View className={`${images.length > 1 ? 'flex-row flex-wrap' : ''} gap-2`}>
@@ -365,8 +367,8 @@ const PostCard: React.FC<PostCardProps> = ({
                 
                 {/* Overlay pour les images supplémentaires */}
                 {images.length > 4 && index === 3 && (
-                  <View className="absolute inset-0 bg-black/50 items-center justify-center">
-                    <Text className="text-white font-bold text-lg">
+                  <View className="absolute inset-0 bg-black/50 dark:bg-white/50 items-center justify-center">
+                    <Text className="text-white dark:text-black font-bold text-lg">
                       +{images.length - 4}
                     </Text>
                   </View>
@@ -380,10 +382,10 @@ const PostCard: React.FC<PostCardProps> = ({
         {videos.length > 0 && (
           <View className="mt-2">
             {videos.slice(0, 1).map((video: any, index: number) => (
-              <View key={index} className="w-full aspect-video rounded-xl overflow-hidden bg-slate-200">
+              <View key={index} className="w-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-black">
                 <View className="w-full h-full items-center justify-center">
-                  <View className="w-16 h-16 bg-black/50 rounded-full items-center justify-center">
-                    <Text className="text-white font-bold">VIDÉO</Text>
+                  <View className="w-16 h-16 bg-black/50 dark:bg-white/50 rounded-full items-center justify-center">
+                    <Text className="text-white dark:text-black font-bold">VIDÉO</Text>
                   </View>
                 </View>
               </View>
@@ -396,14 +398,14 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // ✅ Rendu du formulaire de commentaire
   const renderCommentForm = () => (
-    <View className="px-4 pb-3 border-t border-slate-100 pt-3">
+    <View className="px-4 pb-3  dark:my-3 dark:bg-black pt-3">
       <View className="flex-row items-center">
         <TextInput
           value={commentText}
           onChangeText={setCommentText}
           placeholder="Ajouter un commentaire..."
           placeholderTextColor="#94a3b8"
-          className="flex-1 bg-slate-50 rounded-full px-4 py-2 text-slate-800 text-sm border border-slate-200"
+          className="flex-1 bg-slate-50 rounded-full px-4 py-2 text-slate-800 dark:text-gray-300 text-sm border border-slate-200"
           multiline
           maxLength={1000}
         />
@@ -427,10 +429,10 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!showCommentsSection) return null;
 
     return (
-      <View className="border-t border-slate-100">
+      <View className="border-t border-slate-100 dark:border-gray-500 dark:bg-black">
         {/* En-tête commentaires */}
-        <View className="flex-row items-center justify-between px-4 py-3 bg-slate-50">
-          <Text className="font-semibold text-slate-900">
+        <View className="flex-row items-center justify-between px-4 py-3 bg-slate-50 dark:bg-black ">
+          <Text className="font-semibold text-slate-900 dark:text-gray-100">
             Commentaires ({comments.length})
           </Text>
           <TouchableOpacity onPress={() => setShowCommentsSection(false)}>
@@ -474,7 +476,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!showActions) return null;
 
     return (
-      <View className="px-4 pb-3">
+      <View className="px-4 pb-3 dark:bg-black">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center space-x-2 gap-x-6">
             {/* ✅ BOUTON LIKE AVEC ÉTAT DB */}
@@ -543,7 +545,7 @@ const PostCard: React.FC<PostCardProps> = ({
     return (
       <TouchableOpacity 
         onPress={() => onPress?.(post)}
-        className="bg-white border-b border-slate-200 active:bg-slate-50"
+        className="bg-white border-b border-slate-200 dark:bg-black dark:border-gray-500 active:bg-slate-50"
       >
         {renderHeader()}
         {renderTextContent()}
@@ -554,7 +556,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Rendu version détaillée (par défaut)
   return (
-    <View className="bg-white border-b border-slate-200">
+    <View className="bg-white dark:bg-black border-t border-slate-200 dark:border-gray-500">
       {renderHeader()}
       
       <TouchableOpacity onPress={() => onPress?.(post)} activeOpacity={0.9}>

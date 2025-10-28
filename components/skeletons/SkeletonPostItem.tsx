@@ -1,69 +1,43 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
 
-const SkeletonPostItem = () => {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+const Skeleton = ({ className }: { className?: string }) => (
+  <View className={`bg-gray-300 dark:bg-gray-700 animate-pulse ${className}`} />
+);
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 700,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ])
-    ).start();
-  }, []);
-
+const PostSkeleton = () => {
   return (
-    <Animated.View
-      style={{
-        opacity,
-        padding: 12,
-        marginVertical: 6,
-        borderRadius: 16,
-        backgroundColor: '#f0f0f0',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-      }}
-    >
+    <View className="my-3 bg-white dark:bg-black rounded-xl overflow-hidden">
+      
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#e0e0e0', marginRight: 10 }} />
-        <View style={{ flex: 1 }}>
-          <View style={{ width: '50%', height: 10, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 4 }} />
-          <View style={{ width: '30%', height: 8, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+      <View className="flex-row items-center p-4 space-x-3">
+        <Skeleton className="w-10 h-10 rounded-full" />
+        <View className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-32 rounded-md" />
+          <Skeleton className="h-3 w-24 rounded-md" />
         </View>
       </View>
 
-      {/* Texte */}
-      <View style={{ width: '100%', height: 60, backgroundColor: '#e0e0e0', borderRadius: 8, marginBottom: 10 }} />
-
-      {/* Media */}
-      <View style={{ width: '100%', height: 200, borderRadius: 12, backgroundColor: '#e0e0e0', marginBottom: 10 }} />
-
-      {/* Actions */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-        <View style={{ width: 60, height: 20, backgroundColor: '#e0e0e0', borderRadius: 10 }} />
-        <View style={{ width: 60, height: 20, backgroundColor: '#e0e0e0', borderRadius: 10 }} />
-        <View style={{ width: 60, height: 20, backgroundColor: '#e0e0e0', borderRadius: 10 }} />
+      {/* Text */}
+      <View className="px-4 space-y-2 mb-3">
+        <Skeleton className="h-4 w-full rounded-md" />
+        <Skeleton className="h-4 w-4/5 rounded-md" />
       </View>
 
-      {/* Commentaire */}
-      <View style={{ width: '100%', height: 40, borderRadius: 8, backgroundColor: '#e0e0e0' }} />
-    </Animated.View>
+      {/* Media */}
+      <Skeleton className="w-full h-64" />
+
+      {/* Actions */}
+      <View className="flex-row justify-between px-4 py-3">
+        <View className="flex-row gap-5">
+          <Skeleton className="h-6 w-6 rounded-md" />
+          <Skeleton className="h-6 w-6 rounded-md" />
+          <Skeleton className="h-6 w-6 rounded-md" />
+        </View>
+        <Skeleton className="h-6 w-6 rounded-md" />
+      </View>
+    </View>
   );
 };
 
-export default SkeletonPostItem;
+export default PostSkeleton;

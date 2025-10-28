@@ -1,32 +1,117 @@
 // app/(modals)/edit-profile.tsx
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from "react-native"
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView, 
+  Alert, 
+  Image,
+  ActivityIndicator 
+} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
+import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
-import type { RootState } from "@/redux/store"
-import { updateUserProfile } from "@/redux/userSlice"
+import { updateUserProfile, clearError } from "@/redux/userSlice"
 import { router } from "expo-router"
 import { X, Camera, User, MapPin, Link, Calendar } from "lucide-react-native"
+import * as ImagePicker from 'expo-image-picker'
 
 export default function EditProfileModal() {
   const dispatch = useAppDispatch()
-  const { currentUser, loading } = useSelector((state: RootState) => state.user)
+  const { currentUser, loading, error } = useAppSelector((state) => state.user)
   
   const [formData, setFormData] = useState({
-    username: currentUser?.username || '',
+    username: '',
     profile: {
-      fullName: currentUser?.profile?.fullName || '',
-      bio: currentUser?.profile?.bio || '',
-      location: currentUser?.profile?.location || '',
-      website: currentUser?.profile?.website || '',
-      birthDate: currentUser?.profile?.birthDate || '',
+      fullName: '',
+      bio: '',
+      location: '',
+      website: '',
+      birthDate: '',
+      gender: '' as 'male' | 'female' | 'other' | 'prefer_not_to_say' | '',
     }
   })
 
+  const [image, setImage] = useState<string | null>(null)
+
+  // Initialiser les données avec l'utilisateur actuel
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        username: currentUser.username || '',
+        profile: {
+          fullName: currentUser.profile?.fullName || '',
+          bio: currentUser.profile?.bio || '',
+          location: currentUser.profile?.location || '',
+          website: currentUser.profile?.website || '',
+          birthDate: currentUser.profile?.birthDate || '',
+          gender: currentUser.profile?.gender || '',
+        }
+      })
+      setImage(currentUser.profile?.profilePicture || null)
+    }
+  }, [currentUser])
+
+  // Gérer les erreurs
+  useEffect(() => {
+    if (error) {
+      Alert.alert("Erreur", error)
+      dispatch(clearError())
+    }
+  }, [error, dispatch])
+
   const handleSave = async () => {
+    if (!formData.username.trim()) {
+      Alert.alert("Erreur", "Le nom d'utilisateur est requis")
+      return
+    }
+
     try {
-      await dispatch(updateUserProfile(formData)).unwrap()
+      const updateData: any = {}
+      const currentProfile = currentUser?.profile || {}
+
+      // Liste des champs à surveiller avec leurs valeurs actuelles
+      const fieldsToCheck = [
+        { key: 'username', newVal: formData.username, oldVal: currentUser?.username },
+        { key: 'fullName', newVal: formData.profile.fullName, oldVal: currentProfile.fullName, isProfile: true },
+        { key: 'bio', newVal: formData.profile.bio, oldVal: currentProfile.bio, isProfile: true },
+        { key: 'location', newVal: formData.profile.location, oldVal: currentProfile.location, isProfile: true },
+        { key: 'website', newVal: formData.profile.website, oldVal: currentProfile.website, isProfile: true },
+        { key: 'birthDate', newVal: formData.profile.birthDate, oldVal: currentProfile.birthDate, isProfile: true },
+        { key: 'gender', newVal: formData.profile.gender, oldVal: currentProfile.gender, isProfile: true },
+      ]
+
+      // Vérifier chaque champ
+      fieldsToCheck.forEach(({ key, newVal, oldVal, isProfile }) => {
+        // Vérifier si la valeur a changé et n'est pas undefined
+        if (newVal !== oldVal && newVal !== undefined) {
+          if (isProfile) {
+            if (!updateData.profile) updateData.profile = {}
+            // Ne pas envoyer les champs vides sauf si c'était intentionnel
+            if (newVal !== '' || oldVal !== undefined) {
+              updateData.profile[key] = newVal
+            }
+          } else {
+            updateData[key] = newVal
+          }
+        }
+      })
+
+      // Gestion spéciale pour l'image
+      if (image && image !== currentProfile.profilePicture) {
+        if (!updateData.profile) updateData.profile = {}
+        updateData.profile.profilePicture = image
+      }
+
+      // Vérifier s'il y a des modifications
+      if (Object.keys(updateData).length === 0) {
+        Alert.alert("Information", "Aucune modification détectée")
+        return
+      }
+
+      console.log("Données modifiées à envoyer:", updateData)
+      await dispatch(updateUserProfile(updateData)).unwrap()
       Alert.alert("Succès", "Profil mis à jour avec succès")
       router.back()
     } catch (error: any) {
@@ -34,14 +119,72 @@ export default function EditProfileModal() {
     }
   }
 
-  const handleChangePhoto = () => {
+  const handleChangePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour changer la photo.")
+        return
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets[0]) {
+        setImage(result.assets[0].uri)
+        // Note: Vous devrez uploader l'image vers votre serveur
+        // et récupérer l'URL pour updateUserProfile
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de sélectionner une image")
+    }
+  }
+
+  const takePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission requise", "L'accès à la caméra est nécessaire pour prendre une photo.")
+        return
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets[0]) {
+        setImage(result.assets[0].uri)
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de prendre une photo")
+    }
+  }
+
+  const showImagePickerOptions = () => {
     Alert.alert(
-      "Changer la photo",
-      "Fonctionnalité à implémenter avec expo-image-picker",
+      "Changer la photo de profil",
+      "Choisissez une option",
       [
-        { text: "Annuler", style: "cancel" },
-        { text: "Ouvrir la galerie" },
-        { text: "Prendre une photo" }
+        {
+          text: "Prendre une photo",
+          onPress: takePhoto
+        },
+        {
+          text: "Choisir depuis la galerie",
+          onPress: handleChangePhoto
+        },
+        {
+          text: "Annuler",
+          style: "cancel"
+        }
       ]
     )
   }
@@ -50,7 +193,11 @@ export default function EditProfileModal() {
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-200">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          className="p-2"
+          disabled={loading}
+        >
           <X size={24} color="#64748b" />
         </TouchableOpacity>
         
@@ -59,11 +206,13 @@ export default function EditProfileModal() {
         <TouchableOpacity 
           onPress={handleSave}
           disabled={loading}
-          className="bg-blue-600 px-4 py-2 rounded-full"
+          className="bg-blue-600 px-4 py-2 rounded-full min-w-20 items-center"
         >
-          <Text className="text-white font-semibold">
-            {loading ? "Enregistrement..." : "Enregistrer"}
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text className="text-white font-semibold">Enregistrer</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -71,9 +220,9 @@ export default function EditProfileModal() {
         {/* Photo de profil */}
         <View className="items-center py-6 border-b border-slate-100">
           <View className="relative">
-            {currentUser?.profile?.profilePicture ? (
+            {image ? (
               <Image
-                source={{ uri: currentUser.profile.profilePicture }}
+                source={{ uri: image }}
                 className="w-24 h-24 rounded-full"
               />
             ) : (
@@ -82,13 +231,15 @@ export default function EditProfileModal() {
               </View>
             )}
             <TouchableOpacity 
-              onPress={handleChangePhoto}
+              onPress={showImagePickerOptions}
               className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full border-2 border-white items-center justify-center"
             >
               <Camera size={16} color="white" />
             </TouchableOpacity>
           </View>
-          <Text className="text-blue-600 font-medium mt-3">Changer la photo</Text>
+          <TouchableOpacity onPress={showImagePickerOptions}>
+            <Text className="text-blue-600 font-medium mt-3">Changer la photo</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Formulaire */}
@@ -101,23 +252,23 @@ export default function EditProfileModal() {
               onChangeText={(text) => setFormData(prev => ({ ...prev, username: text }))}
               className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
               placeholder="Votre nom d'utilisateur"
+              autoCapitalize="none"
             />
           </View>
 
-          {/* Prénom */}
+          {/* Nom complet */}
           <View>
             <Text className="text-slate-700 font-medium mb-2">Nom complet</Text>
             <TextInput
               value={formData.profile.fullName}
               onChangeText={(text) => setFormData(prev => ({ 
                 ...prev, 
-                profile: { ...prev.profile, firstName: text }
+                profile: { ...prev.profile, fullName: text }
               }))}
               className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-              placeholder="nom & prénom"
+              placeholder="Votre nom complet"
             />
           </View>
-
 
           {/* Bio */}
           <View>
@@ -132,6 +283,7 @@ export default function EditProfileModal() {
               placeholder="Parlez de vous..."
               multiline
               textAlignVertical="top"
+              maxLength={160}
             />
             <Text className="text-slate-400 text-xs mt-1 text-right">
               {formData.profile.bio.length}/160
@@ -140,54 +292,87 @@ export default function EditProfileModal() {
 
           {/* Localisation */}
           <View>
-            <Text className="text-slate-700 font-medium mb-2">
-              <MapPin size={16} color="#64748b" className="mr-2" />
-              Localisation
-            </Text>
-            <TextInput
-              value={formData.profile.location}
-              onChangeText={(text) => setFormData(prev => ({ 
-                ...prev, 
-                profile: { ...prev.profile, location: text }
-              }))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-              placeholder="Où habitez-vous ?"
-            />
+            <Text className="text-slate-700 font-medium mb-2">Localisation</Text>
+            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+              <MapPin size={16} color="#64748b" />
+              <TextInput
+                value={formData.profile.location}
+                onChangeText={(text) => setFormData(prev => ({ 
+                  ...prev, 
+                  profile: { ...prev.profile, location: text }
+                }))}
+                className="flex-1 ml-2 text-slate-900"
+                placeholder="Où habitez-vous ?"
+              />
+            </View>
           </View>
 
           {/* Site web */}
           <View>
-            <Text className="text-slate-700 font-medium mb-2">
-              <Link size={16} color="#64748b" className="mr-2" />
-              Site web
-            </Text>
-            <TextInput
-              value={formData.profile.website}
-              onChangeText={(text) => setFormData(prev => ({ 
-                ...prev, 
-                profile: { ...prev.profile, website: text }
-              }))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-              placeholder="https://example.com"
-              keyboardType="url"
-            />
+            <Text className="text-slate-700 font-medium mb-2">Site web</Text>
+            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+              <Link size={16} color="#64748b" />
+              <TextInput
+                value={formData.profile.website}
+                onChangeText={(text) => setFormData(prev => ({ 
+                  ...prev, 
+                  profile: { ...prev.profile, website: text }
+                }))}
+                className="flex-1 ml-2 text-slate-900"
+                placeholder="https://example.com"
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+            </View>
           </View>
 
           {/* Date de naissance */}
           <View>
-            <Text className="text-slate-700 font-medium mb-2">
-              <Calendar size={16} color="#64748b" className="mr-2" />
-              Date de naissance
-            </Text>
-            <TextInput
-              value={formData.profile.birthDate}
-              onChangeText={(text) => setFormData(prev => ({ 
-                ...prev, 
-                profile: { ...prev.profile, birthDate: text }
-              }))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-              placeholder="JJ/MM/AAAA"
-            />
+            <Text className="text-slate-700 font-medium mb-2">Date de naissance</Text>
+            <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+              <Calendar size={16} color="#64748b" />
+              <TextInput
+                value={formData.profile.birthDate}
+                onChangeText={(text) => setFormData(prev => ({ 
+                  ...prev, 
+                  profile: { ...prev.profile, birthDate: text }
+                }))}
+                className="flex-1 ml-2 text-slate-900"
+                placeholder="JJ/MM/AAAA"
+              />
+            </View>
+          </View>
+
+          {/* Genre */}
+          <View>
+            <Text className="text-slate-700 font-medium mb-2">Genre</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(['male', 'female', 'other', 'prefer_not_to_say'] as const).map((gender) => (
+                <TouchableOpacity
+                  key={gender}
+                  onPress={() => setFormData(prev => ({
+                    ...prev,
+                    profile: { ...prev.profile, gender }
+                  }))}
+                  className={`px-4 py-2 rounded-full border ${
+                    formData.profile.gender === gender
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <Text className={
+                    formData.profile.gender === gender
+                      ? 'text-white font-medium'
+                      : 'text-slate-700'
+                  }>
+                    {gender === 'male' && 'Homme'}
+                    {gender === 'female' && 'Femme'}
+                    {gender === 'other' && 'Autre'}
+                    {gender === 'prefer_not_to_say' && 'Ne pas préciser'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
 

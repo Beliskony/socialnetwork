@@ -1,7 +1,9 @@
 // app/(modals)/_layout.tsx
 import { Stack } from "expo-router";
+import { useTheme } from "@/hooks/toggleChangeTheme";
 
 export default function ModalsLayout() {
+  const { isDark } = useTheme();
   return (
     <Stack
       screenOptions={{

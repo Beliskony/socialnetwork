@@ -1,8 +1,6 @@
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
@@ -10,15 +8,16 @@ import '../global.css'
 import { Provider } from 'react-redux';
 import store from '@/redux/store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { CustomThemeProvider } from '@/hooks/toggleChangeTheme';
 
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { StatusBarWrapper } from '@/components/StatusBarWrapper';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = 'light';
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -36,8 +35,8 @@ export default function RootLayout() {
   return (
   <GestureHandlerRootView style={{ flex: 1 }}>
     <Provider store={store}>
-      
-        <SafeAreaView style={{ flex: 1 }}>
+      <CustomThemeProvider>
+        <SafeAreaView style={{ flex: 1 }} className='bg-white dark:bg-black'>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             {/* NOUVEAU - Groupe d'authentification */}
@@ -46,12 +45,13 @@ export default function RootLayout() {
             <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar style='dark' />
+          <StatusBarWrapper />
         </SafeAreaView>
-    
+      </CustomThemeProvider>
     </Provider>
   </GestureHandlerRootView>
 );
+
 
 }
 

@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/redux/store"
 import { logout, updatePrivacySettings } from "@/redux/userSlice"
 import { router } from "expo-router"
+import { useTheme } from "@/hooks/toggleChangeTheme"
 import { 
   X, 
   Bell, 
@@ -15,12 +16,14 @@ import {
   Globe, 
   HelpCircle, 
   LogOut,
-  UserX
+  UserX,
+  Sun
 } from "lucide-react-native"
 
 export default function SettingsModal() {
   const dispatch = useDispatch()
   const { currentUser } = useSelector((state: RootState) => state.user)
+  const { isDark, toggleTheme } = useTheme()
   
   const [notifications, setNotifications] = useState({
     newFollower: true,
@@ -88,8 +91,8 @@ export default function SettingsModal() {
           <Icon size={20} color="#64748b" />
         </View>
         <View className="flex-1">
-          <Text className="font-medium text-slate-900">{title}</Text>
-          {subtitle && <Text className="text-slate-500 text-sm mt-1">{subtitle}</Text>}
+          <Text className="font-medium text-slate-900 dark:text-gray-100">{title}</Text>
+          {subtitle && <Text className="text-slate-500 text-sm mt-1 dark:text-gray-100">{subtitle}</Text>}
         </View>
       </View>
       
@@ -107,27 +110,27 @@ export default function SettingsModal() {
   )
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-200 bg-white dark:bg-black dark:border-slate-500">
         <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <X size={24} color="#64748b" />
+          <X size={24} color={isDark ? "#fff":"#64748b"} />
         </TouchableOpacity>
         
-        <Text className="text-lg font-semibold text-slate-900">Paramètres</Text>
+        <Text className="text-lg font-semibold text-slate-900 dark:text-gray-100">Paramètres</Text>
         
         <View className="w-10" />
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Notifications */}
-        <View className="bg-white mt-4 mx-4 rounded-xl p-2">
-          <Text className="font-semibold text-slate-900 text-lg px-2 py-3">
-            <Bell size={20} color="#64748b" className="mr-2" />
-            Notifications
-          </Text>
+        <View className="bg-white mt-4 mx-4 rounded-xl p-2 dark:bg-black">
+          <View className="flex flex-row items-center gap-x-2 py-2">
+            <Bell size={20} color={isDark ? "#fff":"#64748b"} className="mr-2 justify-center" />
+            <Text className="font-semibold text-slate-900 dark:text-gray-100 text-lg">Notifications</Text>
+          </View>
           
-          <View className="border-t border-slate-100">
+          <View className="border-t border-slate-100 dark:border-slate-500">
             <SettingItem
               icon={UserX}
               title="Nouveaux abonnés"
@@ -160,13 +163,13 @@ export default function SettingsModal() {
         </View>
 
         {/* Confidentialité */}
-        <View className="bg-white mt-4 mx-4 rounded-xl p-2">
-          <Text className="font-semibold text-slate-900 text-lg px-2 py-3">
-            <Lock size={20} color="#64748b" className="mr-2" />
-            Confidentialité
-          </Text>
+        <View className="bg-white dark:bg-black mt-4 mx-4 rounded-xl p-2">
+          <View className="flex flex-row items-center gap-x-2 py-2">
+            <Lock size={20} color={isDark ? "#fff":"#64748b"} className="mr-2 justify-center" />
+            <Text className="font-semibold text-slate-900 dark:text-gray-100 text-lg">Confidentialité</Text>
+          </View>
           
-          <View className="border-t border-slate-100">
+          <View className="border-t border-slate-100 dark:border-slate-500">
             <SettingItem
               icon={Globe}
               title="Visibilité du profil"
@@ -209,31 +212,31 @@ export default function SettingsModal() {
         </View>
 
         {/* Apparence */}
-        <View className="bg-white mt-4 mx-4 rounded-xl p-2">
-          <Text className="font-semibold text-slate-900 text-lg px-2 py-3">
-            <Moon size={20} color="#64748b" className="mr-2" />
-            Apparence
-          </Text>
+        <View className="bg-white dark:bg-black mt-4 mx-4 rounded-xl p-2">
+          <View className="flex flex-row items-center gap-x-2 py-2">
+            <Moon size={20} color={isDark ? "#fff":"#64748b"} className="mr-2 justify-center" />
+            <Text className="font-semibold text-slate-900 dark:text-gray-100 text-lg"> Apparence </Text>
+          </View>
           
-          <View className="border-t border-slate-100">
+          <View className="border-t border-slate-100 dark:border-slate-500">
             <SettingItem
-              icon={Moon}
+              icon={isDark ? Moon : Sun}
               title="Mode sombre"
-              subtitle="Activer le thème sombre"
+              subtitle={isDark ? "Activé" : "Désactivé"}
               showSwitch
-              value={false}
-              onValueChange={() => {}}
+              value={isDark}
+              onValueChange={toggleTheme}
             />
           </View>
         </View>
 
         {/* Compte */}
-        <View className="bg-white mt-4 mx-4 rounded-xl p-2">
-          <Text className="font-semibold text-slate-900 text-lg px-2 py-3">
+        <View className="bg-white dark:bg-black mt-4 mx-4 rounded-xl p-2">
+          <Text className="font-semibold text-slate-900 dark:text-gray-100 text-lg px-2 py-3">
             Compte
           </Text>
           
-          <View className="border-t border-slate-100">
+          <View className="border-t border-slate-100 dark:border-slate-500">
             <SettingItem
               icon={HelpCircle}
               title="Aide et support"

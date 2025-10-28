@@ -7,6 +7,7 @@ import { toggleLikeComment, deleteComment, setCurrentComment, createComment, get
 import { getFeed } from "@/redux/postSlice"
 import type { RootState, AppDispatch } from "@/redux/store"
 import type { Comment } from "@/intefaces/comment.Interfaces"
+import { useTheme } from "@/hooks/toggleChangeTheme"
 import { formatRelativeDate } from "@/utils/formatRelativeDate"
 
 interface CommentCardProps {
@@ -37,6 +38,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isReplying, setIsReplying] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const { isDark } = useTheme()
   const [isLoadingReplies, setIsLoadingReplies] = useState(false)
 
   const dispatch = useDispatch<AppDispatch>()
@@ -152,6 +154,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
       
       setReplyText("")
       setShowReplyInput(false)
+      console.log('✅ Reply created successfully');
     } catch (error: any) {
       Alert.alert("Erreur", error || "Impossible de publier la réponse")
     } finally {
@@ -253,7 +256,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
   }
 
   return (
-    <View className={`bg-white rounded-xl p-4 ${isReply ? 'ml-4 border-l-2 border-slate-200' : 'border border-slate-200'} mb-3`}>
+    <View className={`bg-white dark:bg-black rounded-xl p-4 ${isReply ? 'ml-4 border-l-2 border-slate-200' : 'border border-slate-200 dark:border-gray-500'} mb-3`}>
       
       {/* Header */}
       <View className="flex-row items-start justify-between mb-3">
@@ -261,7 +264,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
           {renderAvatar()}
           
           <View className="ml-3 flex-1">
-            <Text className="font-semibold text-slate-900 text-sm">
+            <Text className="font-semibold text-slate-900 dark:text-gray-100 text-sm">
               {getAuthorUsername()}
             </Text>
             <Text className="text-slate-500 text-xs">
@@ -297,7 +300,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
                 className="flex-row items-center px-3 py-2"
               >
                 <Edit size={14} color="#64748b" className="mr-2" />
-                <Text className="text-slate-700 text-sm">Modifier</Text>
+                <Text className="text-slate-700 dark:text-gray-400 text-sm">Modifier</Text>
               </TouchableOpacity>
               <View className="h-px bg-slate-200" />
               <TouchableOpacity
@@ -356,7 +359,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
       ) : (
         // ✅ MODE AFFICHAGE
         <View className="mb-3">
-          <Text className="text-slate-800 text-sm leading-5">
+          <Text className="text-slate-800 dark:text-gray-300 text-sm leading-5">
             {comment.content?.text || 'Contenu non disponible'}
           </Text>
 
@@ -411,8 +414,8 @@ const CommentCard: React.FC<CommentCardProps> = ({
             disabled={!currentUser}
             className="flex-row items-center"
           >
-            <Reply size={16} color="#64748b" />
-            <Text className="ml-1 text-xs text-slate-600">
+            <Reply size={16} color={isDark ? "#fff":"#64748b"} />
+            <Text className="ml-1 text-xs text-slate-600 dark:text-gray-400">
               Répondre
             </Text>
           </TouchableOpacity>

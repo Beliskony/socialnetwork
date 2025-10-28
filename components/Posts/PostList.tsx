@@ -17,12 +17,15 @@ import type { Post, PostFront } from '@/intefaces/post.Interface'; // ✅ Import
 import { convertToPostFront } from '@/intefaces/post.Interface';
 import PostCard from './PostCard';
 import { Plus, X } from 'lucide-react-native';
+import { useTheme } from '@/hooks/toggleChangeTheme';
+import PostSkeleton from '../skeletons/SkeletonPostItem';
 
 const PostsList = () => {
   const [editingPost, setEditingPost] = useState<PostFront | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const {isDark} = useTheme();
 
   const dispatch = useDispatch<AppDispatch>();
   const { 
@@ -193,10 +196,13 @@ const PostsList = () => {
   // État de chargement initial
   if (feedLoading && (!feedPosts || feedPosts.length === 0)) {
     return (
-      <View className="flex-1 justify-center items-center bg-slate-50">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="text-slate-600 mt-4">Chargement des publications...</Text>
-      </View>
+      <>
+        <PostSkeleton />
+        <PostSkeleton />
+        <PostSkeleton />
+        <PostSkeleton />
+        <PostSkeleton />
+      </>
     );
   }
 
@@ -233,7 +239,7 @@ const PostsList = () => {
   }
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50 dark:bg-black">
       
       {/* Liste des posts */}
       <FlatList

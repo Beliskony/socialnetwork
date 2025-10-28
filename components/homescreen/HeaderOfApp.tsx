@@ -5,10 +5,11 @@ import { useState, useRef } from "react"
 import type { Post, PostFront } from "@/intefaces/post.Interface"
 import { MaterialIcons } from "@expo/vector-icons"
 import { useDispatch, useSelector } from "react-redux"
-import { createPost } from "@/redux/postSlice"
+import { useTheme } from "@/hooks/toggleChangeTheme"
 import type { RootState, AppDispatch } from "@/redux/store"
 import CreatePost from "@/components/Posts/CreatePost" // ✅ Même composant que PostsList
 import { Plus } from "lucide-react-native"
+
 
 const HeaderOfApp = () => {
   const [posts, setPosts] = useState<Post[]>([])
@@ -17,6 +18,7 @@ const HeaderOfApp = () => {
   const [showCreateModal, setShowCreateModal] = useState(false) // ✅ Même état
   const [isSubmitting, setIsSubmitting] = useState(false) // ✅ Même état
   const [editingPost, setEditingPost] = useState<PostFront | null>(null);
+  const { isDark } = useTheme()
 
   const searchHeight = useRef(new Animated.Value(0)).current
   const dispatch = useDispatch<AppDispatch>()
@@ -56,7 +58,7 @@ const HeaderOfApp = () => {
   }
 
   return (
-    <View className="flex flex-col items-start justify-between bg-white px-5 py-1 mb-2 shadow-lg border-b border-slate-100">
+    <View className="flex flex-col items-start justify-between bg-white dark:bg-black px-5 py-1 mb-2 shadow-lg border-b border-slate-100">
       {/* Logo et boutons */}
       <View className="flex-row items-center justify-between w-full">
         <Image source={require("../../assets/images/Logo.png")} className="w-36 h-28" resizeMode="contain" />

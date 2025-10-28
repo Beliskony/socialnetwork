@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 import { createPost, updatePost } from '@/redux/postSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
+import { useTheme } from '@/hooks/toggleChangeTheme';
 import {
   X,
   Image as ImageIcon,
@@ -55,6 +56,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
+  const { isDark } = useTheme();
 
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser } = useSelector((state: RootState) => state.user);
@@ -225,15 +227,15 @@ const CreatePost: React.FC<CreatePostProps> = ({
     if (selectedImages.length === 0 && selectedVideos.length === 0) return null;
 
     return (
-      <View className="px-4 pb-4">
+      <View className="px-4 py-4">
         {selectedImages.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="my-3">
             {selectedImages.map((image, index) => (
               <View key={index} className="relative mr-3">
                 <Image source={{ uri: image }} className="w-32 h-32 rounded-xl" resizeMode="cover" />
                 <TouchableOpacity
                   onPress={() => removeMedia(index, 'image')}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
+                  className="absolute top-2 right-2 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
                 >
                   <X size={14} color="white" />
                 </TouchableOpacity>
@@ -271,15 +273,15 @@ const CreatePost: React.FC<CreatePostProps> = ({
   if (!isVisible) return null;
 
   return (
-    <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet" transparent={true}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-white mt-24">
+    <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet" transparent={true} className='dark:bg-black' >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-white dark:bg-black mt-24">
         {/* Header */}
         <View className="flex-row items-center justify-between p-4 border-b border-slate-200">
           <TouchableOpacity onPress={handleCancel} className="p-2">
-            <X size={24} color="#64748b" />
+            <X size={24} color={isDark ? "#fff" : "#64748b"} />
           </TouchableOpacity>
           
-          <Text className="text-lg font-semibold text-slate-900">
+          <Text className="text-lg font-semibold text-slate-900 dark:text-gray-200">
             {isEditing ? 'Modifier' : 'Créer une publication'}
           </Text>
           
@@ -311,12 +313,12 @@ const CreatePost: React.FC<CreatePostProps> = ({
               )}
               
               <View className="ml-3 flex-1">
-                <Text className="font-semibold text-slate-900">{currentUser?.username}</Text>
+                <Text className="font-semibold text-slate-900 dark:text-gray-200">{currentUser?.username}</Text>
                 <TouchableOpacity onPress={() => setShowPrivacyOptions(true)} className="flex-row items-center mt-1">
                   {privacy === 'public' && <Earth size={16} color="#10b981" />}
                   {privacy === 'friends' && <Users size={16} color="#3b82f6" />}
                   {privacy === 'private' && <Lock size={16} color="#ef4444" />}
-                  <Text className="text-slate-500 text-sm ml-1">
+                  <Text className="text-slate-500 dark:text-gray-400 text-sm ml-1">
                     {privacy === 'public' && 'Public'}
                     {privacy === 'friends' && 'Amis seulement'}
                     {privacy === 'private' && 'Privé'}
@@ -339,7 +341,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
               placeholderTextColor="#94a3b8"
               multiline
               maxLength={500}
-              className="text-slate-900 text-lg min-h-[150px] leading-6"
+              className="text-slate-900 dark:text-gray-200 text-lg min-h-[150px] leading-6"
               textAlignVertical="top"
               autoFocus
             />
@@ -407,15 +409,15 @@ const CreatePost: React.FC<CreatePostProps> = ({
 
         <Modal visible={showPrivacyOptions} transparent animationType="slide">
           <View className="flex-1 justify-end bg-black/50">
-            <View className="bg-white rounded-t-3xl p-6">
+            <View className="bg-white dark:bg-black rounded-t-3xl p-6">
               <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-xl font-bold text-slate-900">Confidentialité</Text>
+                <Text className="text-xl font-bold text-slate-900 dark:text-gray-100">Confidentialité</Text>
                 <TouchableOpacity onPress={() => setShowPrivacyOptions(false)}>
                   <X size={24} color="#64748b" />
                 </TouchableOpacity>
               </View>
 
-              <View className="space-y-3">
+              <View className="space-y-3 gap-y-2">
                 {(['public', 'friends', 'private'] as PrivacyType[]).map((option) => (
                   <TouchableOpacity
                     key={option}
@@ -424,16 +426,16 @@ const CreatePost: React.FC<CreatePostProps> = ({
                       setShowPrivacyOptions(false);
                     }}
                     className={`flex-row items-center p-4 rounded-xl border-2 ${
-                      privacy === option ? 'border-blue-500 bg-blue-50' : 'border-slate-200'
+                      privacy === option ? 'border-blue-500 bg-blue-50 dark:bg-gray-800' : 'border-slate-200 dark:border-slate-500'
                     }`}
                   >
-                    <View className="w-10 h-10 rounded-full bg-slate-100 items-center justify-center mr-3">
+                    <View className="w-10 h-10 rounded-full bg-slate-100  items-center justify-center mr-3">
                       {option === 'public' && <Earth size={20} color="#10b981" />}
                       {option === 'friends' && <Users size={20} color="#3b82f6" />}
                       {option === 'private' && <Lock size={20} color="#ef4444" />}
                     </View>
                     <View className="flex-1">
-                      <Text className="font-semibold text-slate-900">
+                      <Text className="font-semibold text-slate-900 dark:text-gray-200">
                         {option === 'public' && 'Public'}
                         {option === 'friends' && 'Amis seulement'}
                         {option === 'private' && 'Privé'}

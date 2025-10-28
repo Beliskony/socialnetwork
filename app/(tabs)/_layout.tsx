@@ -3,18 +3,16 @@ import { Tabs } from "expo-router"
 import { Platform, View } from "react-native"
 import { HapticTab } from "@/components/HapticTab"
 import TabBarBackground from "@/components/ui/TabBarBackground"
-import { useColorScheme } from "@/hooks/useColorScheme"
+import { useTheme } from "@/hooks/toggleChangeTheme"
 import { 
   Home, 
   User, 
   Bell, 
-  Search,
   Plus,
-  MessageCircle
 } from "lucide-react-native"
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme()
+  const { isDark } = useTheme()
 
   return (
     <Tabs
@@ -27,40 +25,44 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            position: "absolute",
-            backgroundColor: "#FFFFFF",
-            borderTopWidth: 0,
+            position: 'absolute',
+            backgroundColor: isDark ? "#000000" : "#FFFFFF", // Noir pur en dark
             elevation: 0,
-            shadowOpacity: 0.1,
-            shadowRadius: 20,
+            borderTopWidth: 1,
+            shadowOpacity: isDark ? 0 : 0.1, // Pas d'ombre en dark
             shadowOffset: { width: 0, height: -4 },
-            shadowColor: "#000000",
-            marginBottom: 0,
-            height: 45,
+            shadowRadius: 20,
+            shadowColor: isDark ? "transparent" : "#000000",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            marginHorizontal: 0,
+            height: 65, // Hauteur pour couvrir safe area
+            borderColor: "#94A3B8",
             paddingTop: 8,
-            paddingBottom: 2,
-            borderRadius: 24,
-            borderTopRightRadius: 24,
-            marginHorizontal: 7,
-            width: 'auto',
+            paddingBottom: 34, // Compensation safe area iPhone
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
           },
           default: {
-            position: "absolute",
-            backgroundColor: "#FFFFFF",
-            borderTopWidth: 0,
-            elevation: 16,
-            shadowOpacity: 0.1,
-            shadowRadius: 20,
+            position: 'absolute',
+            backgroundColor: isDark ? "#000000" : "#FFFFFF", // Noir pur en dark
+            borderTopWidth: 1,
+            elevation: isDark ? 0 : 16, // Pas d'élévation en dark
+            shadowOpacity: isDark ? 0 : 0.1,
             shadowOffset: { width: 0, height: -4 },
-            shadowColor: "#000000",
-            marginBottom: 0,
-            height: 45,
+            shadowRadius: 20,
+            shadowColor: isDark ? "transparent" : "#000000",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            marginHorizontal: 0,
+            height: 65,
+            borderColor: "#94A3B8",
             paddingTop: 8,
-            paddingBottom: 2,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            marginHorizontal: 7,
-            width: 'auto',
+            paddingBottom: 8,
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
           },
         }),
         tabBarLabelStyle: {
@@ -79,7 +81,7 @@ export default function TabLayout() {
         options={{
           title: "Accueil",
           tabBarIcon: ({ color, size, focused }) => (
-            <View className={`p-2 rounded-2xl ${focused ? 'bg-blue-50' : ''}`}>
+            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
               <Home 
                 size={24} 
                 color={focused ? "#3B82F6" : color}
@@ -91,14 +93,13 @@ export default function TabLayout() {
         }}
       />
 
-
       {/* Tab centrale spéciale pour la création */}
       <Tabs.Screen
         name="create"
         options={{
           title: "Créer",
           tabBarIcon: ({ color, size, focused }) => (
-            <View className="bg-blue-600 p-3 rounded-2xl -mt-6 shadow-lg shadow-blue-600/30">
+            <View className={`p-3 rounded-2xl -mt-6 shadow-lg ${isDark ? 'shadow-blue-900/50' : 'shadow-blue-600/30'} ${isDark ? 'bg-blue-700' : 'bg-blue-600'}`}>
               <Plus 
                 size={22} 
                 color="#FFFFFF"
@@ -106,7 +107,7 @@ export default function TabLayout() {
               />
             </View>
           ),
-          tabBarLabel: () => null, // Cache le label pour cette tab
+          tabBarLabel: () => null,
         }}
       />
 
@@ -115,7 +116,7 @@ export default function TabLayout() {
         options={{
           title: "Notifications",
           tabBarIcon: ({ color, size, focused }) => (
-            <View className={`p-2 rounded-2xl ${focused ? 'bg-blue-50' : ''}`}>
+            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
               <Bell 
                 size={24} 
                 color={focused ? "#3B82F6" : color}
@@ -132,7 +133,7 @@ export default function TabLayout() {
         options={{
           title: "Profil",
           tabBarIcon: ({ color, size, focused }) => (
-            <View className={`p-2 rounded-2xl ${focused ? 'bg-blue-50' : ''}`}>
+            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
               <User 
                 size={24} 
                 color={focused ? "#3B82F6" : color}
