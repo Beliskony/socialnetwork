@@ -37,7 +37,7 @@ export default function TabLayout() {
             left: 0,
             right: 0,
             marginHorizontal: 0,
-            height: 65, // Hauteur pour couvrir safe area
+            height: 50, // Hauteur pour couvrir safe area
             borderColor: "#94A3B8",
             paddingTop: 8,
             paddingBottom: 34, // Compensation safe area iPhone
@@ -57,7 +57,7 @@ export default function TabLayout() {
             left: 0,
             right: 0,
             marginHorizontal: 0,
-            height: 65,
+            height: 50,
             borderColor: "#94A3B8",
             paddingTop: 8,
             paddingBottom: 8,
