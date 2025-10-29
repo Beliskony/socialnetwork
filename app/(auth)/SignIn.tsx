@@ -14,7 +14,9 @@ const SignInScreen = () => {
     username: "",
     email: "",
     password: "",
-    phoneNumber: "",
+    contact:{
+      phoneNumber: "",
+    },
     profile: {
       fullName: "",
       gender: "prefer_not_to_say"
@@ -42,6 +44,15 @@ const SignInScreen = () => {
           [profileField]: value
         }
       }))
+    } if (field.startsWith('contact.')) {
+      const contactField = field.replace('contact.', '')
+      setFormData(prev => ({
+        ...prev,
+        contact: {
+          ...prev.contact,
+          [contactField]: value
+        }
+      }))
     } else {
       setFormData(prev => ({
         ...prev,
@@ -53,7 +64,7 @@ const SignInScreen = () => {
 
 
   const validateForm = (): boolean => {
-    if (!formData.username.trim() || !formData.email.trim() || !formData.password || !formData.phoneNumber.trim() || !formData.profile?.fullName) {
+    if (!formData.username.trim() || !formData.email.trim() || !formData.password || !formData.contact.phoneNumber.trim() || !formData.profile?.fullName) {
       Alert.alert("Champs manquants", "Veuillez remplir tous les champs obligatoires.")
       return false
     }
@@ -82,26 +93,35 @@ const SignInScreen = () => {
     return true
   }
 
-  const handleSignUp = async () => {
-    if (!validateForm()) return
+ const handleSignUp = async () => {
+  if (!validateForm()) return
 
-    try {
-      const result = await dispatch(registerUser(formData)).unwrap()
-      
-      Alert.alert(
-        "Bienvenue !", 
-        `Votre compte a été créé avec succès. Bienvenue ${result.user.username} !`,
-        [
-          { 
-            text: "Explorer", 
-            onPress: () => router.replace("/(tabs)/home") 
-          }
-        ]
-      )
-    } catch (error: any) {
-      console.log("Registration error:", error)
-    }
+  try {
+    // NETTOYER les données avant envoi
+    const cleanData = {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+      contact: {
+        phoneNumber: formData.contact.phoneNumber
+      },
+      profile: {
+        fullName: formData.profile?.fullName,
+        gender: formData.profile?.gender
+      }
+    };
+
+    console.log("🔍 DEBUG - Données NETTOYÉES:", cleanData);
+    
+    const result = await dispatch(registerUser(cleanData)).unwrap()
+    
+    router.push("/(tabs)/home")
+    console.log("✅ Registration successful:", result);
+    // ... reste du code
+  } catch (error: any) {
+    console.log("❌ Registration error:", error);
   }
+}
 
   const navigateToLogin = () => {
     router.push("../Login")
@@ -184,8 +204,8 @@ const SignInScreen = () => {
                   placeholder="+33 6 12 34 56 78"
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
-                  value={formData.phoneNumber}
-                  onChangeText={(value) => handleInputChange('phoneNumber', value)}
+                  value={formData.contact.phoneNumber}
+                  onChangeText={(value) => handleInputChange('contact.phoneNumber', value)}
                 />
               </View>
             </View>

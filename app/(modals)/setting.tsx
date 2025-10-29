@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/redux/store"
-import { logout, updatePrivacySettings } from "@/redux/userSlice"
+import { logout, updatePrivacySettings, deactivateAccount } from "@/redux/userSlice"
 import { router } from "expo-router"
 import { useTheme } from "@/hooks/toggleChangeTheme"
 import { 
@@ -55,23 +55,34 @@ export default function SettingsModal() {
     )
   }
 
-  const handleDeactivateAccount = () => {
-    Alert.alert(
-      "Désactiver le compte",
-      "Cette action est irréversible. Votre compte sera désactivé pendant 30 jours avant suppression définitive.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { 
-          text: "Désactiver", 
-          style: "destructive",
-          onPress: () => {
-            // TODO: Implémenter la désactivation
-            Alert.alert("Compte désactivé", "Votre compte a été désactivé")
-          }
+ const handleDeactivateAccount = () => {
+  Alert.alert(
+    "Désactiver le compte",
+    "Cette action est irréversible. Votre compte sera désactivé pendant 30 jours avant suppression définitive.",
+    [
+      { text: "Annuler", style: "cancel" },
+      { 
+        text: "Désactiver", 
+        style: "destructive",
+        onPress: () => {
+          // Utiliser une raison par défaut
+          const defaultReason = "Désactivation volontaire par l'utilisateur";
+          
+          // Cast explicite du dispatch pour TypeScript
+          (dispatch as any)(deactivateAccount(defaultReason))
+            .unwrap()
+            .then(() => {
+              // La redirection se fera automatiquement après le logout dans le thunk
+              console.log('Compte désactivé avec succès');
+            })
+            .catch((error: any) => { // Typage explicite de l'erreur
+              Alert.alert("Erreur", error?.message || error || "Une erreur est survenue lors de la désactivation");
+            });
         }
-      ]
-    )
-  }
+      }
+    ]
+  );
+};
 
   const SettingItem = ({ 
     icon: Icon, 

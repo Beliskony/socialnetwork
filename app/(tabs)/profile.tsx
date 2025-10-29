@@ -97,7 +97,7 @@ function ProfileScreen() {
         </Text>
         <TouchableOpacity 
           className="bg-blue-600 px-6 py-3 rounded-full active:bg-blue-700"
-          onPress={() => router.push('../../(auth)/login')}
+          onPress={() => router.push('../../(auth)/Login')}
         >
           <Text className="text-white font-semibold">Se connecter</Text>
         </TouchableOpacity>
@@ -255,7 +255,7 @@ function ProfileScreen() {
             
             <TouchableOpacity 
               className="items-center flex-1 border-x border-slate-100 active:opacity-70"
-              //onPress={() => router.push('/(modals)/followers')}
+              onPress={() => router.push('../../(modals)/followers')}
             >
               <Text className="text-xl font-bold text-slate-900 dark:text-gray-100">{formatCount(stats.followers)}</Text>
               <Text className="text-slate-500 dark:text-gray-300 text-sm mt-1">Abonnés</Text>
@@ -263,7 +263,7 @@ function ProfileScreen() {
             
             <TouchableOpacity 
               className="items-center flex-1 active:opacity-70"
-              //onPress={() => router.push('/(modals)/following')}
+              onPress={() => router.push('../../(modals)/following')}
             >
               <Text className="text-xl font-bold text-slate-900 dark:text-gray-100">{formatCount(stats.following)}</Text>
               <Text className="text-slate-500 dark:text-gray-300 text-sm mt-1">Abonnements</Text>

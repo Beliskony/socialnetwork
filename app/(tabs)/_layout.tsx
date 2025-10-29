@@ -8,7 +8,7 @@ import {
   Home, 
   User, 
   Bell, 
-  Plus,
+  Users,
 } from "lucide-react-native"
 
 export default function TabLayout() {
@@ -93,24 +93,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab centrale spéciale pour la création */}
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: "Créer",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View className={`p-3 rounded-2xl -mt-6 shadow-lg ${isDark ? 'shadow-blue-900/50' : 'shadow-blue-600/30'} ${isDark ? 'bg-blue-700' : 'bg-blue-600'}`}>
-              <Plus 
-                size={22} 
-                color="#FFFFFF"
-                strokeWidth={2.5}
-              />
-            </View>
-          ),
-          tabBarLabel: () => null,
-        }}
-      />
-
       <Tabs.Screen
         name="notifications"
         options={{
@@ -142,6 +124,25 @@ export default function TabLayout() {
               />
             </View>
           ),
+        }}
+      />
+
+       {/* Tab centrale spéciale pour la création */}
+      <Tabs.Screen
+        name="follow"
+        options={{
+          title: "follow",
+          tabBarIcon: ({ color, size, focused }) => (
+            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
+              <Users
+                size={22} 
+                color={focused ? "#3B82F6" : color}
+                fill={focused ? "#3B82F6" : "transparent"}
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            </View>
+          ),
+          tabBarLabel: () => null,
         }}
       />
     </Tabs>

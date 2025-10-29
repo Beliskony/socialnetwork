@@ -82,7 +82,11 @@ export interface RegisterData {
   username: string;
   email: string;
   password: string;
-  phoneNumber: string;
+  contact:{
+    phoneNumber: string;
+    emailVerified?: false;
+    phoneVerified?: false;
+  }
   profile?: {
     fullName?: string;
     bio?: string;

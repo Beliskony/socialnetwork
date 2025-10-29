@@ -66,6 +66,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 
 // Helper pour les appels API avec authentification
 const fetchWithAuth = async (endpoint: string, options: RequestInit = {}, token: string) => {
+
   return fetchAPI(endpoint, {
     ...options,
     headers: {
@@ -113,21 +114,27 @@ export const registerUser = createAsyncThunk<
   { rejectValue: string }
 >('user/register', async (userData, { rejectWithValue }) => {
   try {
-    const data = await fetchAPI('/register', {
+    console.log("🔍 DEBUG registerUser - Données reçues:", userData);
+  
+    const data = await fetchAPI(`/register`, {
       method: 'POST',
       body: JSON.stringify(userData),
     });
 
+    console.log("🔍 DEBUG registerUser - recu:", data);
+    
     const authData = data.data;
 
+    // Stocker l'authentification
     await AsyncStorage.setItem('auth', JSON.stringify({
       user: authData.user,
       token: authData.token
     }));
 
     return authData;
-  } catch (error: any) {
-    return rejectWithValue(error.message || 'Erreur lors de l\'inscription');
+  } catch (error:any) {
+    console.log("❌ DEBUG registerUser - Erreur complète:", error);
+    return rejectWithValue(error.message);
   }
 });
 
@@ -379,9 +386,9 @@ export const updatePrivacySettings = createAsyncThunk<
 // 🛑 Désactiver le compte
 export const deactivateAccount = createAsyncThunk<
   void,
-  string,
+  string, // reason est requis
   { rejectValue: string }
->('user/deactivateAccount', async (reason, { rejectWithValue, getState }) => {
+>('user/deactivateAccount', async (reason, { rejectWithValue, getState, dispatch }) => {
   try {
     const { user } = getState() as { user: UserState };
     const token = user.token;
@@ -390,11 +397,24 @@ export const deactivateAccount = createAsyncThunk<
       return rejectWithValue('Token non disponible');
     }
 
+    // Validation de la raison
+    if (!reason || reason.trim().length === 0) {
+      return rejectWithValue('Veuillez fournir une raison pour la désactivation');
+    }
+
     await fetchWithAuth('/me/deactivate', {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reason: reason.trim() }),
     }, token);
+
+    // Déconnexion après désactivation réussie
+    dispatch(logout());
+
   } catch (error: any) {
+    console.error('Erreur désactivation compte:', error);
     return rejectWithValue(error.message || 'Erreur lors de la désactivation du compte');
   }
 });
