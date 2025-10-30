@@ -1,4 +1,4 @@
-// components/Stories/StoryViewer.tsx (version améliorée)
+// components/Stories/StoryViewer.tsx (version simplifiée avec VideoPlayerItem)
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { useStories } from '@/hooks/useStories';
 import { useAppSelector } from '@/redux/hooks';
-import { X, User, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { StoryProgress } from './StoryProgress';
+import { X, User, Eye, Volume2, VolumeX, Play, Pause } from 'lucide-react-native';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
+import { formatCount } from '@/services/Compteur';
+import VideoPlayerItem from '../Posts/VideoPlayerItem';
 
 const { width, height } = Dimensions.get('window');
-const STORY_DURATION = 5000; // 5 secondes
+const STORY_DURATION = 15000;
+const STORY_CONTENT_WIDTH = width;
+const STORY_CONTENT_HEIGHT = height;
 
 interface StoryViewerProps {
   visible: boolean;
@@ -36,11 +38,26 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const startTime = useRef<number>(0);
+  const currentStoryId = useRef<string | null>(null);
 
   const stories = userStories || [];
   const currentStory = stories[currentStoryIndex];
+
+  // PRÉCHARGEMENT INTELLIGENT
+  useEffect(() => {
+    if (visible && stories.length > 0) {
+      stories.forEach((story) => {
+        if (story.content.type === 'image') {
+          Image.prefetch(story.content.data).catch(() => {});
+        }
+      });
+    }
+  }, [visible, stories]);
 
   // Réinitialiser quand le modal s'ouvre
   useEffect(() => {
@@ -48,9 +65,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       const initialIndex = stories.findIndex(s => s._id === initialStory._id);
       setCurrentStoryIndex(Math.max(initialIndex, 0));
       setProgress(0);
+      setVideoError(false);
+      setIsPlaying(true);
+      
       startProgress();
       
-      // Marquer comme vu
       if (stories[Math.max(initialIndex, 0)]) {
         markAsViewed(stories[Math.max(initialIndex, 0)]);
       }
@@ -60,6 +79,19 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       stopProgress();
     };
   }, [visible, initialStory, stories]);
+
+  // CHANGEMENT DE STORY
+  useEffect(() => {
+    if (visible && currentStory && currentStory._id !== currentStoryId.current) {
+      stopProgress();
+      currentStoryId.current = currentStory._id;
+      setVideoError(false);
+      setIsPlaying(true);
+      
+      startProgress();
+      markAsViewed(currentStory);
+    }
+  }, [currentStoryIndex, visible, currentStory]);
 
   const startProgress = useCallback(() => {
     stopProgress();
@@ -82,30 +114,38 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       clearInterval(progressInterval.current);
       progressInterval.current = null;
     }
+    setIsPlaying(false);
   }, []);
 
   const nextStory = useCallback(() => {
     if (currentStoryIndex < stories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
-      markAsViewed(stories[currentStoryIndex + 1]);
+      setIsPlaying(true);
     } else {
       onClose();
     }
-  }, [currentStoryIndex, stories.length]);
+  }, [currentStoryIndex, stories.length, onClose]);
 
   const previousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
-      markAsViewed(stories[currentStoryIndex - 1]);
+      setIsPlaying(true);
     }
   }, [currentStoryIndex]);
+
+  const goToStory = useCallback((index: number) => {
+    if (index >= 0 && index < stories.length) {
+      setCurrentStoryIndex(index);
+      setProgress(0);
+      setIsPlaying(true);
+    }
+  }, [stories.length]);
 
   const markAsViewed = useCallback(async (story: IStoryPopulated) => {
     if (!story || story.hasViewed || !currentUser) return;
     
-    // Mise à jour optimiste
     viewStoryOptimistic({ 
       storyId: story._id, 
       userId: currentUser._id 
@@ -123,7 +163,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     onClose();
   }, [onClose, stopProgress]);
 
-  // Gestion des gestes tactiles
   const handleTouchStart = useCallback(() => {
     stopProgress();
   }, [stopProgress]);
@@ -131,6 +170,50 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const handleTouchEnd = useCallback(() => {
     startProgress();
   }, [startProgress]);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => !prev);
+  }, []);
+
+  const togglePlayPause = useCallback(() => {
+    setIsPlaying(prev => !prev);
+  }, []);
+
+  const handleVideoError = useCallback((error: any) => {
+    console.error('Erreur vidéo:', error);
+    setVideoError(true);
+  }, []);
+
+  const ProgressBarCarousel = () => (
+    <View className="flex-row w-full items-center justify-center gap-x-1 px-4 pt-4">
+      {stories.map((story, index) => (
+        <TouchableOpacity
+          key={story._id}
+          className={`flex-1 h-1 rounded-full overflow-hidden ${
+            index === currentStoryIndex ? 'bg-white/30' : 
+            index < currentStoryIndex ? 'bg-white/60' : 'bg-white/30'
+          }`}
+          onPress={() => goToStory(index)}
+          activeOpacity={0.7}
+        >
+          <View className="absolute inset-0 bg-white/30 rounded-full" />
+          
+          {index < currentStoryIndex && (
+            <View className="absolute inset-0 bg-white rounded-full" />
+          )}
+          
+          {index === currentStoryIndex && (
+            <View
+              className="absolute inset-0 bg-white rounded-full"
+              style={{ 
+                transform: [{ translateX: `${(progress - 1) * 100}%` }] 
+              }}
+            />
+          )}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   if (!currentStory || !visible) {
     return null;
@@ -144,43 +227,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       onRequestClose={handleClose}
     >
       <View className="flex-1 bg-black">
-        {/* Barre de progression */}
-        <View className="px-2 pt-2">
-          <StoryProgress
-            stories={stories}
-            currentIndex={currentStoryIndex}
-            progress={progress}
-          />
-        </View>
-
-        {/* En-tête */}
-        <View className="flex-row items-center justify-between px-4 pt-4">
-          <View className="flex-row items-center flex-1">
-            {currentStory.userId.profilePicture ? (
-              <Image
-                source={{ uri: currentStory.userId.profilePicture }}
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <View className="w-8 h-8 rounded-full bg-slate-200 items-center justify-center">
-                <User size={16} color="#64748b" />
-              </View>
-            )}
-            <View className="ml-3">
-              <Text className="text-white font-semibold text-sm">
-                {currentStory.userId.username}
-              </Text>
-              <Text className="text-white/70 text-xs">
-                Il y a {Math.floor((Date.now() - new Date(currentStory.createdAt).getTime()) / (1000 * 60 * 60))}h
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity onPress={handleClose} className="p-2">
-            <X size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-
         {/* Contenu de la story */}
         <View 
           className="flex-1 justify-center items-center"
@@ -190,17 +236,116 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           {currentStory.content.type === 'image' ? (
             <Image
               source={{ uri: currentStory.content.data }}
-              style={{ width, height: height - 150 }}
-              resizeMode="contain"
+              style={{
+                width: STORY_CONTENT_WIDTH,
+                height: STORY_CONTENT_HEIGHT,
+              }}
+              resizeMode="cover"
             />
           ) : (
-            <View className="w-full h-96 bg-slate-800 items-center justify-center">
-              <Text className="text-white text-lg">Vidéo - Lecture en boucle</Text>
-              <Text className="text-white/70 text-sm mt-2">
-                {currentStory.content.data}
-              </Text>
+            <View 
+              className="relative"
+              style={{
+                width: STORY_CONTENT_WIDTH,
+                height: STORY_CONTENT_HEIGHT,
+              }}
+            >
+              {videoError ? (
+                <View className="flex-1 bg-slate-800 items-center justify-center">
+                  <Text className="text-white text-lg mb-2">❌ Erreur vidéo</Text>
+                  <Text className="text-white/70 text-sm text-center px-4">
+                    Impossible de charger la vidéo
+                  </Text>
+                </View>
+              ) : (
+                <VideoPlayerItem 
+                  uri={currentStory.content.data}
+                  isVisible={isPlaying && visible} // Le composant gère play/pause automatiquement
+                />
+              )}
+              
+              {/* Contrôles vidéo */}
+              {currentStory.content.type === 'video' && !videoError && (
+                <View className="absolute top-4 right-4 flex-row space-x-2">
+                  {/* Bouton play/pause */}
+                  <TouchableOpacity
+                    onPress={togglePlayPause}
+                    className="bg-black/50 rounded-full w-10 h-10 items-center justify-center"
+                  >
+                    {isPlaying ? (
+                      <Pause size={20} color="white" />
+                    ) : (
+                      <Play size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                  
+                  {/* Bouton mute/unmute */}
+                  <TouchableOpacity
+                    onPress={toggleMute}
+                    className="bg-black/50 rounded-full w-10 h-10 items-center justify-center"
+                  >
+                    {isMuted ? (
+                      <VolumeX size={20} color="white" />
+                    ) : (
+                      <Volume2 size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
+        </View>
+
+        {/* OVERLAY AVEC TOUTES LES INFOS */}
+
+        {/* Barre de progression en haut */}
+        <View className="absolute top-10 left-0 right-0">
+          <ProgressBarCarousel />
+        </View>
+
+        {/* Header groupé en haut */}
+        <View className="absolute top-16 left-4 right-4">
+          <View className="flex-row items-center justify-between">
+            {/* User info */}
+            <View className="flex-row items-center bg-black/50 rounded-full pl-1 pr-4 py-1">
+              {currentStory.userId.profilePicture ? (
+                <Image
+                  source={{ uri: currentStory.userId.profilePicture }}
+                  className="w-8 h-8 rounded-full"
+                />
+              ) : (
+                <View className="w-8 h-8 rounded-full bg-slate-200 items-center justify-center">
+                  <User size={16} color="#64748b" />
+                </View>
+              )}
+              <View className="ml-3">
+                <Text className="text-white font-semibold text-sm">
+                  {currentStory.userId.username}
+                </Text>
+                <Text className="text-white/70 text-xs">
+                  Il y a {Math.floor((Date.now() - new Date(currentStory.createdAt).getTime()) / (1000 * 60 * 60))}h
+                </Text>
+              </View>
+            </View>
+
+            {/* Close button */}
+            <TouchableOpacity 
+              onPress={handleClose} 
+              className="bg-black/50 rounded-full w-10 h-10 items-center justify-center"
+            >
+              <X size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Compteur de vues - EN BAS À DROITE */}
+        <View className="absolute bottom-6 right-4">
+          <View className="flex-row items-center space-x-2 gap-x-2 bg-black/50 rounded-full px-4 py-2">
+            <Eye size={16} color="white" />
+            <Text className="text-white/70 text-sm font-medium">
+              {formatCount(currentStory.viewsCount || 0)}
+            </Text>
+          </View>
         </View>
 
         {/* Zones de navigation */}
@@ -208,24 +353,15 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           <TouchableOpacity 
             className="flex-1"
             onPress={previousStory}
+            onPressIn={handleTouchStart}
+            onPressOut={handleTouchEnd}
           />
           <TouchableOpacity 
             className="flex-1"
             onPress={nextStory}
+            onPressIn={handleTouchStart}
+            onPressOut={handleTouchEnd}
           />
-        </View>
-
-        {/* Actions */}
-        <View className="flex-row items-center justify-between px-4 pb-8">
-          <Text className="text-white/70 text-sm">
-            {currentStoryIndex + 1} / {stories.length}
-          </Text>
-          
-          <View className="flex-row items-center space-x-4">
-            <Text className="text-white/70 text-sm">
-              👁️ {currentStory.viewsCount || 0}
-            </Text>
-          </View>
         </View>
       </View>
     </Modal>
