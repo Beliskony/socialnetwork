@@ -17,7 +17,7 @@ const initialState: StoryState = {
 
 // Configuration axios
 const api = axios.create({
-  baseURL: 'https://apisocial-g8z6.onrender.com/api',
+  baseURL: 'https://apisocial-g8z6.onrender.com/api/story',
 });
 
 // Headers d'authentification
@@ -62,36 +62,75 @@ export const uploadStoryMedia = async (
 
 // ==================== THUNKS ASYNCHRONES ====================
 
-// 📸 Créer une story
-// Dans storySlice.ts - Mettre à jour la thunk createStory
+// 📸 Créer une story - VERSION CORRIGÉE
 export const createStory = createAsyncThunk<
   IStoryPopulated,
   { content: StoryContent },
   { rejectValue: string; state: RootState }
 >('stories/createStory', async (payload, { getState, rejectWithValue }) => {
   try {
-    const headers = getAuthHeaders(getState);
+    console.log('🎬 1. Début création story');
     
-    // Upload du média si ce n'est pas déjà une URL Cloudinary
+    const headers = getAuthHeaders(getState);
     let mediaUrl = payload.content.data;
+
+    // Upload du média si ce n'est pas déjà une URL Cloudinary
     if (!mediaUrl.startsWith('https://res.cloudinary.com/')) {
+      console.log('🟡 2. Upload Cloudinary nécessaire');
       mediaUrl = await uploadStoryMedia(payload.content.data, payload.content.type);
+      console.log('🟡 3. URL Cloudinary obtenue:', mediaUrl);
     }
 
-    // ✅ CORRECTION : Structure adaptée au backend
+    // Structure EXACTE comme Postman
     const body = {
       content: {
         type: payload.content.type,
         data: mediaUrl,
-      },
+      }
     };
 
-    const response = await api.post('/stories/', body, { headers });
+    console.log('📤 4. Envoi à l\'API avec body:', JSON.stringify(body, null, 2));
+    console.log('🔗 5. URL complète:', `${api.defaults.baseURL}/stories/`);
+    
+    // ESSAYER DIFFÉRENTS ENDPOINTS
+    let response;
+    
+    try {
+      // Essai 1: Avec slash
+      console.log('🔄 Essai endpoint: /stories/');
+      response = await api.post('/', body, { headers });
+    } catch (firstError: any) {
+      console.log('❌ Essai 1 échoué, essai sans slash...');
+      
+      // Essai 2: Sans slash
+      try {
+        response = await api.post('/stories', body, { headers });
+        console.log('✅ Succès avec endpoint sans slash');
+      } catch (secondError: any) {
+        console.log('❌ Les deux endpoints ont échoué');
+        throw firstError; // Relancer la première erreur
+      }
+    }
+    
+    console.log('✅ 6. Story créée avec succès:', response.data);
     return response.data;
+    
   } catch (err: any) {
-    return rejectWithValue(err.response?.data?.message || 'Erreur lors de la création de la story');
+    console.error('🔴 7. Erreur création story:');
+    console.error('🔴 Status:', err.response?.status);
+    console.error('🔴 Data:', err.response?.data);
+    console.error('🔴 URL:', err.config?.url);
+    console.error('🔴 Message:', err.message);
+    
+    return rejectWithValue(
+      err.response?.data?.message || 
+      err.response?.data ||
+      err.message || 
+      'Erreur lors de la création de la story'
+    );
   }
 });
+
 // 👤 Récupérer mes stories
 export const getMyStories = createAsyncThunk<
   IStoryPopulated[],
@@ -100,7 +139,7 @@ export const getMyStories = createAsyncThunk<
 >('stories/getMyStories', async (_, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    const response = await api.get('/stories/my-stories', { headers });
+    const response = await api.get('/my-stories', { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement de vos stories');
@@ -115,7 +154,7 @@ export const getFollowingStories = createAsyncThunk<
 >('stories/getFollowingStories', async (_, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    const response = await api.get('/stories/following', { headers });
+    const response = await api.get('/following', { headers });
     return response.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || 'Erreur lors du chargement des stories des followers');
@@ -131,7 +170,7 @@ export const viewStory = createAsyncThunk<
   try {
     const headers = getAuthHeaders(getState);
     const userId = (getState() as RootState).user.currentUser?._id;
-    const response = await api.post(`/stories/${storyId}/view`, {}, { headers });
+    const response = await api.post(`/${storyId}/view`, {}, { headers });
     return {
       storyId,
       views: response.data.views,

@@ -1,5 +1,5 @@
-// components/Stories/StoryViewer.tsx
-import React, { useState, useRef, useEffect } from 'react';
+// components/Stories/StoryViewer.tsx (version améliorée)
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { StoryProgress } from './StoryProgress';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
 
 const { width, height } = Dimensions.get('window');
+const STORY_DURATION = 5000; // 5 secondes
 
 interface StoryViewerProps {
   visible: boolean;
@@ -35,55 +36,55 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null); // ✅ Correction du type
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const startTime = useRef<number>(0);
 
   const stories = userStories || [];
   const currentStory = stories[currentStoryIndex];
 
   // Réinitialiser quand le modal s'ouvre
   useEffect(() => {
-    if (visible && initialStory) {
+    if (visible && initialStory && stories.length > 0) {
       const initialIndex = stories.findIndex(s => s._id === initialStory._id);
       setCurrentStoryIndex(Math.max(initialIndex, 0));
       setProgress(0);
       startProgress();
-      markAsViewed(currentStory);
+      
+      // Marquer comme vu
+      if (stories[Math.max(initialIndex, 0)]) {
+        markAsViewed(stories[Math.max(initialIndex, 0)]);
+      }
     }
 
     return () => {
-      // Nettoyer l'intervalle quand le composant est démonté
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
+      stopProgress();
     };
-  }, [visible, initialStory]);
+  }, [visible, initialStory, stories]);
 
-  const startProgress = () => {
-    // Nettoyer l'intervalle existant
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-    }
-
-    // ✅ CORRECTION : Typage correct pour setInterval
+  const startProgress = useCallback(() => {
+    stopProgress();
+    startTime.current = Date.now();
+    
     progressInterval.current = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 1) {
-          nextStory();
-          return 0;
-        }
-        return prev + 0.01; // 5 secondes par story
-      });
+      const elapsed = Date.now() - startTime.current;
+      const newProgress = elapsed / STORY_DURATION;
+      
+      if (newProgress >= 1) {
+        nextStory();
+      } else {
+        setProgress(newProgress);
+      }
     }, 50) as unknown as NodeJS.Timeout;
-  };
+  }, [currentStoryIndex, stories.length]);
 
-  const pauseProgress = () => {
+  const stopProgress = useCallback(() => {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
       progressInterval.current = null;
     }
-  };
+  }, []);
 
-  const nextStory = () => {
+  const nextStory = useCallback(() => {
     if (currentStoryIndex < stories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
@@ -91,46 +92,47 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     } else {
       onClose();
     }
-  };
+  }, [currentStoryIndex, stories.length]);
 
-  const previousStory = () => {
+  const previousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
+      markAsViewed(stories[currentStoryIndex - 1]);
     }
-  };
+  }, [currentStoryIndex]);
 
-  const markAsViewed = async (story: IStoryPopulated) => {
-    if (!story.hasViewed && currentUser) {
-      // Mise à jour optimiste
-      viewStoryOptimistic({ 
-        storyId: story._id, 
-        userId: currentUser._id 
-      });
-      
-      try {
-        await viewStory(story._id);
-      } catch (error: any) {
-        console.error('Erreur lors du marquage comme vue:', error);
-      }
+  const markAsViewed = useCallback(async (story: IStoryPopulated) => {
+    if (!story || story.hasViewed || !currentUser) return;
+    
+    // Mise à jour optimiste
+    viewStoryOptimistic({ 
+      storyId: story._id, 
+      userId: currentUser._id 
+    });
+    
+    try {
+      await viewStory(story._id);
+    } catch (error) {
+      console.error('Erreur lors du marquage comme vue:', error);
     }
-  };
+  }, [currentUser, viewStory, viewStoryOptimistic]);
 
-  const handleClose = () => {
-    pauseProgress();
+  const handleClose = useCallback(() => {
+    stopProgress();
     onClose();
-  };
+  }, [onClose, stopProgress]);
 
-  // Gestion des gestes de navigation
-  const handleSwipeLeft = () => {
-    nextStory();
-  };
+  // Gestion des gestes tactiles
+  const handleTouchStart = useCallback(() => {
+    stopProgress();
+  }, [stopProgress]);
 
-  const handleSwipeRight = () => {
-    previousStory();
-  };
+  const handleTouchEnd = useCallback(() => {
+    startProgress();
+  }, [startProgress]);
 
-  if (!currentStory) {
+  if (!currentStory || !visible) {
     return null;
   }
 
@@ -180,11 +182,15 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         </View>
 
         {/* Contenu de la story */}
-        <View className="flex-1 justify-center items-center">
+        <View 
+          className="flex-1 justify-center items-center"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {currentStory.content.type === 'image' ? (
             <Image
               source={{ uri: currentStory.content.data }}
-              style={{ width, height: height * 0.7 }}
+              style={{ width, height: height - 150 }}
               resizeMode="contain"
             />
           ) : (
@@ -201,43 +207,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         <View className="absolute inset-0 flex-row">
           <TouchableOpacity 
             className="flex-1"
-            onPress={handleSwipeRight}
-            onPressIn={pauseProgress}
-            onPressOut={startProgress}
+            onPress={previousStory}
           />
           <TouchableOpacity 
             className="flex-1"
-            onPress={handleSwipeLeft}
-            onPressIn={pauseProgress}
-            onPressOut={startProgress}
+            onPress={nextStory}
           />
-        </View>
-
-        {/* Boutons de navigation visuels */}
-        <View className="absolute inset-y-0 left-0 justify-center">
-          {currentStoryIndex > 0 && (
-            <TouchableOpacity 
-              onPress={handleSwipeRight}
-              onPressIn={pauseProgress}
-              onPressOut={startProgress}
-              className="p-2"
-            >
-              <ChevronLeft size={24} color="white" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View className="absolute inset-y-0 right-0 justify-center">
-          {currentStoryIndex < stories.length - 1 && (
-            <TouchableOpacity 
-              onPress={handleSwipeLeft}
-              onPressIn={pauseProgress}
-              onPressOut={startProgress}
-              className="p-2"
-            >
-              <ChevronRight size={24} color="white" />
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Actions */}

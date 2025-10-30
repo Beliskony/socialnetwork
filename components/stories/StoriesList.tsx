@@ -14,7 +14,7 @@ import {
 } from '@/redux/storySlice';
 import { Plus, User } from 'lucide-react-native';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
-import type { IUserPopulated } from '@/intefaces/comment.Interfaces';
+import { getFollowingStories, getMyStories } from '@/redux/storySlice';
 
 interface StoriesListProps {
   onStoryPress: (story: IStoryPopulated) => void;
@@ -36,8 +36,10 @@ export const StoriesList: React.FC<StoriesListProps> = ({
 
   // ✅ CORRECTION : Typage correct pour la vérification des stories non vues
   const hasUnviewedStories = Object.values(groupedStories).some((stories: IStoryPopulated[]) => 
-    stories.some((story: IStoryPopulated) => !story.hasViewed)
-  );
+  stories.some((story: IStoryPopulated) => 
+    story && !story.hasViewed && story.userId && story.userId._id !== currentUser?._id
+  )
+);
 
   const renderUserStoryCircle = () => (
     <TouchableOpacity 
@@ -106,15 +108,7 @@ export const StoriesList: React.FC<StoriesListProps> = ({
     );
   };
 
-  if (Object.keys(groupedStories).length === 0 && myStories.length === 0) {
-    return (
-      <View className="py-4 px-4 bg-white border-b border-slate-200">
-        <Text className="text-slate-500 text-center">
-          Aucune story disponible
-        </Text>
-      </View>
-    );
-  }
+
 
   return (
     <View className="py-4 bg-white border-b border-slate-200">
