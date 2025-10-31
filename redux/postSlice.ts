@@ -253,20 +253,20 @@ export const getFeed = createAsyncThunk<
   try {
     const headers = getAuthHeaders(getState);
     
-    console.log('📡 Chargement feed page:', page, 'limit:', limit);
+    //console.log('📡 Chargement feed page:', page, 'limit:', limit);
     
     const response = await api.get(`/post/feed?page=${page}&limit=${limit}`, { headers });
     
-    console.log('📦 Réponse feed complète:', response.data);
-    console.log('📊 Données reçues:', response.data.data?.length || 0, 'posts');
+    //console.log('📦 Réponse feed complète:', response.data);
+    //console.log('📊 Données reçues:', response.data.data?.length || 0, 'posts');
 
        // ✅ DEBUG: Afficher les auteurs des posts reçus
     if (response.data.data && Array.isArray(response.data.data)) {
-      console.log('👥 Auteurs des posts:', response.data.data.map((post: any) => ({
-        auteur: post.author?.username,
-        id: post.author?._id,
-        texte: post.content?.text?.substring(0, 50) + '...'
-      })));
+      //console.log('👥 Auteurs des posts:', response.data.data.map((post: any) => ({
+        //auteur: post.author?.username,
+        //id: post.author?._id,
+        //texte: post.content?.text?.substring(0, 50) + '...'
+      //})));
     }
 
     if (!response.data.success) {

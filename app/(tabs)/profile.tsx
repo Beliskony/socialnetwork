@@ -20,14 +20,14 @@ function ProfileScreen() {
   // Charger les données au montage
   useEffect(() => {
     if (currentUser?._id) {
-      console.log('👤 Profil utilisateur chargé:', {
-        id: currentUser._id,
-        username: currentUser.username,
-        fullName: currentUser.profile?.fullName,
-        bio: currentUser.profile?.bio,
-        location: currentUser.profile?.location,
-        website: currentUser.profile?.website
-      })
+      //console.log('👤 Profil utilisateur chargé:', {
+        //id: currentUser._id,
+        //username: currentUser.username,
+        //fullName: currentUser.profile?.fullName,
+        //bio: currentUser.profile?.bio,
+        //location: currentUser.profile?.location,
+        //website: currentUser.profile?.website
+      //})
     }
   }, [currentUser])
 

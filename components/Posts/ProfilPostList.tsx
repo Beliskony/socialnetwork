@@ -49,7 +49,7 @@ const ProfilePostsList = ({
 
   // Charger les posts de l'utilisateur au montage
   useEffect(() => {
-    console.log('🚀 ProfilePostsList monté - UserId:', userId);
+    //console.log('🚀 ProfilePostsList monté - UserId:', userId);
     
     if (userId) {
       loadUserPosts();
@@ -173,13 +173,13 @@ const ProfilePostsList = ({
   );
 
   // Debug des données
-  console.log('📊 État actuel ProfilePostsList:', {
-    userPostsLength: userPostsFront?.length,
-    loading,
-    error,
-    userId,
-    currentUser: currentUser?._id
-  });
+  //console.log('📊 État actuel ProfilePostsList:', {
+    //userPostsLength: userPostsFront?.length,
+    //loading,
+    //error,
+    //userId,
+    //currentUser: currentUser?._id
+  //});
 
   // État de chargement initial
   if (loading && (!userPostsFront || userPostsFront.length === 0)) {
@@ -216,7 +216,7 @@ const ProfilePostsList = ({
         data={userPostsFront}
         keyExtractor={(item) => item._id}
         renderItem={({ item, index }) => {
-          console.log(`🎨 Rendu post profil ${index}:`, item._id);
+          //console.log(`🎨 Rendu post profil ${index}:`, item._id);
           return (
             <PostCard
               post={item}

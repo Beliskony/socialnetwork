@@ -69,16 +69,12 @@ export const createStory = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('stories/createStory', async (payload, { getState, rejectWithValue }) => {
   try {
-    console.log('🎬 1. Début création story');
-    
     const headers = getAuthHeaders(getState);
     let mediaUrl = payload.content.data;
 
     // Upload du média si ce n'est pas déjà une URL Cloudinary
     if (!mediaUrl.startsWith('https://res.cloudinary.com/')) {
-      console.log('🟡 2. Upload Cloudinary nécessaire');
       mediaUrl = await uploadStoryMedia(payload.content.data, payload.content.type);
-      console.log('🟡 3. URL Cloudinary obtenue:', mediaUrl);
     }
 
     // Structure EXACTE comme Postman
@@ -96,13 +92,9 @@ export const createStory = createAsyncThunk<
     let response;
     
     try {
-      // Essai 1: Avec slash
-      console.log('🔄 Essai endpoint: /stories/');
       response = await api.post('/', body, { headers });
     } catch (firstError: any) {
-      console.log('❌ Essai 1 échoué, essai sans slash...');
       
-      // Essai 2: Sans slash
       try {
         response = await api.post('/stories', body, { headers });
         console.log('✅ Succès avec endpoint sans slash');
@@ -111,8 +103,7 @@ export const createStory = createAsyncThunk<
         throw firstError; // Relancer la première erreur
       }
     }
-    
-    console.log('✅ 6. Story créée avec succès:', response.data);
+
     return response.data;
     
   } catch (err: any) {

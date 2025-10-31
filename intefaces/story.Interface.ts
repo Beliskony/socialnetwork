@@ -4,6 +4,7 @@ import { IAuthor } from "./comment.Interfaces";
 export interface StoryContent {
   type: 'image' | 'video';
   data: string;
+  duration?: number; // en secondes, pour les vidéos
 }
 
 export interface Story {

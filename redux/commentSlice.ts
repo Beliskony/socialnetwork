@@ -86,8 +86,6 @@ export const createComment = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('comments/createComment', async (payload, { getState, rejectWithValue }) => {
   try {
-    console.log('🔄 createComment - Début', payload);
-
     const headers = getAuthHeaders(getState);
     const isCloudinaryUrl = (url: string) => url.startsWith('https://res.cloudinary.com/');
 

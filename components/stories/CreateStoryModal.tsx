@@ -46,10 +46,10 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Images ET vidéos
         allowsEditing: false,
         quality: 0.8,
-        videoMaxDuration: 45,
+        videoMaxDuration: 30, // 30 secondes max pour les vidéos
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -74,33 +74,42 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
 
   const handleCreateStory = async (media: { uri: string; type: 'image' | 'video' }) => {
     try {
-      console.log('🟡 Début création story dans le modal');
+      setIsProcessing(true);
       
-      // Dispatch direct de l'action Redux
-      const result = await dispatch(createStory({
+      console.log('🟡 Création story:', media.type);
+      
+      const storyData = {
         content: {
           type: media.type,
           data: media.uri,
-        },
-      }) as any);
+          duration: media.type === 'video' ? 30 : undefined, // Durée en secondes
+        }
+      };
+
+      // Ajouter la durée pour les vidéos
+      if (media.type === 'video') {
+        storyData.content.duration = 30000; // 30 secondes
+      }
+      
+      const result = await dispatch(createStory(storyData) as any);
 
       console.log('🟡 Résultat dispatch:', result);
 
-      // Vérifier le résultat
       if (result.type === 'stories/createStory/fulfilled') {
         console.log('✅ Story créée avec succès!');
         onStoryCreated();
         onClose();
         Alert.alert('Succès', 'Story publiée !');
       } else {
-        console.error('❌ Erreur création story:', result.error);
         throw new Error(result.error?.message || 'Erreur inconnue');
       }
       
     } catch (error: any) {
-      console.error('🔴 Erreur dans handleCreateStory:', error);
+      console.error('🔴 Erreur création story:', error);
       Alert.alert('Erreur', error?.message || 'Impossible de publier la story');
       handleClose();
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -123,12 +132,16 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
             {isProcessing ? 'Publication en cours...' : 'Ouverture de la galerie...'}
           </Text>
           <Text className="text-slate-500 mt-2 text-center">
-            {isProcessing ? 'Votre story est en train d\'être publiée' : 'Sélectionnez une photo ou une vidéo'}
+            {isProcessing 
+              ? 'Votre story est en train d\'être publiée' 
+              : 'Sélectionnez une photo ou une vidéo (30s max)'
+            }
           </Text>
           
           <TouchableOpacity 
             onPress={handleClose}
             className="mt-6 bg-slate-200 px-6 py-3 rounded-lg"
+            disabled={isProcessing}
           >
             <Text className="text-slate-700 font-medium">Annuler</Text>
           </TouchableOpacity>

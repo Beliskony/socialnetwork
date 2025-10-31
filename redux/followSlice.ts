@@ -63,7 +63,7 @@ export const fetchFollowingAsync = createAsyncThunk<
 >('follow/fetchFollowing', async (_, { getState, rejectWithValue }) => {
   try {
     const token = getState().user.token;
-    const userId = getState().user._id;
+    const userId = getState().user.currentUser?._id;
     
     if (!token) {
       return rejectWithValue('Token manquant');

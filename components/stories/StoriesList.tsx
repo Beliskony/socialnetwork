@@ -63,8 +63,8 @@ export const StoriesList: React.FC<StoriesListProps> = ({
         <View className="relative">
           <View className={`p-0.5 rounded-full ${
             hasUnviewedStories 
-              ? 'bg-gradient-to-r from-blue-500 to-purple-500' 
-              : 'bg-gradient-to-r from-slate-400 to-slate-300'
+              ? 'bg-blue-500' 
+              : 'bg-slate-400'
           }`}>
             <View className="bg-white p-0.5 rounded-full">
               {currentUser?.profile.profilePicture ? (
@@ -107,13 +107,13 @@ export const StoriesList: React.FC<StoriesListProps> = ({
       >
         <View className={`relative ${
           hasUnviewed 
-            ? 'p-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full' 
-            : 'p-0.5 bg-gradient-to-r from-slate-400 to-slate-300 rounded-full'
+            ? 'p-0.5 bg-purple-500' 
+            : 'p-0.5 bg-slate-400 rounded-full'
         }`}>
           <View className="bg-white p-0.5 rounded-full">
-            {user.profilePicture ? (
+            {user.profile?.profilePicture ? (
               <Image
-                source={{ uri: user.profilePicture }}
+                source={{ uri: user.profile?.profilePicture }}
                 className="w-16 h-16 rounded-full"
               />
             ) : (

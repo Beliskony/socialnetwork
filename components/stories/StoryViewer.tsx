@@ -14,6 +14,7 @@ import { X, User, Eye, Volume2, VolumeX, Play, Pause } from 'lucide-react-native
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
 import { formatCount } from '@/services/Compteur';
 import VideoPlayerItem from '../Posts/VideoPlayerItem';
+import StoryVideoPlayer from './StoryVideoPlayer';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 15000;
@@ -229,7 +230,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       <View className="flex-1 bg-black">
         {/* Contenu de la story */}
         <View 
-          className="flex-1 justify-center items-center"
+          className="flex-1 justify-center items-center mt-24"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
@@ -238,7 +239,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               source={{ uri: currentStory.content.data }}
               style={{
                 width: STORY_CONTENT_WIDTH,
-                height: STORY_CONTENT_HEIGHT,
+                height: '75%',
               }}
               resizeMode="cover"
             />
@@ -258,59 +259,24 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   </Text>
                 </View>
               ) : (
-                <VideoPlayerItem 
+                <StoryVideoPlayer 
                   uri={currentStory.content.data}
-                  isVisible={isPlaying && visible} // Le composant gère play/pause automatiquement
+                  isVisible={isPlaying && visible}
                 />
               )}
               
-              {/* Contrôles vidéo */}
-              {currentStory.content.type === 'video' && !videoError && (
-                <View className="absolute top-4 right-4 flex-row space-x-2">
-                  {/* Bouton play/pause */}
-                  <TouchableOpacity
-                    onPress={togglePlayPause}
-                    className="bg-black/50 rounded-full w-10 h-10 items-center justify-center"
-                  >
-                    {isPlaying ? (
-                      <Pause size={20} color="white" />
-                    ) : (
-                      <Play size={20} color="white" />
-                    )}
-                  </TouchableOpacity>
-                  
-                  {/* Bouton mute/unmute */}
-                  <TouchableOpacity
-                    onPress={toggleMute}
-                    className="bg-black/50 rounded-full w-10 h-10 items-center justify-center"
-                  >
-                    {isMuted ? (
-                      <VolumeX size={20} color="white" />
-                    ) : (
-                      <Volume2 size={20} color="white" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           )}
         </View>
 
-        {/* OVERLAY AVEC TOUTES LES INFOS */}
-
-        {/* Barre de progression en haut */}
-        <View className="absolute top-10 left-0 right-0">
-          <ProgressBarCarousel />
-        </View>
-
         {/* Header groupé en haut */}
-        <View className="absolute top-16 left-4 right-4">
+        <View className="absolute top-14 left-4 right-4">
           <View className="flex-row items-center justify-between">
             {/* User info */}
             <View className="flex-row items-center bg-black/50 rounded-full pl-1 pr-4 py-1">
-              {currentStory.userId.profilePicture ? (
+              {currentStory.userId.profile?.profilePicture ? (
                 <Image
-                  source={{ uri: currentStory.userId.profilePicture }}
+                  source={{ uri: currentStory.userId.profile?.profilePicture }}
                   className="w-8 h-8 rounded-full"
                 />
               ) : (
@@ -323,7 +289,20 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   {currentStory.userId.username}
                 </Text>
                 <Text className="text-white/70 text-xs">
-                  Il y a {Math.floor((Date.now() - new Date(currentStory.createdAt).getTime()) / (1000 * 60 * 60))}h
+                  {(() => {
+                    const diffMs = Date.now() - new Date(currentStory.createdAt).getTime();
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    const diffHours = Math.floor(diffMinutes / 60);
+                    const diffDays = Math.floor(diffHours / 24);
+
+                      if (diffMinutes < 60) {
+                        return `Il y a ${diffMinutes}min`;
+                      } else if (diffHours < 24) {
+                        return `Il y a ${diffHours}h`;
+                      } else {
+                        return `Il y a ${diffDays}j`;
+                      }
+                      })()}
                 </Text>
               </View>
             </View>
@@ -338,8 +317,15 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           </View>
         </View>
 
+        {/* Barre de progression en haut */}
+        <View className="absolute top-24 left-0 right-0">
+          <ProgressBarCarousel />
+        </View>
+
+        
+
         {/* Compteur de vues - EN BAS À DROITE */}
-        <View className="absolute bottom-6 right-4">
+        <View className="absolute bottom-6 right-52">
           <View className="flex-row items-center space-x-2 gap-x-2 bg-black/50 rounded-full px-4 py-2">
             <Eye size={16} color="white" />
             <Text className="text-white/70 text-sm font-medium">

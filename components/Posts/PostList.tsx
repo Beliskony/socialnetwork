@@ -38,8 +38,8 @@ const PostsList = () => {
 
   // Charger le feed au montage
   useEffect(() => {
-    console.log('🚀 PostsList monté - Token:', token ? 'présent' : 'manquant');
-    console.log('👤 Utilisateur actuel:', currentUser?._id);
+    //console.log('🚀 PostsList monté - Token:', token ? 'présent' : 'manquant');
+    //console.log('👤 Utilisateur actuel:', currentUser?._id);
     
     if (token) {
       loadFeed();
@@ -60,10 +60,10 @@ const PostsList = () => {
         refresh: true 
       })).unwrap();
       
-      console.log('✅ Feed chargé avec succès:', {
-        nombrePosts: result.posts?.length,
-        pagination: result.pagination
-      });
+      //console.log('✅ Feed chargé avec succès:', {
+        //nombrePosts: result.posts?.length,
+        //pagination: result.pagination
+      //});
       
     } catch (error: any) {
       console.error('❌ Erreur détaillée loadFeed:', {
@@ -84,7 +84,7 @@ const PostsList = () => {
 
   // Pull to refresh
   const onRefresh = async () => {
-    console.log('🔄 Pull to refresh déclenché');
+    //console.log('🔄 Pull to refresh déclenché');
     await loadFeed();
   };
 
