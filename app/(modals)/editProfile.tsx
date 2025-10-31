@@ -14,7 +14,7 @@ import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { updateUserProfile, clearError } from "@/redux/userSlice"
 import { router } from "expo-router"
-import { X, Camera, User, MapPin, Link, Calendar } from "lucide-react-native"
+import { X, Camera, User, MapPin, Link, Calendar, ImageIcon } from "lucide-react-native"
 import * as ImagePicker from 'expo-image-picker'
 
 export default function EditProfileModal() {
@@ -26,6 +26,8 @@ export default function EditProfileModal() {
     profile: {
       fullName: '',
       bio: '',
+      profilePicture: '',
+      coverPicture:'',
       location: '',
       website: '',
       birthDate: '',
@@ -33,7 +35,8 @@ export default function EditProfileModal() {
     }
   })
 
-  const [image, setImage] = useState<string | null>(null)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [coverImage, setCoverImage] = useState<string | null>(null)
 
   // Initialiser les données avec l'utilisateur actuel
   useEffect(() => {
@@ -43,13 +46,16 @@ export default function EditProfileModal() {
         profile: {
           fullName: currentUser.profile?.fullName || '',
           bio: currentUser.profile?.bio || '',
+          profilePicture: currentUser.profile?.profilePicture || '',
+          coverPicture: currentUser.profile.coverPicture || '',
           location: currentUser.profile?.location || '',
           website: currentUser.profile?.website || '',
           birthDate: currentUser.profile?.birthDate || '',
           gender: currentUser.profile?.gender || '',
         }
       })
-      setImage(currentUser.profile?.profilePicture || null)
+      setProfileImage(currentUser.profile?.profilePicture || null)
+      setCoverImage(currentUser.profile?.coverPicture || null)
     }
   }, [currentUser])
 
@@ -61,65 +67,45 @@ export default function EditProfileModal() {
     }
   }, [error, dispatch])
 
+
+
   const handleSave = async () => {
-    if (!formData.username.trim()) {
-      Alert.alert("Erreur", "Le nom d'utilisateur est requis")
-      return
-    }
-
-    try {
-      const updateData: any = {}
-      const currentProfile = currentUser?.profile || {}
-
-      // Liste des champs à surveiller avec leurs valeurs actuelles
-      const fieldsToCheck = [
-        { key: 'username', newVal: formData.username, oldVal: currentUser?.username },
-        { key: 'fullName', newVal: formData.profile.fullName, oldVal: currentProfile.fullName, isProfile: true },
-        { key: 'bio', newVal: formData.profile.bio, oldVal: currentProfile.bio, isProfile: true },
-        { key: 'location', newVal: formData.profile.location, oldVal: currentProfile.location, isProfile: true },
-        { key: 'website', newVal: formData.profile.website, oldVal: currentProfile.website, isProfile: true },
-        { key: 'birthDate', newVal: formData.profile.birthDate, oldVal: currentProfile.birthDate, isProfile: true },
-        { key: 'gender', newVal: formData.profile.gender, oldVal: currentProfile.gender, isProfile: true },
-      ]
-
-      // Vérifier chaque champ
-      fieldsToCheck.forEach(({ key, newVal, oldVal, isProfile }) => {
-        // Vérifier si la valeur a changé et n'est pas undefined
-        if (newVal !== oldVal && newVal !== undefined) {
-          if (isProfile) {
-            if (!updateData.profile) updateData.profile = {}
-            // Ne pas envoyer les champs vides sauf si c'était intentionnel
-            if (newVal !== '' || oldVal !== undefined) {
-              updateData.profile[key] = newVal
-            }
-          } else {
-            updateData[key] = newVal
-          }
-        }
-      })
-
-      // Gestion spéciale pour l'image
-      if (image && image !== currentProfile.profilePicture) {
-        if (!updateData.profile) updateData.profile = {}
-        updateData.profile.profilePicture = image
-      }
-
-      // Vérifier s'il y a des modifications
-      if (Object.keys(updateData).length === 0) {
-        Alert.alert("Information", "Aucune modification détectée")
-        return
-      }
-
-      console.log("Données modifiées à envoyer:", updateData)
-      await dispatch(updateUserProfile(updateData)).unwrap()
-      Alert.alert("Succès", "Profil mis à jour avec succès")
-      router.back()
-    } catch (error: any) {
-      Alert.alert("Erreur", error || "Impossible de mettre à jour le profil")
-    }
+  if (!formData.username.trim()) {
+    Alert.alert("Erreur", "Le nom d'utilisateur est requis")
+    return
   }
 
-  const handleChangePhoto = async () => {
+  try {
+    // 🔥 VERSION COMPLÈTEMENT CORRIGÉE : Gérer tous les types
+    const updateData = {
+      username: formData.username,
+      profile: {
+        fullName: formData.profile.fullName || undefined,
+        bio: formData.profile.bio || undefined,
+        location: formData.profile.location || undefined,
+        website: formData.profile.website || undefined,
+        birthDate: formData.profile.birthDate || undefined,
+        gender: formData.profile.gender || undefined,
+        // 🔥 Convertir null en undefined
+        profilePicture: profileImage || undefined,
+        coverPicture: coverImage || undefined,
+      }
+    }
+
+    console.log("📤 DONNÉES COMPLÈTES envoyées:", updateData)
+
+    await dispatch(updateUserProfile(updateData)).unwrap()
+    Alert.alert("Succès", "Profil mis à jour avec succès")
+    router.back()
+    
+  } catch (error: any) {
+    console.log("❌ Erreur sauvegarde:", error)
+    Alert.alert("Erreur", error?.message || "Impossible de mettre à jour le profil")
+  }
+}
+
+
+  const handleChangePhoto = async (type: 'profile' | 'cover') => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
       
@@ -130,22 +116,24 @@ export default function EditProfileModal() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: type === 'profile',
+        aspect: type === 'profile' ? [1, 1] : [16, 9],
         quality: 0.8,
       })
 
-      if (!result.canceled && result.assets[0]) {
-        setImage(result.assets[0].uri)
-        // Note: Vous devrez uploader l'image vers votre serveur
-        // et récupérer l'URL pour updateUserProfile
+        if (!result.canceled && result.assets[0]) {
+        if (type === 'profile') {
+          setProfileImage(result.assets[0].uri)
+        } else {
+          setCoverImage(result.assets[0].uri)
+        }
       }
     } catch (error) {
       Alert.alert("Erreur", "Impossible de sélectionner une image")
     }
   }
 
-  const takePhoto = async () => {
+  const takePhoto = async (type: 'profile' | 'cover') => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
       
@@ -155,31 +143,37 @@ export default function EditProfileModal() {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: type === 'profile',
+        aspect: type === 'profile' ? [1, 1] : [16, 9],
         quality: 0.8,
       })
 
       if (!result.canceled && result.assets[0]) {
-        setImage(result.assets[0].uri)
+        if (type === 'profile') {
+          setProfileImage(result.assets[0].uri)
+        } else {
+          setCoverImage(result.assets[0].uri)
+        }
       }
     } catch (error) {
       Alert.alert("Erreur", "Impossible de prendre une photo")
     }
   }
 
-  const showImagePickerOptions = () => {
+  const showImagePickerOptions = (type: 'profile' | 'cover') => {
+    const title = type === 'profile' ? "photo de profil" : "photo de couverture"
+
     Alert.alert(
-      "Changer la photo de profil",
+      `Changer la ${title}`,
       "Choisissez une option",
       [
         {
           text: "Prendre une photo",
-          onPress: takePhoto
+          onPress: ()=> takePhoto(type)
         },
         {
           text: "Choisir depuis la galerie",
-          onPress: handleChangePhoto
+          onPress:()=> handleChangePhoto(type)
         },
         {
           text: "Annuler",
@@ -217,12 +211,36 @@ export default function EditProfileModal() {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* photo de couverture */}
+          <View className="relative">
+          {coverImage ? (
+            <Image
+              source={{ uri: coverImage }}
+              className="w-full h-40"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-full h-40 bg-slate-200 dark:bg-gray-700 items-center justify-center">
+              <ImageIcon size={40} color="#64748b" />
+            </View>
+          )}
+          <TouchableOpacity 
+            onPress={() => showImagePickerOptions('cover')}
+            className="absolute bottom-3 right-3 bg-black/70 rounded-full p-2 flex-row items-center"
+          >
+            <Camera size={16} color="white" />
+            <Text className="text-white text-xs ml-1">Modifier</Text>
+          </TouchableOpacity>
+          
+          
+        </View>
+        
         {/* Photo de profil */}
         <View className="items-center py-6 border-b border-slate-100">
           <View className="relative">
-            {image ? (
+            {profileImage ? (
               <Image
-                source={{ uri: image }}
+                source={{ uri: profileImage }}
                 className="w-24 h-24 rounded-full"
               />
             ) : (
@@ -231,13 +249,13 @@ export default function EditProfileModal() {
               </View>
             )}
             <TouchableOpacity 
-              onPress={showImagePickerOptions}
+              onPress={()=>showImagePickerOptions('profile')}
               className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full border-2 border-white items-center justify-center"
             >
               <Camera size={16} color="white" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={showImagePickerOptions}>
+          <TouchableOpacity onPress={() =>showImagePickerOptions('profile')}>
             <Text className="text-blue-600 font-medium mt-3">Changer la photo</Text>
           </TouchableOpacity>
         </View>

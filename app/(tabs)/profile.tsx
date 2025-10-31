@@ -5,10 +5,12 @@ import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks" // ← Utilisez useAppSelector
 import { logout, getCurrentUser } from "@/redux/userSlice" // ← Importez getCurrentUser si nécessaire
 import { router } from "expo-router"
-import { Settings, Edit3, Share2, Mail, Camera, LogOut } from "lucide-react-native"
+import { Settings, Edit3, Share2, Mail, Camera, LogOut, Cake, MapPin, Globe } from "lucide-react-native"
 import ProfilePostsList from "@/components/Posts/ProfilPostList"
 import { formatCount } from "@/services/Compteur"
 import { useTheme } from "@/hooks/toggleChangeTheme"
+import formatDateBirthDay from "@/services/FormatDate"
+import { G } from "react-native-svg"
 
 function ProfileScreen() {
   const { currentUser, token } = useAppSelector((state) => state.user) // ← Correction ici
@@ -128,8 +130,7 @@ function ProfileScreen() {
         <View className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 relative">
           {currentUser.profile?.coverPicture ? (
             <Image 
-            source={{ uri: 'https://i.pinimg.com/736x/36/66/bc/3666bc58de7588bcae1204ca79c12f50.jpg' }}
-              //source={{ uri: currentUser.profile.coverPicture }} 
+              source={{ uri: currentUser.profile.coverPicture }} 
               className="w-full h-full"
               resizeMode="cover" 
             />
@@ -190,7 +191,7 @@ function ProfileScreen() {
           </View>
 
           {/*Informations*/}
-          <View className="my-2">
+          <View className="my-2 ">
              {/* Bio */}
             {currentUser.profile?.bio ? (
               <Text className="text-slate-700 dark:text-gray-300 mt-3 leading-5 text-sm">
@@ -203,28 +204,44 @@ function ProfileScreen() {
             )}
             
             {/* Informations supplémentaires */}
-            <View className="flex-row flex-wrap gap-4 mt-3">
+            <View className="flex-row flex-wrap gap-4 mt-4 justify-around">
               {currentUser.profile?.location ? (
-                <Text className="text-slate-500 text-sm">📍 {currentUser.profile.location}</Text>
+                <View className="flex flex-row items-center gap-x-2">
+                  <MapPin size={20} color={isDark ? 'white' : 'black'} />
+                  <Text className="text-gray-900 text-lg">{currentUser.profile.location}</Text>
+                </View>
               ) : (
-                <Text className="text-slate-400 text-sm italic">📍 Aucune localisation</Text>
+                <Text className="text-slate-400 text-sm italic">Aucune localisation</Text>
               )}
+
+               {/* Date de naissance si disponible */}
+            {currentUser.profile?.birthDate ?(
+              <View className="flex flex-row items-center gap-x-2">
+                <Cake size={20} color={isDark ? 'white' : 'black'} />
+                <Text className="text-gray-900 dark:text-gray-100 text-lg "> 
+                  {formatDateBirthDay (currentUser.profile.birthDate)}
+                </Text>
+              </View>
+              ) : (
+              <Text className="text-slate-400 text-sm mt-2">
+                pas de date d'anniversaire pour le moment
+              </Text>
+            )}
               
-              {currentUser.profile?.website ? (
-                <Text className="text-blue-600 text-sm">🌐 {currentUser.profile.website}</Text>
+            </View>
+                 {currentUser.profile?.website ? (
+                <View className="flex flex-row items-center justify-center gap-x-2 mt-2">
+                  <Globe size={20} color={isDark ? 'white' : 'black'} />
+                  <TouchableOpacity className="text-blue-600 text-lg">
+                    <Text className="text-blue-600 text-lg">
+                      {currentUser.profile.website}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <Text className="text-slate-400 text-sm italic">🌐 Aucun site web</Text>
               )}
-            </View>
-
-            {/* Date de naissance si disponible */}
-            {currentUser.profile?.birthDate ?(
-              <Text className="text-slate-500 text-sm mt-2"> 🎂 {currentUser.profile.birthDate}</Text>
-              ) : (
-              <Text className="text-slate-400 text-sm mt-2">
-                🎂 pas de date d'anniversaire pour le moment
-              </Text>
-            )}
+           
           </View>
 
           {/* Boutons d'action */}

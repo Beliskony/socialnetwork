@@ -9,6 +9,7 @@ import {
   PrivacySettings,
   UserState 
 } from '../intefaces/user.Interface'
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuration
@@ -62,6 +63,70 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     }
     throw error;
   }
+};
+
+
+// Gestion de l'upload Cloudinary
+// ☁️ Upload vers Cloudinary (version corrigée)
+export const uploadToCloudinary = async (
+  uri: string,
+  type: 'image'
+): Promise<string> => {
+  try {
+    let uploadUri = uri;
+    if (Platform.OS === 'ios') {
+      uploadUri = uri.replace('file://', '');
+    }
+
+    // 🔥 CORRECTION: Déterminer le bon type MIME
+    const fileExtension = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uploadUri,
+      type: mimeType, // Utiliser le bon type MIME
+      name: `upload_${Date.now()}.${fileExtension}`,
+    } as any);
+
+    formData.append('upload_preset', 'reseau-social');
+    formData.append('folder', 'social-posts');
+
+    console.log("🔼 Début upload Cloudinary...");
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/dfpzvlupj/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cloudinary error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.secure_url) {
+      throw new Error('URL sécurisée non reçue de Cloudinary');
+    }
+
+    console.log("✅ Upload Cloudinary réussi:", result.secure_url);
+    return result.secure_url;
+
+  } catch (error) {
+    console.error('❌ Erreur Cloudinary:', error);
+    throw new Error(`Échec de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+  }
+};
+
+const isCloudinaryUrl = (url: string): boolean => {
+  return url.startsWith('https://res.cloudinary.com/');
 };
 
 // Helper pour les appels API avec authentification
@@ -159,7 +224,7 @@ export const getCurrentUser = createAsyncThunk<
   }
 });
 
-// ✏️ Mettre à jour le profil
+//modifier son profile
 export const updateUserProfile = createAsyncThunk<
   User,
   UpdateProfileData,
@@ -173,13 +238,72 @@ export const updateUserProfile = createAsyncThunk<
       return rejectWithValue('Token non disponible');
     }
 
-    const data = await fetchWithAuth('/me/profile', {
+    console.log("🔄 Début updateUserProfile avec données:", userData);
+
+    // Créer une copie des données
+    const updateData = { ...userData };
+
+    // Upload des images
+    if (updateData.profile?.profilePicture && updateData.profile.profilePicture.startsWith('file://')) {
+      console.log("📤 Upload photo de profil vers Cloudinary...");
+      try {
+        const cloudinaryUrl = await uploadToCloudinary(updateData.profile.profilePicture, 'image');
+        console.log("✅ Photo de profil uploadée:", cloudinaryUrl);
+        updateData.profile.profilePicture = cloudinaryUrl;
+      } catch (uploadError) {
+        console.error("❌ Erreur upload photo profil:", uploadError);
+        return rejectWithValue('Échec de l\'upload de la photo de profil');
+      }
+    }
+
+    if (updateData.profile?.coverPicture && updateData.profile.coverPicture.startsWith('file://')) {
+      console.log("📤 Upload photo de couverture vers Cloudinary...");
+      try {
+        const cloudinaryUrl = await uploadToCloudinary(updateData.profile.coverPicture, 'image');
+        console.log("✅ Photo de couverture uploadée:", cloudinaryUrl);
+        updateData.profile.coverPicture = cloudinaryUrl;
+      } catch (uploadError) {
+        console.error("❌ Erreur upload photo couverture:", uploadError);
+        return rejectWithValue('Échec de l\'upload de la photo de couverture');
+      }
+    }
+
+    console.log("✅ Données finales après traitement:", JSON.stringify(updateData, null, 2));
+
+    // 🔥 AJOUT: Log détaillé de la requête
+    console.log("🌐 ENVOI AU BACKEND:");
+    console.log("URL:", `${API_CONFIG.BASE_URL}/me/profile`);
+    console.log("Method: PUT");
+    console.log("Body:", JSON.stringify(updateData));
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/me/profile`, {
       method: 'PUT',
-      body: JSON.stringify(userData),
-    }, token);
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    // 🔥 AJOUT: Voir la réponse COMPLÈTE du backend
+    console.log("📡 RÉPONSE DU BACKEND:");
+    console.log("Status:", response.status);
+    console.log("Status Text:", response.statusText);
+    
+    const responseText = await response.text();
+    console.log("Body:", responseText);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${responseText}`);
+    }
+
+    const data = JSON.parse(responseText);
+    console.log("✅ Données retournées par le backend:", data);
 
     return data.data;
+
   } catch (error: any) {
+    console.error("❌ Erreur complète:", error);
     return rejectWithValue(error.message || 'Erreur lors de la mise à jour du profil');
   }
 });

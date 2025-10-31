@@ -38,3 +38,29 @@ export function formatRelativeDate(dateString?: string): string {
     return 'Date invalide';
   }
 }
+
+
+export default function formatDateBirthDay(dateString?: string): string {
+  // Gérer le cas où dateString est undefined, null ou vide
+  if (!dateString) {
+    return 'Non renseignée';
+  }
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return 'Date invalide';
+    }
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error('Erreur de formatage de date:', error);
+    return 'Erreur de date';
+  }
+}
