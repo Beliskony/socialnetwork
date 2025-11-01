@@ -7,7 +7,8 @@ import {
   RegisterData, 
   UpdateProfileData, 
   PrivacySettings,
-  UserState 
+  UserState, 
+  FollowerInfo
 } from '../intefaces/user.Interface'
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,13 +27,19 @@ const initialState: UserState = {
   loading: false,
   error: null,
   authLoading: false,
+
+  // 🆕 État pour les followers/following
+  followersDetails: [],
+  followingDetails: [],
+  followersLoading: false,
+  followingLoading: false,
+  followersError: null,
+  followingError: null,
 };
 
 // Helper pour les appels API
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
   const controller = new AbortController();
- 
-  
 
   try {
     const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
@@ -63,6 +70,27 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     }
     throw error;
   }
+};
+
+// Helper pour extraire les IDs des objets MongoDB
+const extractUserIds = (ids: any[]): string[] => {
+  return ids
+    .map(id => {
+      // Si c'est un objet MongoDB avec $oid
+      if (id && typeof id === 'object' && id.$oid) {
+        return id.$oid;
+      }
+      // Si c'est déjà une string
+      if (typeof id === 'string') {
+        return id;
+      }
+      // Si c'est un ObjectId MongoDB
+      if (id && id.toString) {
+        return id.toString();
+      }
+      return null;
+    })
+    .filter((id): id is string => id !== null && id !== undefined);
 };
 
 
@@ -402,6 +430,68 @@ export const toggleFollow = createAsyncThunk<
   }
 });
 
+//details des followers
+export const loadFollowersDetails = createAsyncThunk<
+FollowerInfo[],
+any[],
+{rejectValue: string}
+>('user/loadFollowersDetails', async(followerIds, {rejectWithValue, getState}) =>{
+  try {
+    console.log('🔍 DEBUG - followerIds reçus:', followerIds);
+
+    // 🔥 CORRECTION: Les "followerIds" sont en réalité des objets complets
+    const followersDetails = followerIds
+      .filter(follower => follower && follower._id) // Filtrer les éléments valides
+      .map(follower => ({
+        _id: follower._id,
+        username: follower.username,
+        profile: {
+          fullName: follower.profile?.fullName || '',
+          profilePicture: follower.profile?.profilePicture || ''
+        },
+        isFollowing: true // Si c'est un follower, on les suit probablement
+      }));
+
+    console.log(`✅ ${followersDetails.length} followers traités sans appel API`);
+    return followersDetails;
+    
+  } catch (error: any) {
+    console.error('❌ Erreur loadFollowersDetails:', error);
+    return rejectWithValue(error.message || 'Erreur lors du traitement des followers');
+  }
+})
+
+//details des followings
+export const loadFollowingsDetails = createAsyncThunk<
+FollowerInfo[],
+any[],
+{rejectValue: string}
+>('user/loadFollowingsDetails', async(followingIds, {rejectWithValue, getState}) =>{
+  try {
+    console.log('🔍 DEBUG - followingIds reçus:', followingIds);
+
+    // 🔥 CORRECTION: Les "followingIds" sont en réalité des objets complets
+    const followingDetails = followingIds
+      .filter(following => following && following._id) // Filtrer les éléments valides
+      .map(following => ({
+        _id: following._id,
+        username: following.username,
+        profile: {
+          fullName: following.profile?.fullName || '',
+          profilePicture: following.profile?.profilePicture || ''
+        },
+        isFollowing: true // Par définition, on suit ces personnes
+      }));
+
+    console.log(`✅ ${followingDetails.length} following traités sans appel API`);
+    return followingDetails;
+    
+  } catch (error: any) {
+    console.error('❌ Erreur loadFollowingDetails:', error);
+    return rejectWithValue(error.message || 'Erreur lors du traitement des following');
+  }
+})
+
 // 🚫 Bloquer un utilisateur
 export const blockUser = createAsyncThunk<
   string,
@@ -612,6 +702,27 @@ const userSlice = createSlice({
       state.authLoading = false;
       AsyncStorage.removeItem('auth');
     },
+
+      // 🆕 Réinitialiser les détails des followers
+    clearFollowersDetails: (state) => {
+      state.followersDetails = [];
+      state.followersError = null;
+    },
+    
+    // 🆕 Réinitialiser les détails des following
+    clearFollowingDetails: (state) => {
+      state.followingDetails = [];
+      state.followingError = null;
+    },
+    
+    // 🆕 Mettre à jour un follower après follow/unfollow
+    updateFollowerStatus: (state, action: PayloadAction<{ userId: string; isFollowing: boolean }>) => {
+      const follower = state.followersDetails.find(f => f._id === action.payload.userId);
+      if (follower) {
+        follower.isFollowing = action.payload.isFollowing;
+      }
+    },
+
   },
   extraReducers: (builder) => {
     builder
@@ -739,7 +850,37 @@ const userSlice = createSlice({
         state.suggestedUsers = [];
         state.blockedUsers = [];
         AsyncStorage.removeItem('auth');
-      });
+      })
+
+      // Load Followers Details
+      .addCase(loadFollowersDetails.pending, (state) => {
+        state.followersLoading = true;
+        state.followersError = null;
+      })
+      .addCase(loadFollowersDetails.fulfilled, (state, action) => {
+        state.followersLoading = false;
+        state.followersDetails = action.payload;
+      })
+      .addCase(loadFollowersDetails.rejected, (state, action) => {
+        state.followersLoading = false;
+        state.followersError = action.payload as string;
+      })
+    
+    // 🆕 AJOUTEZ CES EXTRA REDUCERS POUR FOLLOWING
+    // Load Following Details
+    .addCase(loadFollowingsDetails.pending, (state) => {
+      state.followingLoading = true;
+      state.followingError = null;
+    })
+    .addCase(loadFollowingsDetails.fulfilled, (state, action) => {
+      state.followingLoading = false;
+      state.followingDetails = action.payload;
+    })
+    .addCase(loadFollowingsDetails.rejected, (state, action) => {
+      state.followingLoading = false;
+      state.followingError = action.payload as string;
+    });
+       
   },
 });
 
@@ -751,7 +892,12 @@ export const {
   clearBlockedUsers,
   updateUserProfileLocal,
   updateUserSocialStats,
-  logout 
+  logout,
+
+  // 🆕 AJOUTEZ CES EXPORTS
+  clearFollowersDetails,
+  clearFollowingDetails,
+  updateFollowerStatus
 } = userSlice.actions;
 
 export default userSlice.reducer;

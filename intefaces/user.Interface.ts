@@ -60,12 +60,24 @@ export interface User {
     postCount: number;
     followerCount: number;
     followingCount: number;
+    followersDetails?: FollowerInfo[]; // Pour stocker les infos détaillées
+    followingDetails?: FollowerInfo[];
     friendCount: number;
     lastLogin: string;
     loginCount: number;
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FollowerInfo {
+  _id: string;
+  username: string;
+  profile: {
+    fullName?: string;
+    profilePicture?: string;
+  };
+  isFollowing?: boolean;
 }
 
 export interface AuthResponse {
@@ -137,4 +149,12 @@ export interface UserState {
   loading: boolean;
   error: string | null;
   authLoading: boolean;
+
+  // 🆕 AJOUTEZ CES CHAMPS
+  followersDetails: FollowerInfo[];
+  followingDetails: FollowerInfo[];
+  followersLoading: boolean;
+  followingLoading: boolean;
+  followersError: string | null;
+  followingError: string | null;
 }

@@ -1,47 +1,38 @@
 // app/(modals)/following.tsx
-import { View, Text, FlatList, TouchableOpacity, Image, Alert } from "react-native"
+import { View, Text, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useState, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import type { RootState } from "@/redux/store"
+import { useEffect } from "react"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { loadFollowingsDetails, toggleFollow, updateFollowerStatus } from "@/redux/userSlice"
 import { router } from "expo-router"
-import { X, User, UserMinus } from "lucide-react-native"
+import { X, User, UserMinus, Check } from "lucide-react-native"
 
 export default function FollowingModal() {
-  const dispatch = useDispatch()
-  const { currentUser } = useSelector((state: RootState) => state.user)
-  const [following, setFollowing] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const dispatch = useAppDispatch()
+  const { 
+    currentUser, 
+    followingDetails, 
+    followingLoading,
+    loading 
+  } = useAppSelector((state) => state.user)
 
   useEffect(() => {
-    loadFollowing()
-  }, [])
+    if (currentUser?.social?.following && currentUser.social.following.length > 0) {
+      console.log('🔍 DEBUG - Données followers disponibles:', currentUser.social.following);
+      loadFollowing()
+    }
+  }, [currentUser])
 
   const loadFollowing = async () => {
-    // Simulation - À remplacer par un appel API réel
-    setTimeout(() => {
-      setFollowing([
-        {
-          _id: "1",
-          username: "mariecurie",
-          profile: { profilePicture: null, firstName: "Marie", lastName: "Curie" }
-        },
-        {
-          _id: "2",
-          username: "alberteinstein", 
-          profile: { profilePicture: null, firstName: "Albert", lastName: "Einstein" }
-        },
-        {
-          _id: "3",
-          username: "adalovelace",
-          profile: { profilePicture: null, firstName: "Ada", lastName: "Lovelace" }
-        }
-      ])
-      setLoading(false)
-    }, 1000)
+    try {
+      await dispatch(loadFollowingsDetails(currentUser!.social.following)).unwrap()
+    } catch (error) {
+      console.error("Erreur chargement des abonnements:", error)
+      Alert.alert("Erreur", "Impossible de charger les abonnements")
+    }
   }
 
-  const handleUnfollow = (userId: string, username: string) => {
+  const handleUnfollow = async (targetId: string, username: string) => {
     Alert.alert(
       "Se désabonner",
       `Êtes-vous sûr de vouloir vous désabonner de ${username} ?`,
@@ -50,22 +41,37 @@ export default function FollowingModal() {
         { 
           text: "Se désabonner", 
           style: "destructive",
-          onPress: () => {
-            // TODO: Implémenter le unfollow
-            setFollowing(prev => prev.filter(user => user._id !== userId))
-            Alert.alert("Succès", `Vous ne suivez plus ${username}`)
+          onPress: async () => {
+            try {
+              await dispatch(toggleFollow(targetId)).unwrap()
+              
+              // Mettre à jour localement le statut
+              dispatch(updateFollowerStatus({ 
+                userId: targetId, 
+                isFollowing: false 
+              }))
+              
+              // Recharger la liste
+              await dispatch(loadFollowingsDetails(currentUser!.social.following)).unwrap()
+              
+              Alert.alert("Succès", `Vous ne suivez plus ${username}`)
+            } catch (error: any) {
+              Alert.alert("Erreur", error.message || "Erreur lors du désabonnement")
+            }
           }
         }
       ]
     )
   }
 
-  const renderFollowingItem = ({ item }: any) => (
+  const navigateToProfile = (userId: string) => {
+    //router.push(`/(app)/profile/${userId}`)
+  }
+
+  const renderFollowingItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       className="flex-row items-center justify-between p-4 border-b border-slate-100 active:bg-slate-50"
-      onPress={() => {
-        //router.push(`/(modals)/user-profile?userId=${item._id}`)
-      }}
+      onPress={() => navigateToProfile(item._id)}
     >
       <View className="flex-row items-center flex-1">
         {item.profile?.profilePicture ? (
@@ -80,19 +86,27 @@ export default function FollowingModal() {
         )}
         
         <View className="ml-3 flex-1">
-          <Text className="font-semibold text-slate-900">
-            {item.profile?.firstName} {item.profile?.lastName}
+          <Text className="font-semibold text-slate-900" numberOfLines={1}>
+            {item.profile?.fullName || item.username}
           </Text>
           <Text className="text-slate-500 text-sm">@{item.username}</Text>
         </View>
       </View>
 
-      <TouchableOpacity 
-        onPress={() => handleUnfollow(item._id, item.username)}
-        className="border border-slate-300 px-4 py-2 rounded-full active:bg-slate-50"
-      >
-        <Text className="text-slate-700 text-sm font-medium">Abonné</Text>
-      </TouchableOpacity>
+      {item._id !== currentUser?._id && (
+        <TouchableOpacity 
+          onPress={() => handleUnfollow(item._id, item.username)}
+          className="border border-slate-300 px-4 py-2 rounded-full active:bg-slate-50"
+          disabled={loading}
+        >
+          <View className="flex-row items-center">
+            <Check size={16} color="#64748b" />
+            <Text className="text-slate-700 text-sm font-medium ml-1">
+              Abonné
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   )
 
@@ -106,7 +120,10 @@ export default function FollowingModal() {
         
         <View className="items-center">
           <Text className="text-lg font-semibold text-slate-900">Abonnements</Text>
-          <Text className="text-slate-500 text-sm">{following.length} personnes</Text>
+          <Text className="text-slate-500 text-sm">
+            {followingLoading ? '...' : followingDetails.length} 
+            {followingDetails.length <= 1 ? ' personne' : ' personnes'}
+          </Text>
         </View>
         
         <View className="w-10" />
@@ -114,14 +131,15 @@ export default function FollowingModal() {
 
       {/* Liste */}
       <FlatList
-        data={following}
+        data={followingDetails}
         keyExtractor={(item) => item._id}
         renderItem={renderFollowingItem}
         ListEmptyComponent={() => (
           <View className="flex-1 justify-center items-center py-12">
-            {loading ? (
+            {followingLoading ? (
               <>
-                <Text className="text-slate-500 text-lg">Chargement...</Text>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="text-slate-500 text-lg mt-4">Chargement des abonnements...</Text>
               </>
             ) : (
               <>
