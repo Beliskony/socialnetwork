@@ -12,9 +12,8 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { getPostsByUser, deletePost, updatePost } from '@/redux/postSlice';
-import { getCommentsByPost, createComment, deleteComment, updateComment } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
-import type { Post, PostFront } from '@/intefaces/post.Interface';
+import type { PostFront } from '@/intefaces/post.Interface';
 import { convertToPostFront } from '@/intefaces/post.Interface';
 import PostCard from './PostCard';
 import { Plus, X } from 'lucide-react-native';
@@ -48,9 +47,7 @@ const ProfilePostsList = ({
   const { currentUser } = useSelector((state: RootState) => state.user);
 
   // Charger les posts de l'utilisateur au montage
-  useEffect(() => {
-    //console.log('🚀 ProfilePostsList monté - UserId:', userId);
-    
+  useEffect(() => {    
     if (userId) {
       loadUserPosts();
     }
@@ -59,7 +56,6 @@ const ProfilePostsList = ({
   // Charger les posts avec useCallback
   const loadUserPosts = useCallback(async () => {
     try {
-      console.log('🔄 Début du chargement des posts utilisateur...');
       setRefreshing(true);
       
       const result = await dispatch(getPostsByUser(userId)).unwrap();

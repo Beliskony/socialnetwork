@@ -62,6 +62,12 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const { currentUser } = useSelector((state: RootState) => state.user);
   const textInputRef = useRef<TextInput>(null);
 
+  // DEBUG: Vérifie ce que contient currentUser
+  console.log('🔍 currentUser:', currentUser);
+  console.log('🔍 currentUser.profile:', currentUser?.profile);
+  console.log('🔍 currentUser.profile?.profilePicture:', currentUser?.profile?.profilePicture);
+
+
   // Initialiser avec les données du post à éditer
   useEffect(() => {
     if (editPost) {
@@ -158,10 +164,12 @@ const CreatePost: React.FC<CreatePostProps> = ({
 
     try {
       const postData = {
+        content:{
         text: text.trim(),
         media: {
           ...(selectedImages.length > 0 && { images: selectedImages }),
           ...(selectedVideos.length > 0 && { videos: selectedVideos }),
+        },
         },
         visibility: {
           privacy,
@@ -179,8 +187,8 @@ const CreatePost: React.FC<CreatePostProps> = ({
         Alert.alert('Succès', 'Publication créée !');
       }
 
-      resetForm();
       onSuccess?.();
+      resetForm();
       
     } catch (error: any) {
       Alert.alert('Erreur', error || `Impossible de ${isEditing ? 'modifier' : 'créer'} la publication`);
@@ -198,6 +206,11 @@ const CreatePost: React.FC<CreatePostProps> = ({
     setShowMediaOptions(false);
     setShowPrivacyOptions(false);
   };
+  useEffect(() => {
+  if (!isVisible) {
+    resetForm();
+  }
+}, [isVisible]);
 
   const handleCancel = () => {
     if (text.trim() || selectedImages.length > 0 || selectedVideos.length > 0) {
@@ -271,7 +284,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
   };
 
   if (!isVisible) return null;
-
+ if (currentUser) {
   return (
     <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet" transparent={true} className='dark:bg-black' >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-white dark:bg-black mt-24">
@@ -304,7 +317,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
           {/* User info */}
           <View className="flex-row items-center justify-between p-4 border-b border-slate-100">
             <View className="flex-row items-center flex-1">
-              {currentUser?.profile?.profilePicture ? (
+              {currentUser?.profile?.profilePicture? (
                 <Image source={{ uri: currentUser.profile.profilePicture }} className="w-10 h-10 rounded-full" />
               ) : (
                 <View className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
@@ -451,6 +464,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
       </KeyboardAvoidingView>
     </Modal>
   );
+}
 };
 
 export default CreatePost;

@@ -8,12 +8,14 @@ import { useStories } from '@/hooks/useStories';
 import { useAppSelector } from '@/redux/hooks';
 import { selectStoriesGroupedByUser, selectMyStories } from '@/redux/storySlice';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
+import { useTheme } from '@/hooks/toggleChangeTheme';
 
 export const StoryBlock = () => {
-  const [isCreateStoryModalVisible, setIsCreateStoryModalVisible] = useState(false);
+  const [isCreateStoryModalVisible, setIsCreateStoryModalVisible] = useState(Boolean);
   const [isStoryViewerVisible, setIsStoryViewerVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState<IStoryPopulated | null>(null);
   const [selectedUserStories, setSelectedUserStories] = useState<IStoryPopulated[]>([]);
+  const {isDark} = useTheme()
 
   const { getMyStories, getFollowingStories } = useStories();
   const groupedStories = useAppSelector(selectStoriesGroupedByUser);
@@ -68,10 +70,10 @@ export const StoryBlock = () => {
   };
 
   return (
-    <View className="border-b border-slate-200 bg-white">
+    <View className="bg-white dark:bg-black">
       <CreateStoryModal
         visible={isCreateStoryModalVisible}
-        onClose={() => setIsCreateStoryModalVisible(false)}
+        onClose={() => setIsCreateStoryModalVisible(true)}
         onStoryCreated={handleStoryCreated}
       />
 

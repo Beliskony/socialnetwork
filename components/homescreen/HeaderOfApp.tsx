@@ -58,10 +58,10 @@ const HeaderOfApp = () => {
   }
 
   return (
-    <View className="flex flex-col items-start justify-between bg-white dark:bg-black px-5 py-1 mb-2 shadow-lg border-b border-slate-100">
+    <View className="flex flex-col items-start justify-between bg-white dark:bg-black px-5 py-1 mb-2 shadow-lg border-b border-slate-100 dark:border-gray-400">
       {/* Logo et boutons */}
       <View className="flex-row items-center justify-between w-full">
-        <Image source={require("../../assets/images/Logo.png")} className="w-36 h-28" resizeMode="contain" />
+        <Image source={isDark ?  require("../../assets/images/LogoWhite.png") : require("../../assets/images/Logo.png")} className="w-36 h-28" resizeMode="contain" />
 
         {/* Boutons d'action */}
         <View className="flex-row items-center space-x-2 gap-x-2">

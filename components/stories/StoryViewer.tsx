@@ -13,7 +13,6 @@ import { useAppSelector } from '@/redux/hooks';
 import { X, User, Eye, Volume2, VolumeX, Play, Pause } from 'lucide-react-native';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
 import { formatCount } from '@/services/Compteur';
-import VideoPlayerItem from '../Posts/VideoPlayerItem';
 import StoryVideoPlayer from './StoryVideoPlayer';
 
 const { width, height } = Dimensions.get('window');
@@ -185,6 +184,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     setVideoError(true);
   }, []);
 
+   // ✅ FONCTION: Vérifier si l'utilisateur est l'auteur
+  const isAuthor = useCallback((story: IStoryPopulated) => {
+    return currentUser?._id === story.userId._id;
+  }, [currentUser]);
+
+  // ✅ FONCTION: Afficher le compteur seulement si auteur
+  const shouldShowViewCount = useCallback((story: IStoryPopulated) => {
+    return isAuthor(story);
+  }, [isAuthor]);
+
   const ProgressBarCarousel = () => (
     <View className="flex-row w-full items-center justify-center gap-x-1 px-4 pt-4">
       {stories.map((story, index) => (
@@ -252,6 +261,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               }}
             >
               {videoError ? (
+                
                 <View className="flex-1 bg-slate-800 items-center justify-center">
                   <Text className="text-white text-lg mb-2">❌ Erreur vidéo</Text>
                   <Text className="text-white/70 text-sm text-center px-4">
@@ -259,10 +269,17 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   </Text>
                 </View>
               ) : (
+                <>
+                {console.log('🔍 StoryVideoPlayer - currentStory.content:', currentStory.content)}
+    {console.log('🔍 StoryVideoPlayer - currentStory.content.data:', currentStory.content.data)}
+    {console.log('🔍 StoryVideoPlayer - Type de data:', typeof currentStory.content.data)}
+    {console.log('🔍 StoryVideoPlayer - isPlaying:', isPlaying, 'visible:', visible)}
+                
                 <StoryVideoPlayer 
                   uri={currentStory.content.data}
                   isVisible={isPlaying && visible}
                 />
+                </>
               )}
               
             </View>
@@ -326,12 +343,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
         {/* Compteur de vues - EN BAS À DROITE */}
         <View className="absolute bottom-6 right-52">
-          <View className="flex-row items-center space-x-2 gap-x-2 bg-black/50 rounded-full px-4 py-2">
-            <Eye size={16} color="white" />
-            <Text className="text-white/70 text-sm font-medium">
-              {formatCount(currentStory.viewsCount || 0)}
-            </Text>
-          </View>
+
+            {isAuthor(currentStory) && (
+            <View className="flex-row items-center space-x-2 gap-x-2 bg-black/50 rounded-full px-4 py-2">
+              <Eye size={16} color="white" />
+              <Text className="text-white/70 text-sm font-medium">
+                {formatCount(currentStory.viewsCount || 0)}
+              </Text>
+            </View>
+            )}
+            
         </View>
 
         {/* Zones de navigation */}

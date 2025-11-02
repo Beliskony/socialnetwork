@@ -1,6 +1,5 @@
 // app/index.tsx
 import { useEffect } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppSelector } from '@/redux/hooks';
 import type { RootState } from '@/redux/store';

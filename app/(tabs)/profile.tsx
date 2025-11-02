@@ -5,12 +5,11 @@ import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks" // ← Utilisez useAppSelector
 import { logout, getCurrentUser } from "@/redux/userSlice" // ← Importez getCurrentUser si nécessaire
 import { router } from "expo-router"
-import { Settings, Edit3, Share2, Mail, Camera, LogOut, Cake, MapPin, Globe } from "lucide-react-native"
+import { Settings, Edit3, Share2, Camera, LogOut, Cake, MapPin, Globe } from "lucide-react-native"
 import ProfilePostsList from "@/components/Posts/ProfilPostList"
 import { formatCount } from "@/services/Compteur"
 import { useTheme } from "@/hooks/toggleChangeTheme"
 import formatDateBirthDay from "@/services/FormatDate"
-import { G } from "react-native-svg"
 
 function ProfileScreen() {
   const { currentUser, token } = useAppSelector((state) => state.user) // ← Correction ici

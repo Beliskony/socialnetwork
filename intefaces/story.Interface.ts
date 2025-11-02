@@ -35,4 +35,8 @@ export interface StoryState {
   error: string | null;
   viewsLoading: boolean;
   uploadLoading: boolean;
+
+  // 🆕 Ajouté
+  lastChecked?: string | null; 
+  checkingNewStories?: boolean; 
 }

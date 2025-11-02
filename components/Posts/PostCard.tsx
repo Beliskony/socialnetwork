@@ -8,13 +8,16 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { toggleLike, toggleSave, deletePost, getFeed } from '@/redux/postSlice';
 import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { PostFront } from '@/intefaces/post.Interface';
+import VideoPlayerItem from './VideoPlayerItem';
 import { useTheme } from '@/hooks/toggleChangeTheme';
+import { useRouter } from 'expo-router';
 import {
   Heart,
   MessageCircle,
@@ -26,6 +29,9 @@ import {
   X,
 } from 'lucide-react-native';
 import CommentCard from '@/components/Comments/CommentCard';
+import MediaGallery from './modalOpen/MediaFullScreen';
+import MediaFullScreen from './modalOpen/MediaFullScreen';
+
 
 interface PostCardProps {
   post: PostFront;
@@ -50,6 +56,8 @@ const PostCard: React.FC<PostCardProps> = ({
   variant = 'detailed',
   showComments = false,
 }) => {
+
+  const router = useRouter();
   const [imageLoading, setImageLoading] = useState(true);
   const [showFullText, setShowFullText] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,10 +71,19 @@ const PostCard: React.FC<PostCardProps> = ({
   const [localIsLiked, setLocalIsLiked] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(0);
 
+  const [fullScreenVisible, setFullScreenVisible] = useState(false);
+  const [initialMediaIndex, setInitialMediaIndex] = useState(0);
+
+  const openFullScreen= (index: number) => {
+    setInitialMediaIndex(index);
+    setFullScreenVisible(true);
+  };
+
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state: RootState) => state.user);
   const { loading } = useAppSelector((state: RootState) => state.posts);
   const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // ✅ STRUCTURE DE L'API
   const postAuthor = post.author || {};
@@ -261,7 +278,12 @@ const PostCard: React.FC<PostCardProps> = ({
     <View className="flex-row items-center justify-between p-4 pb-3 dark:bg-black">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
-        onPress={() => postAuthor._id && onUserPress?.(postAuthor._id)}
+        //onPress={() => postAuthor._id && onUserPress?.(postAuthor._id)}
+        onPress={() => {
+          if (postAuthor._id) {
+            router.push(`../(modals)/userProfile/${postAuthor._id}`)
+          }
+        }}
       >
         {postAuthor.profilePicture ? (
           <Image
@@ -346,12 +368,13 @@ const PostCard: React.FC<PostCardProps> = ({
               <View 
                 key={index} 
                 className={`${
-                  images.length === 1 ? 'w-full aspect-video' :
+                  images.length === 1 ? 'w-full h-[470px]' :
                   images.length === 2 ? 'w-[48%] aspect-square' :
                   images.length === 3 ? index === 0 ? 'w-full aspect-video' : 'w-[48%] aspect-square' :
                   'w-[48%] aspect-square'
                 } rounded-xl overflow-hidden bg-slate-200`}
               >
+                <TouchableOpacity onPress={() => openFullScreen(index) }activeOpacity={0.8}>
                 <Image
                   source={{ uri: image.url || image }}
                   className="w-full h-full"
@@ -359,19 +382,17 @@ const PostCard: React.FC<PostCardProps> = ({
                   onLoadStart={() => setImageLoading(true)}
                   onLoadEnd={() => setImageLoading(false)}
                 />
-                {imageLoading && (
-                  <View className="absolute inset-0 items-center justify-center">
-                    <ActivityIndicator size="small" color="#3b82f6" />
-                  </View>
-                )}
+                </TouchableOpacity>
+                
                 
                 {/* Overlay pour les images supplémentaires */}
                 {images.length > 4 && index === 3 && (
-                  <View className="absolute inset-0 bg-black/50 dark:bg-white/50 items-center justify-center">
+                  <TouchableOpacity onPress={() => openFullScreen(3)}
+                   className="absolute inset-0 bg-black/50 dark:bg-white/50 items-center justify-center">
                     <Text className="text-white dark:text-black font-bold text-lg">
                       +{images.length - 4}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 )}
               </View>
             ))}
@@ -380,14 +401,18 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Vidéos */}
         {videos.length > 0 && (
-          <View className="mt-2">
+          <View className="mt-2 h-[470px]">
             {videos.slice(0, 1).map((video: any, index: number) => (
-              <View key={index} className="w-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-black">
-                <View className="w-full h-full items-center justify-center">
-                  <View className="w-16 h-16 bg-black/50 dark:bg-white/50 rounded-full items-center justify-center">
-                    <Text className="text-white dark:text-black font-bold">VIDÉO</Text>
-                  </View>
-                </View>
+              <View key={index} className="w-full h-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-black">
+                 <TouchableOpacity 
+                onPress={() => openFullScreen(images.length + index)} // 👈 Index après les images
+                activeOpacity={0.8}
+              >
+                <VideoPlayerItem
+                  uri={video.url || video}
+                  isVisible={true}
+                />
+              </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -395,6 +420,23 @@ const PostCard: React.FC<PostCardProps> = ({
       </View>
     );
   };
+
+         {/* Modal pour l'image plein écran */}
+<Modal
+  visible={!!selectedImage}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setSelectedImage(null)}
+>
+  {selectedImage && (
+    <MediaFullScreen
+      post={post}
+      initialIndex={initialMediaIndex}
+      onClose={() => setSelectedImage(null)}
+      isVisible={fullScreenVisible}
+    />
+  )}
+</Modal>
 
   // ✅ Rendu du formulaire de commentaire
   const renderCommentForm = () => (
@@ -569,7 +611,10 @@ const PostCard: React.FC<PostCardProps> = ({
       {/* ✅ Section commentaires */}
       {renderCommentsSection()}
     </View>
+
+    
   );
 };
+
 
 export default PostCard;

@@ -275,13 +275,7 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
     console.error('❌ Post est undefined dans convertToPostFront');
     return createEmptyPostFront();
   }
-  console.log('📥 Données brutes reçues:', {
-  postRaw: post,
-  userRaw: post.user,
-  authorRaw: post.author,
-  profilePicture: post.user?.profilePicture || post.author?.profilePicture
-});
-
+ 
   // Vérifier la structure du post
   const user = post.user || post.author || {};
 

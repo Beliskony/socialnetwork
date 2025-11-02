@@ -18,7 +18,7 @@ export default function ModalsLayout() {
       }}
     >
       <Stack.Screen 
-        name="edit-profile" 
+        name="editProfile" 
         options={{
           title: "Modifier le profil",
           animation: "slide_from_right",
@@ -53,12 +53,29 @@ export default function ModalsLayout() {
         }}
       />
       <Stack.Screen 
-        name="user-profile" 
+        name="userProfile/[userId]" 
         options={{
           title: "Profil utilisateur",
           animation: "slide_from_right",
         }}
       />
+
+      <Stack.Screen 
+        name="follows/[userFollowers]" 
+        options={{
+          title: "userFollowers",
+          animation: "slide_from_right",
+        }}
+      />
+
+      <Stack.Screen 
+        name="follows/[userFollowings]" 
+        options={{
+          title: "userFollowings",
+          animation: "slide_from_right",
+        }}
+      />
+
       <Stack.Screen 
         name="help" 
         options={{

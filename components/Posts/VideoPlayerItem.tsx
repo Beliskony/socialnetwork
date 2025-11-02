@@ -5,14 +5,18 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 interface Props {
   uri: string;
   isVisible: boolean; // 👈 visibilité déterminée depuis le parent (flatlist ou scrollview)
+  autoPlay?: boolean;
 }
 
-const VideoPlayerItem: React.FC<Props> = ({ uri, isVisible }) => {
+const VideoPlayerItem: React.FC<Props> = ({ uri, isVisible, autoPlay=false }) => {
   const lastVisible = useRef<boolean | null>(null);
   const player = useVideoPlayer(
     { uri },
     (player) => {
-      player.loop = true;
+      player.loop = false;
+      if (autoPlay) {
+        player.pause();
+      }
       
     }
   );
@@ -32,7 +36,7 @@ const VideoPlayerItem: React.FC<Props> = ({ uri, isVisible }) => {
     <View
       style={{
         width: 350,
-        height: 370,
+        height: 550,
         backgroundColor: 'black',
         justifyContent: 'center',
         alignItems: 'center',

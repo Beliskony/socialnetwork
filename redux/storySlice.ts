@@ -201,6 +201,33 @@ export const cleanupExpiredStories = createAsyncThunk<
   }
 });
 
+//pour actualiser les storyies
+// 🆕 NOUVEAU THUNK: Vérifier les nouvelles stories
+export const hasNewStories = createAsyncThunk<
+  { hasNewStories: boolean; lastChecked: string; currentTime: string },
+  string, // lastCheck timestamp
+  { rejectValue: string; state: RootState }
+>('stories/hasNewStories', async (lastCheck, { getState, rejectWithValue }) => {
+  try {
+    const headers = getAuthHeaders(getState);
+    
+    console.log('🔍 Vérification nouvelles stories depuis:', lastCheck);
+    
+    const response = await api.get(`/has-new-stories?lastCheck=${lastCheck}`, { headers });
+    
+    console.log('✅ Réponse nouvelles stories:', response.data);
+    
+    return response.data.data;
+  } catch (err: any) {
+    console.error('❌ Erreur vérification nouvelles stories:', err);
+    return rejectWithValue(
+      err.response?.data?.message || 
+      err.message || 
+      'Erreur lors de la vérification des nouvelles stories'
+    );
+  }
+});
+
 // ==================== SLICE ====================
 
 const storySlice = createSlice({
@@ -266,6 +293,11 @@ const storySlice = createSlice({
       if (state.currentStory?.userId._id === userId) {
         state.currentStory.userId = { ...state.currentStory.userId, ...userData };
       }
+    },
+
+     // 🆕 NOUVEAU REDUCER: Mettre à jour manuellement lastChecked
+    setLastChecked: (state, action: PayloadAction<string>) => {
+      state.lastChecked = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -364,6 +396,33 @@ const storySlice = createSlice({
       .addCase(cleanupExpiredStories.fulfilled, (state) => {
         // Les stories expirées sont automatiquement filtrées côté backend
         console.log('Stories expirées nettoyées avec succès');
+      })
+
+      // 🆕 HAS NEW STORIES
+      .addCase(hasNewStories.pending, (state) => {
+        state.checkingNewStories = true;
+        state.error = null;
+      })
+      .addCase(hasNewStories.fulfilled, (state, action) => {
+        state.checkingNewStories = false;
+        state.lastChecked = action.payload.currentTime;
+        
+        console.log('🔄 Résultat vérification nouvelles stories:', {
+          hasNewStories: action.payload.hasNewStories,
+          lastChecked: action.payload.lastChecked,
+          currentTime: action.payload.currentTime
+        });
+        
+        // Si de nouvelles stories sont détectées, vous pouvez déclencher un rechargement
+        if (action.payload.hasNewStories) {
+          console.log('🆕 Nouvelles stories détectées!');
+          // Vous pouvez dispatcher getFollowingStories ici si nécessaire
+        }
+      })
+      .addCase(hasNewStories.rejected, (state, action) => {
+        state.checkingNewStories = false;
+        state.error = action.payload as string;
+        console.error('❌ Échec vérification nouvelles stories:', action.payload);
       });
   },
 });
@@ -373,7 +432,8 @@ export const {
   setCurrentStory, 
   viewStoryOptimistic,
   filterExpiredStories,
-  updateStoriesUserData
+  updateStoriesUserData,
+  setLastChecked
 } = storySlice.actions;
 
 export default storySlice.reducer;
@@ -383,6 +443,8 @@ export default storySlice.reducer;
 export const selectMyStories = (state: RootState) => state.stories.myStories;
 export const selectFollowingStories = (state: RootState) => state.stories.followingStories;
 export const selectCurrentStory = (state: RootState) => state.stories.currentStory;
+export const selectLastChecked = (state: RootState) => state.stories.lastChecked;
+export const selectCheckingNewStories = (state: RootState) => state.stories.checkingNewStories;
 
 export const selectStoriesLoading = (state: RootState) => state.stories.loading;
 export const selectUploadLoading = (state: RootState) => state.stories.uploadLoading;

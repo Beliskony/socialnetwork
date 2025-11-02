@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { createStory } from '@/redux/storySlice';
-import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface CreateStoryModalProps {
@@ -125,28 +124,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="bg-white rounded-2xl p-6 mx-4 items-center min-w-[280px]">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-slate-700 mt-4 text-lg font-medium">
-            {isProcessing ? 'Publication en cours...' : 'Ouverture de la galerie...'}
-          </Text>
-          <Text className="text-slate-500 mt-2 text-center">
-            {isProcessing 
-              ? 'Votre story est en train d\'être publiée' 
-              : 'Sélectionnez une photo ou une vidéo (30s max)'
-            }
-          </Text>
-          
-          <TouchableOpacity 
-            onPress={handleClose}
-            className="mt-6 bg-slate-200 px-6 py-3 rounded-lg"
-            disabled={isProcessing}
-          >
-            <Text className="text-slate-700 font-medium">Annuler</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      
     </Modal>
   );
 };

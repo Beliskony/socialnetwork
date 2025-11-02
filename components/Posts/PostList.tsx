@@ -91,7 +91,6 @@ const PostsList = () => {
   // Charger plus de posts
   const loadMore = () => {
     if (!feedLoading && pagination && pagination.page < pagination.totalPages) {
-      console.log('📥 Chargement page suivante:', pagination.page + 1);
       dispatch(getFeed({ 
         page: pagination.page + 1, 
         limit: pagination.limit 
@@ -141,7 +140,6 @@ const PostsList = () => {
 
   // Gérer la création réussie d'un post
   const handleCreateSuccess = () => {
-    console.log('✅ Création/édition réussie');
     setShowCreateModal(false);
     setEditingPost(null);
     setIsSubmitting(false);
@@ -154,7 +152,6 @@ const PostsList = () => {
 
   // Gérer l'annulation
   const handleCancel = () => {
-    console.log('❌ Création/édition annulée');
     setShowCreateModal(false);
     setEditingPost(null);
     setIsSubmitting(false);
@@ -162,20 +159,17 @@ const PostsList = () => {
 
   // Gérer l'ouverture d'un post
   const handlePostPress = (post: PostFront) => {
-    console.log('📖 Ouvrir le post:', post._id);
     // Navigation vers la page de détail du post
     // router.push(`/post/${post._id}`);
   };
 
   // Gérer l'ouverture du profil utilisateur
   const handleUserPress = (userId: string) => {
-    console.log('👤 Ouvrir le profil:', userId);
     // router.push(`/profile/${userId}`);
   };
 
   // Gérer l'ouverture des commentaires
   const handleCommentPress = (post: PostFront) => {
-    console.log('💬 Ouvrir les commentaires:', post._id);
     // Ouvrir modal ou page de commentaires
   };
 
@@ -184,14 +178,6 @@ const PostsList = () => {
     convertToPostFront(post, currentUser?._id)
   );
 
-  // Debug des données
-  console.log('📊 État actuel:', {
-    feedLength: feedPosts?.length,
-    feedLoading,
-    feedError,
-    pagination,
-    currentUser: currentUser?._id
-  });
 
   // État de chargement initial
   if (feedLoading && (!feedPosts || feedPosts.length === 0)) {

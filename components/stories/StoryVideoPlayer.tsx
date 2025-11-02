@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Dimensions } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
@@ -10,23 +10,29 @@ interface Props {
 }
 
 const StoryVideoPlayer: React.FC<Props> = ({ uri, isVisible }) => {
+  const lastVisible = useRef<boolean | null>(null);
+  
   const player = useVideoPlayer(
     { uri },
     (player) => {
-      player.loop = false;
-      player.muted = false; // 🔊 Son activé par défaut
+      player.loop = true; // ✅ Loop activé pour les stories
+      player.muted = false;
     }
   );
 
-  // Lecture automatique quand la vidéo est visible
+  // Gérer play/pause basé sur isVisible - même logique que VideoPlayerItem
   useEffect(() => {
     if (!player) return;
-
-    if (isVisible) {
+    
+    if (isVisible && lastVisible.current !== true) {
+      console.log('🎬 Starting story video playback');
       player.play();
-    } else {
+    } else if (!isVisible && lastVisible.current !== false) {
+      console.log('🎬 Pausing story video');
       player.pause();
     }
+    
+    lastVisible.current = isVisible;
   }, [isVisible, player]);
 
   return (
@@ -45,10 +51,11 @@ const StoryVideoPlayer: React.FC<Props> = ({ uri, isVisible }) => {
           width: '100%', 
           height: '100%' 
         }}
-        contentFit="contain"
+        contentFit="cover"
         allowsPictureInPicture={false}
         showsTimecodes={false}
         nativeControls={false}
+        allowsFullscreen={false}
       />
     </View>
   );
