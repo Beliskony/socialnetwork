@@ -74,7 +74,7 @@ export const StoriesList: React.FC<StoriesListProps> = ({
       // Utiliser lastChecked ou une date récente par défaut
       const checkTime = lastChecked || new Date(Date.now() - 2 * 60 * 1000).toISOString(); // 2 minutes par défaut
       
-      console.log('🔍 Vérification nouvelles stories depuis:', checkTime);
+      //console.log('🔍 Vérification nouvelles stories depuis:', checkTime);
       
       const result = await dispatch(hasNewStories(checkTime)).unwrap();
       

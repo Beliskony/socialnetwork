@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, TouchableOpacity} from 'react-native';
+import { Play } from 'lucide-react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 interface Props {
@@ -9,37 +10,41 @@ interface Props {
 }
 
 const VideoPlayerItem: React.FC<Props> = ({ uri, isVisible, autoPlay=false }) => {
-  const lastVisible = useRef<boolean | null>(null);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
   const player = useVideoPlayer(
     { uri },
     (player) => {
       player.loop = false;
-      if (autoPlay) {
-        player.pause();
-      }
-      
     }
   );
 
   // Gérer play/pause basé sur isVisible
   useEffect(() => {
-    if (!player) return;
-    if (isVisible && lastVisible.current !== true) {
+    if (!player || !isPlaying) return;
+    if (isVisible && autoPlay) {
       player.play();
-    } else if (!isVisible && lastVisible.current !== false) {
+      setIsPlaying(true)
+    } else if (!isVisible) {
       player.pause();
-      
+      setIsPlaying(false);
     }
-  }, [isVisible, player]);
+  }, [isVisible, player, autoPlay]);
+
+   const handlePlay = () => {
+    if (!player) return;
+    player.play();
+    setIsPlaying(true);
+  };
 
   return (
     <View
       style={{
         width: 350,
-        height: 550,
+        height: 470,
         backgroundColor: 'black',
         justifyContent: 'center',
         alignItems: 'center',
+        position:'relative'
       }}
     >
       <VideoView
@@ -47,9 +52,22 @@ const VideoPlayerItem: React.FC<Props> = ({ uri, isVisible, autoPlay=false }) =>
         fullscreenOptions={{enable:true , orientation:'default'}}
         allowsPictureInPicture={false}
         showsTimecodes={true}
+        nativeControls={true}
         style={{ width: '100%', height: '100%' }}
         contentFit="cover"
       />
+
+      {!isPlaying &&(
+        <TouchableOpacity 
+          onPress={handlePlay}
+          className="absolute inset-0 bg-black/30 justify-center items-center"
+          activeOpacity={0.8}
+        >
+          <View className="w-20 h-20 rounded-full bg-white/20 justify-center items-center border-2 border-white/50">
+            <Play size={40} color="white" fill="white" />
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

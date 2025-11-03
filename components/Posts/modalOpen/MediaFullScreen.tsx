@@ -1,21 +1,19 @@
 import { useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Image, ViewToken, Dimensions, Text, Modal } from 'react-native';
-import VideoPlayerItem from '../VideoPlayerItem';
 import { X } from 'lucide-react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
+  //console.log('🎯 MediaFullScreen RENDER - isVisible:', isVisible);
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
   const flatListRef = useRef<FlatList>(null);
 
-  // Préparer les médias exactement comme dans ton MediaSlider
-  const mediaData = [
-    ...(post.media?.images?.map((uri: string) => ({ uri, type: 'image' })) || []),
-    ...(post.media?.videos?.map((uri: string) => ({ uri, type: 'video' })) || []),
-  ];
-
+  // 🔥 UNIQUEMENT les images pour le fullscreen
+  const imagesData = post?.content?.media?.images?.map((image: any) => ({ uri: image.url || image, type: 'image' })) || [];
+  //console.log('🎯 MediaFullScreen imagesData:', imagesData);
+  //console.log('🎯 MediaFullScreen post:', post);
   const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
 
   const onViewableItemsChanged = useRef(
@@ -30,12 +28,12 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
     flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
-  if (!isVisible || mediaData.length === 0) return null;
+  if (!isVisible || imagesData.length === 0) return null;
 
   return (
     <Modal visible={isVisible} transparent={false} animationType="fade">
       <View className="flex-1 bg-black">
-        {/* Header - style similaire à ton MediaSlider */}
+        {/* Header */}
         <View className="absolute top-16 left-5 right-5 z-10 flex-row justify-between items-center">
           <TouchableOpacity
             onPress={onClose}
@@ -47,21 +45,21 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
           {/* Indicateur */}
           <View className="bg-black/50 px-3 py-1.5 rounded-full">
             <Text className="text-white text-sm">
-              {currentIndex + 1} / {mediaData.length}
+              {currentIndex + 1} / {imagesData.length}
             </Text>
           </View>
 
           <View className="w-10" />
         </View>
 
-        {/* Slider principal - même logique que ton MediaSlider */}
+        {/* Slider principal - UNIQUEMENT des images */}
         <FlatList
           ref={flatListRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          data={mediaData}
-          keyExtractor={(item, index) => `${post._id}-${item.type}-${index}`}
+          data={imagesData}
+          keyExtractor={(item, index) => `${post._id}-image-${index}`}
           initialScrollIndex={initialIndex}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
@@ -72,32 +70,20 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
           })}
           renderItem={({ item }) => (
             <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="justify-center items-center">
-              {item.type === 'image' ? (
-                <Image
-                  source={{ uri: item.uri }}
-                  style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
-                  resizeMode="contain"
-                />
-              ) : (
-                <VideoPlayerItem uri={item.uri} isVisible={true} />
-              )}
+              <Image
+                source={{ uri: item.uri }}
+                style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+                resizeMode="contain"
+              />
             </View>
           )}
         />
 
-        {/* Points indicateurs - même style que ton MediaSlider */}
-        {mediaData.length > 1 && (
-          <View className="absolute bottom-8 left-0 right-0 flex-row justify-center space-x-2">
-            {mediaData.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => scrollToIndex(index)}
-                className={`w-2 h-2 rounded-full ${
-                  currentIndex === index ? 'bg-white' : 'bg-white/50'
-                }`}
-              />
-            ))}
-          </View>
+        {/* Points indicateurs */}
+        {imagesData.length > 1 && (
+              <View className='bg-black/50 px-3 py-1 rounded-xl'>
+                <Text>{currentIndex + 1} / {imagesData.length}</Text>
+              </View>
         )}
       </View>
     </Modal>

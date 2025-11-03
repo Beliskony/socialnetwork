@@ -211,11 +211,11 @@ export const hasNewStories = createAsyncThunk<
   try {
     const headers = getAuthHeaders(getState);
     
-    console.log('🔍 Vérification nouvelles stories depuis:', lastCheck);
+    //console.log('🔍 Vérification nouvelles stories depuis:', lastCheck);
     
     const response = await api.get(`/has-new-stories?lastCheck=${lastCheck}`, { headers });
     
-    console.log('✅ Réponse nouvelles stories:', response.data);
+    //console.log('✅ Réponse nouvelles stories:', response.data);
     
     return response.data.data;
   } catch (err: any) {
@@ -407,11 +407,11 @@ const storySlice = createSlice({
         state.checkingNewStories = false;
         state.lastChecked = action.payload.currentTime;
         
-        console.log('🔄 Résultat vérification nouvelles stories:', {
-          hasNewStories: action.payload.hasNewStories,
-          lastChecked: action.payload.lastChecked,
-          currentTime: action.payload.currentTime
-        });
+        //console.log('🔄 Résultat vérification nouvelles stories:', {
+          //hasNewStories: action.payload.hasNewStories,
+          //lastChecked: action.payload.lastChecked,
+          //currentTime: action.payload.currentTime
+        //});
         
         // Si de nouvelles stories sont détectées, vous pouvez déclencher un rechargement
         if (action.payload.hasNewStories) {

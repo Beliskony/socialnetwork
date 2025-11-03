@@ -63,9 +63,9 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const textInputRef = useRef<TextInput>(null);
 
   // DEBUG: Vérifie ce que contient currentUser
-  console.log('🔍 currentUser:', currentUser);
-  console.log('🔍 currentUser.profile:', currentUser?.profile);
-  console.log('🔍 currentUser.profile?.profilePicture:', currentUser?.profile?.profilePicture);
+  //console.log('🔍 currentUser:', currentUser);
+  //console.log('🔍 currentUser.profile:', currentUser?.profile);
+  //console.log('🔍 currentUser.profile?.profilePicture:', currentUser?.profile?.profilePicture);
 
 
   // Initialiser avec les données du post à éditer
@@ -160,6 +160,14 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const handleSubmit = async () => {
     if (!isValidForm || isSubmitting) return;
 
+    console.log('🖼️ Nouvelles images ajoutées:', selectedImages);
+  console.log('🎥 Nouvelles vidéos ajoutées:', selectedVideos);
+  console.log('📝 Texte modifié:', text.trim());
+  console.log('🖼️ Images sélectionnées:', selectedImages); // 👈 Déjà là
+  console.log('🖼️ Images sélectionnées (détail):', JSON.stringify(selectedImages, null, 2)); // 👈 AJOUTE CETTE LIGNE
+  console.log('🎥 Vidéos sélectionnées:', selectedVideos);
+  console.log('🔐 Privacy:', privacy);
+
     setIsSubmitting(true);
 
     try {
@@ -176,6 +184,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
         },
       };
 
+      console.log('📤 Données COMPLÈTES envoyées:', postData);
       if (isEditing) {
         await dispatch(updatePost({
           postId: editPost._id,

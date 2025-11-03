@@ -194,10 +194,18 @@ export const updatePost = createAsyncThunk<
 >('post/updatePost', async ({ postId, data }, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
+    console.log('🔄 UPDATE POST - Début');
+    console.log('📤 Données reçues:', data);
+    console.log('🖼️ Images à traiter:', data.content?.media?.images);
+    console.log('🎥 Vidéos à traiter:', data.content?.media?.videos);
     
     const uploadNewMedia = async (urls: string[] | undefined, type: 'image' | 'video') => {
-      if (!urls || urls.length === 0) return [];
-      
+      if (!urls || urls.length === 0) {
+        console.log(`📭 Aucun ${type} à uploader`);
+        return [];
+      };
+
+       console.log(`⬆️ Upload ${type} - URLs:`, urls);
       const uploaded: string[] = [];
       for (const url of urls) {
         if (isCloudinaryUrl(url)) {
@@ -219,6 +227,9 @@ export const updatePost = createAsyncThunk<
       uploadNewMedia(data.content?.media?.videos, 'video')
     ]);
 
+      console.log('🖼️ Images après upload:', uploadedImages);
+    console.log('🎥 Vidéos après upload:', uploadedVideos);
+
     const body = {
       content: {
         text: data.content?.text,
@@ -230,6 +241,8 @@ export const updatePost = createAsyncThunk<
       visibility: data.visibility,
       metadata: data.metadata,
     };
+
+    console.log('📦 Body final envoyé:', body);
 
     const response = await api.put(`/post/${postId}`, body, { headers });
     

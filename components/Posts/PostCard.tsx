@@ -29,8 +29,8 @@ import {
   X,
 } from 'lucide-react-native';
 import CommentCard from '@/components/Comments/CommentCard';
-import MediaGallery from './modalOpen/MediaFullScreen';
 import MediaFullScreen from './modalOpen/MediaFullScreen';
+import CreatePost from './CreatePost';
 
 
 interface PostCardProps {
@@ -72,11 +72,15 @@ const PostCard: React.FC<PostCardProps> = ({
   const [localLikesCount, setLocalLikesCount] = useState(0);
 
   const [fullScreenVisible, setFullScreenVisible] = useState(false);
+  const [postToEdit, setPostToEdit] = useState<PostFront | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [initialMediaIndex, setInitialMediaIndex] = useState(0);
 
   const openFullScreen= (index: number) => {
-    setInitialMediaIndex(index);
-    setFullScreenVisible(true);
+      console.log('🖼️ openFullScreen appelé avec index:', index);
+  setInitialMediaIndex(index);
+  setFullScreenVisible(true);
+  console.log('🖼️ fullScreenVisible devrait être true');
   };
 
   const dispatch = useAppDispatch();
@@ -84,6 +88,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const { loading } = useAppSelector((state: RootState) => state.posts);
   const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // ✅ STRUCTURE DE L'API
   const postAuthor = post.author || {};
@@ -257,7 +262,11 @@ const PostCard: React.FC<PostCardProps> = ({
       { text: 'Annuler', style: 'cancel' as const },
       {
         text: 'Modifier',
-        onPress: () => onEdit?.(post),
+        onPress: () => {
+          setPostToEdit(post);
+          setIsEditModalVisible(true)
+        }
+
       },
       {
         text: 'Supprimer',
@@ -410,9 +419,12 @@ const PostCard: React.FC<PostCardProps> = ({
               >
                 <VideoPlayerItem
                   uri={video.url || video}
-                  isVisible={true}
+                  isVisible={isPlaying}
+                  autoPlay={true}
                 />
               </TouchableOpacity>
+
+
               </View>
             ))}
           </View>
@@ -421,22 +433,6 @@ const PostCard: React.FC<PostCardProps> = ({
     );
   };
 
-         {/* Modal pour l'image plein écran */}
-<Modal
-  visible={!!selectedImage}
-  transparent={true}
-  animationType="fade"
-  onRequestClose={() => setSelectedImage(null)}
->
-  {selectedImage && (
-    <MediaFullScreen
-      post={post}
-      initialIndex={initialMediaIndex}
-      onClose={() => setSelectedImage(null)}
-      isVisible={fullScreenVisible}
-    />
-  )}
-</Modal>
 
   // ✅ Rendu du formulaire de commentaire
   const renderCommentForm = () => (
@@ -592,6 +588,7 @@ const PostCard: React.FC<PostCardProps> = ({
         {renderHeader()}
         {renderTextContent()}
         {renderMedia()}
+        
       </TouchableOpacity>
     );
   }
@@ -610,6 +607,30 @@ const PostCard: React.FC<PostCardProps> = ({
       
       {/* ✅ Section commentaires */}
       {renderCommentsSection()}
+
+
+      <MediaFullScreen
+      post={post}
+      initialIndex={initialMediaIndex}
+      onClose={() => setFullScreenVisible(false)}
+      isVisible={fullScreenVisible}
+    />
+
+    {/* Pour Modifier*/}
+    <CreatePost isVisible={isEditModalVisible}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setPostToEdit(null)
+        }}
+        onSuccess={() => {
+        setIsEditModalVisible(false);
+        setPostToEdit(null);
+        // Optionnel: Recharger les données
+        dispatch(getFeed({ page: 1, limit: 20, refresh: true }));
+        }}
+
+        editPost={postToEdit}
+        />
     </View>
 
     

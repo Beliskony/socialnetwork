@@ -232,7 +232,7 @@ const PostsList = () => {
         data={feedPosts}
         keyExtractor={(item) => item._id}
         renderItem={({ item, index }) => {
-          console.log(`🎨 Rendu post ${index}:`, item._id);
+          //console.log(`🎨 Rendu post ${index}:`, item._id);
           return (
             <PostCard
               post={item}
