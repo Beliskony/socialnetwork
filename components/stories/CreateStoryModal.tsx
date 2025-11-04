@@ -25,16 +25,22 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasOpenedGallery, setHasOpenedGallery] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      openGallery();
+    if (visible && !hasOpenedGallery) {
+      // ✅ Ajouter un délai pour éviter les conflits d'animation
+      const timer = setTimeout(() => {
+        openGallery();
+      }, 300);
+      return () => clearTimeout(timer)
     }
-  }, [visible]);
+  }, [visible, hasOpenedGallery]);
 
   const openGallery = async () => {
     try {
       setIsProcessing(true);
+      setHasOpenedGallery(true);
       
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -48,7 +54,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
         mediaTypes: ImagePicker.MediaTypeOptions.All, // Images ET vidéos
         allowsEditing: false,
         quality: 0.8,
-        videoMaxDuration: 30, // 30 secondes max pour les vidéos
+        videoMaxDuration: 30000, // 30 secondes max pour les vidéos
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -124,6 +130,17 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
       animationType="fade"
       onRequestClose={handleClose}
     >
+
+        <View className='w-40 p-4 flex justify-center items-center'>
+        {isProcessing && (
+          <View className='flex flex-col gap-y-2' >
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text >
+              {hasOpenedGallery ? 'Publication de la story...' : 'Ouverture de la galerie...'}
+            </Text>
+          </View>
+        )}
+      </View>
       
     </Modal>
   );

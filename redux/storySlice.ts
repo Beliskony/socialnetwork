@@ -28,38 +28,55 @@ const getAuthHeaders = (getState: () => unknown) => {
 };
 
 // Upload Cloudinary pour les stories
-export const uploadStoryMedia = async (
+export const uploadStoryCloudinary = async (
   uri: string,
-  type: 'image' | 'video'
+  type: 'image' | 'video',
+  userId: string, // ✅ Ajouter userId
+  mediaType: 'story' // ✅ Ajouter mediaType
 ): Promise<string> => {
   try {
-    let uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
+    let uploadUri = uri;
+    if (Platform.OS === 'ios') {
+      uploadUri = uri.replace('file://', '');
+    }
+
+    // ✅ Générer la même structure de dossier que le backend
+    const now = new Date();
+    const dateFolder = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
+    const folderPath = `socialApp/${userId}/${mediaType}/${dateFolder}`;
 
     const formData = new FormData();
     formData.append('file', {
       uri: uploadUri,
       type: type === 'image' ? 'image/jpeg' : 'video/mp4',
-      name: `story_media.${type === 'image' ? 'jpg' : 'mp4'}`,
+      name: `upload_${Date.now()}.${type === 'image' ? 'jpg' : 'mp4'}`,
     } as any);
+
     formData.append('upload_preset', 'reseau-social');
+    formData.append('folder', folderPath); // ✅ Utiliser la même structure
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/dfpzvlupj/${type === 'image' ? 'image' : 'video'}/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
-    const result = await response.json();
-    if (!result.secure_url) {
-      throw new Error('Erreur lors de l\'upload sur Cloudinary');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    const result = await response.json();
     return result.secure_url;
   } catch (error) {
     console.error('Cloudinary Upload Error:', error);
-    throw error;
+    throw new Error(`Échec de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
-
 // ==================== THUNKS ASYNCHRONES ====================
 
 // 📸 Créer une story - VERSION CORRIGÉE
@@ -71,10 +88,16 @@ export const createStory = createAsyncThunk<
   try {
     const headers = getAuthHeaders(getState);
     let mediaUrl = payload.content.data;
+    const state = getState()
+    const user = state.user.currentUser?._id;
+
+    if (!user) {
+      return rejectWithValue('Utilisateur non connecté');
+    }
 
     // Upload du média si ce n'est pas déjà une URL Cloudinary
     if (!mediaUrl.startsWith('https://res.cloudinary.com/')) {
-      mediaUrl = await uploadStoryMedia(payload.content.data, payload.content.type);
+      mediaUrl = await uploadStoryCloudinary(payload.content.data, payload.content.type, user, 'story');
     }
 
     // Structure EXACTE comme Postman

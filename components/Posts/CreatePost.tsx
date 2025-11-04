@@ -62,7 +62,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const { currentUser } = useSelector((state: RootState) => state.user);
   const textInputRef = useRef<TextInput>(null);
 
-  // DEBUG: Vérifie ce que contient currentUser
+  //DEBUG: Vérifie ce que contient currentUser
   //console.log('🔍 currentUser:', currentUser);
   //console.log('🔍 currentUser.profile:', currentUser?.profile);
   //console.log('🔍 currentUser.profile?.profilePicture:', currentUser?.profile?.profilePicture);
@@ -84,7 +84,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const isEditing = !!editPost;
 
   // Sélectionner des médias avec ImagePicker
-  const pickMedia = async (mediaType: MediaType) => {
+  const pickMedia = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -94,30 +94,42 @@ const CreatePost: React.FC<CreatePostProps> = ({
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaType === 'image' 
-          ? ImagePicker.MediaTypeOptions.Images
-          : ImagePicker.MediaTypeOptions.Videos,
-        allowsMultipleSelection: mediaType === 'image',
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true,
         quality: 0.8,
-        aspect: [4, 3],
-        videoMaxDuration: 60,
+        aspect: [4, 3]
       });
 
-      if (!result.canceled && result.assets) {
-        if (mediaType === 'image') {
-          const newImages = result.assets.map(asset => asset.uri);
-          setSelectedImages(prev => [...prev, ...newImages].slice(0, 10));
-        } else {
-          const newVideos = result.assets.map(asset => asset.uri);
-          setSelectedVideos(prev => [...prev, ...newVideos].slice(0, 1));
+       if (!result.canceled && result.assets) {
+      // ✅ SÉPARER AUTOMATIQUEMENT IMAGES ET VIDÉOS
+      const newImages: string[] = [];
+      const newVideos: string[] = [];
+
+      result.assets.forEach(asset => {
+        if (asset.type === 'image') {
+          newImages.push(asset.uri);
+        } else if (asset.type === 'video') {
+          newVideos.push(asset.uri);
         }
+      });
+
+        // ✅ METTRE À JOUR LES ÉTATS
+      if (newImages.length > 0) {
+        setSelectedImages(prev => [...prev, ...newImages].slice(0, 10));
       }
-    } catch (error) {
-      console.error('Erreur sélection médias:', error);
-      Alert.alert('Erreur', `Impossible de sélectionner des ${mediaType === 'image' ? 'images' : 'vidéos'}`);
-    } finally {
-      setShowMediaOptions(false);
+      
+      if (newVideos.length > 0) {
+        setSelectedVideos(prev => [...prev, ...newVideos].slice(0, 1)); // Limite à 1 vidéo
+      }
+
+      console.log(`✅ ${newImages.length} images et ${newVideos.length} vidéos sélectionnées`);
     }
+  } catch (error) {
+    console.error('Erreur sélection médias:', error);
+    Alert.alert('Erreur', 'Impossible de sélectionner les médias');
+  } finally {
+    setShowMediaOptions(false);
+  }
   };
 
   // Prendre une photo
@@ -293,7 +305,22 @@ const CreatePost: React.FC<CreatePostProps> = ({
   };
 
   if (!isVisible) return null;
- if (currentUser) {
+ if (!currentUser) {
+  return (
+    <Modal visible={isVisible} animationType="slide" transparent={true}>
+      <View className="flex-1 justify-center items-center bg-black/50">
+        <View className="bg-white dark:bg-gray-800 p-6 rounded-2xl">
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text className="mt-3 text-slate-700 dark:text-gray-200">
+            Chargement...
+          </Text>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+
   return (
     <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet" transparent={true} className='dark:bg-black' >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-white dark:bg-black mt-24">
@@ -411,19 +438,13 @@ const CreatePost: React.FC<CreatePostProps> = ({
                   <Text className="text-slate-700 font-medium">Photo</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => pickMedia('image')} className="items-center p-4">
+                <TouchableOpacity onPress={pickMedia} className="items-center p-4">
                   <View className="w-16 h-16 bg-green-100 rounded-2xl items-center justify-center mb-2">
                     <ImageIcon size={28} color="#10b981" />
                   </View>
                   <Text className="text-slate-700 font-medium">Galerie</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => pickMedia('video')} className="items-center p-4">
-                  <View className="w-16 h-16 bg-purple-100 rounded-2xl items-center justify-center mb-2">
-                    <Video size={28} color="#8b5cf6" />
-                  </View>
-                  <Text className="text-slate-700 font-medium">Vidéo</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -473,7 +494,6 @@ const CreatePost: React.FC<CreatePostProps> = ({
       </KeyboardAvoidingView>
     </Modal>
   );
-}
 };
 
 export default CreatePost;

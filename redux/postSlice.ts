@@ -26,16 +26,23 @@ const getAuthHeaders = (getState: any) => {
   };
 };
 
-// Gestion de l'upload Cloudinary
+// Gestion de l'upload Cloudinary - Version corrigée
 export const uploadToCloudinary = async (
   uri: string,
-  type: 'image' | 'video'
+  type: 'image' | 'video',
+  userId: string, // ✅ Ajouter userId
+  mediaType: 'publication' // ✅ Ajouter mediaType
 ): Promise<string> => {
   try {
     let uploadUri = uri;
     if (Platform.OS === 'ios') {
       uploadUri = uri.replace('file://', '');
     }
+
+    // ✅ Générer la même structure de dossier que le backend
+    const now = new Date();
+    const dateFolder = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
+    const folderPath = `socialApp/${userId}/${mediaType}/${dateFolder}`;
 
     const formData = new FormData();
     formData.append('file', {
@@ -45,10 +52,10 @@ export const uploadToCloudinary = async (
     } as any);
 
     formData.append('upload_preset', 'reseau-social');
-    formData.append('folder', 'social-posts');
+    formData.append('folder', folderPath); // ✅ Utiliser la même structure
 
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/dfpzvlupj/${type}/upload`,
+      `https://api.cloudinary.com/v1_1/dfpzvlupj/${type === 'image' ? 'image' : 'video'}/upload`,
       {
         method: 'POST',
         body: formData,
@@ -107,6 +114,12 @@ export const createPost = createAsyncThunk<
 >('post/createPost', async (payload, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
+    const state = getState()
+    const userId = state.user.currentUser?._id;
+
+     if (!userId) {
+      return rejectWithValue('Utilisateur non connecté');
+    }
     
     // Upload des médias
     const uploadMedia = async (urls: string[] | undefined, type: 'image' | 'video') => {
@@ -118,7 +131,7 @@ export const createPost = createAsyncThunk<
           uploaded.push(url);
         } else {
           try {
-            const uploadedUrl = await uploadToCloudinary(url, type);
+            const uploadedUrl = await uploadToCloudinary(url, type, userId, 'publication');
             uploaded.push(uploadedUrl);
           } catch (error) {
             console.error(`Échec upload ${type}:`, error);
@@ -194,6 +207,12 @@ export const updatePost = createAsyncThunk<
 >('post/updatePost', async ({ postId, data }, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
+    const state = getState()
+    const userId = state.user.currentUser?._id;
+
+    if (!userId) {
+      return rejectWithValue('Utilisateur non connecté');
+    }
     console.log('🔄 UPDATE POST - Début');
     console.log('📤 Données reçues:', data);
     console.log('🖼️ Images à traiter:', data.content?.media?.images);
@@ -212,7 +231,7 @@ export const updatePost = createAsyncThunk<
           uploaded.push(url);
         } else {
           try {
-            const uploadedUrl = await uploadToCloudinary(url, type);
+            const uploadedUrl = await uploadToCloudinary(url, type, userId, 'publication');
             uploaded.push(uploadedUrl);
           } catch (error) {
             console.error(`Échec upload ${type}:`, error);
@@ -510,7 +529,14 @@ export const deletePost = createAsyncThunk<
 >('post/deletePost', async (postId, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
+    console.log('🗑️ Frontend - Début suppression post:', postId);
     const response = await api.delete(`/post/${postId}`, { headers });
+
+    console.log('✅ Frontend - Réponse suppression:', {
+      status: response.status,
+      data: response.data,
+      success: response.data.success
+    });
     
     if (!response.data.success) {
       throw new Error(response.data.message);

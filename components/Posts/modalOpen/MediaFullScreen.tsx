@@ -1,19 +1,30 @@
 import { useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Image, ViewToken, Dimensions, Text, Modal } from 'react-native';
 import { X } from 'lucide-react-native';
+import VideoPlayerItem from '../VideoPlayerItem';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
-  //console.log('🎯 MediaFullScreen RENDER - isVisible:', isVisible);
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
   const flatListRef = useRef<FlatList>(null);
 
-  // 🔥 UNIQUEMENT les images pour le fullscreen
-  const imagesData = post?.content?.media?.images?.map((image: any) => ({ uri: image.url || image, type: 'image' })) || [];
-  //console.log('🎯 MediaFullScreen imagesData:', imagesData);
-  //console.log('🎯 MediaFullScreen post:', post);
+  // ✅ COMBINER IMAGES ET VIDÉOS POUR LE FULLSCREEN
+  const allMedia = [
+    ...(post?.content?.media?.images?.map((image: any) => ({ 
+      uri: image.url || image, 
+      type: 'image' as const 
+    })) || []),
+    ...(post?.content?.media?.videos?.map((video: any) => ({ 
+      uri: video.url || video, 
+      type: 'video' as const 
+    })) || [])
+  ];
+
+  //console.log('🎯 MediaFullScreen allMedia:', allMedia);
+  //console.log('🎯 MediaFullScreen currentIndex:', currentIndex);
+
   const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
 
   const onViewableItemsChanged = useRef(
@@ -28,7 +39,7 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
     flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
-  if (!isVisible || imagesData.length === 0) return null;
+  if (!isVisible || allMedia.length === 0) return null;
 
   return (
     <Modal visible={isVisible} transparent={false} animationType="fade">
@@ -42,24 +53,17 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
             <X size={24} color="white" />
           </TouchableOpacity>
 
-          {/* Indicateur */}
-          <View className="bg-black/50 px-3 py-1.5 rounded-full">
-            <Text className="text-white text-sm">
-              {currentIndex + 1} / {imagesData.length}
-            </Text>
-          </View>
-
           <View className="w-10" />
         </View>
 
-        {/* Slider principal - UNIQUEMENT des images */}
+        {/* ✅ SLIDER PRINCIPAL - IMAGES ET VIDÉOS */}
         <FlatList
           ref={flatListRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          data={imagesData}
-          keyExtractor={(item, index) => `${post._id}-image-${index}`}
+          data={allMedia}
+          keyExtractor={(item, index) => `${post._id}-${item.type}-${index}`}
           initialScrollIndex={initialIndex}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
@@ -68,22 +72,43 @@ const MediaFullScreen = ({ post, initialIndex, onClose, isVisible }: any) => {
             offset: SCREEN_WIDTH * index,
             index,
           })}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="justify-center items-center">
-              <Image
-                source={{ uri: item.uri }}
-                style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
-                resizeMode="contain"
-              />
+              {item.type === 'image' ? (
+                // ✅ RENDU IMAGE
+                <Image
+                  source={{ uri: item.uri }}
+                  style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+                  resizeMode="contain"
+                />
+              ) : (
+                // ✅ RENDU VIDÉO
+                <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="bg-black flex justify-center items-center h-full">
+                  <VideoPlayerItem
+                    uri={item.uri}
+                    isVisible={currentIndex === index} // ✅ Joue seulement si visible
+                  />
+                </View>
+              )}
             </View>
           )}
         />
 
-        {/* Points indicateurs */}
-        {imagesData.length > 1 && (
-              <View className='bg-black/50 px-3 py-1 rounded-xl'>
-                <Text>{currentIndex + 1} / {imagesData.length}</Text>
+        {/* ✅ POINTS INDICATEURS AVEC TYPE */}
+        {allMedia.length > 1 && (
+          <View className="absolute bottom-10 left-0 right-0 items-center">
+            <View className="bg-black/50 px-4 py-2 rounded-xl flex-row items-center">
+              <Text className="text-white text-sm mr-2">
+                {currentIndex + 1} / {allMedia.length}
+              </Text>
+              {/* ✅ INDICATEUR DE TYPE */}
+              <View className="bg-white/20 px-2 py-1 rounded">
+                <Text className="text-white text-xs font-medium">
+                  {allMedia[currentIndex]?.type === 'video' ? 'VIDÉO' : 'IMAGE'}
+                </Text>
               </View>
+            </View>
+          </View>
         )}
       </View>
     </Modal>

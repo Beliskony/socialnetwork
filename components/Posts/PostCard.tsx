@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -63,6 +63,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
   const { isDark } = useTheme();
   const [showCommentsSection, setShowCommentsSection] = useState(showComments);
   
@@ -87,16 +88,14 @@ const PostCard: React.FC<PostCardProps> = ({
   const { currentUser } = useAppSelector((state: RootState) => state.user);
   const { loading } = useAppSelector((state: RootState) => state.posts);
   const { comments, loading: commentsLoading } = useAppSelector((state: RootState) => state.comments);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   // ✅ STRUCTURE DE L'API
-  const postAuthor = post.author || {};
   const postContent = post.content || {};
   const postMedia = postContent.media || {};
   const engagement = post.engagement || {};
   
-  const isOwnPost = currentUser?._id === postAuthor._id;
+  const isOwnPost = currentUser?._id === post.author._id;
   const MAX_TEXT_LENGTH = 150;
 
   // ✅ INITIALISATION BASÉE SUR LA DB
@@ -233,26 +232,31 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Gérer la suppression
   const handleDelete = () => {
-    Alert.alert(
-      'Supprimer la publication',
-      'Êtes-vous sûr de vouloir supprimer cette publication ?',
-      [
-        { text: 'Annuler', style: 'cancel' as const },
-        {
-          text: 'Supprimer',
-          style: 'destructive' as const,
-          onPress: async () => {
-            try {
-              await dispatch(deletePost(post._id)).unwrap();
-              onDelete?.();
-            } catch (error: any) {
-              Alert.alert('Erreur', error?.message || 'Impossible de supprimer la publication');
-            }
-          },
+  Alert.alert(
+    'Supprimer la publication',
+    'Êtes-vous sûr de vouloir supprimer cette publication ?',
+    [
+      { text: 'Annuler', style: 'cancel' as const },
+      { 
+        text: 'Supprimer', 
+        style: 'destructive' as const,
+        onPress: async () => {
+          try {
+            setIsDeleted(true); // ← C'EST LA CLÉ
+            await dispatch(deletePost(post._id)).unwrap();
+            onDelete?.();
+          } catch (error: any) {
+            setIsDeleted(false);
+            Alert.alert('Erreur', error?.message || 'Impossible de supprimer la publication');
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
+
+// ✅ BLOQUE TOUT RENDU SI SUPPRIMÉ
+if (isDeleted) return null;
 
   // ✅ Afficher les options SEULEMENT si l'utilisateur est l'auteur
   const showOptions = () => {
@@ -271,7 +275,7 @@ const PostCard: React.FC<PostCardProps> = ({
       {
         text: 'Supprimer',
         style: 'destructive' as const,
-        onPress: handleDelete,
+        onPress: () => handleDelete(),
       },
       {
         text: 'Partager',
@@ -284,19 +288,20 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Rendu du header avec infos utilisateur
   const renderHeader = () => (
+    
     <View className="flex-row items-center justify-between p-4 pb-3 dark:bg-black">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
         //onPress={() => postAuthor._id && onUserPress?.(postAuthor._id)}
         onPress={() => {
-          if (postAuthor._id) {
-            router.push(`../(modals)/userProfile/${postAuthor._id}`)
+          if (post.author._id) {
+            router.push(`../(modals)/userProfile/${post.author._id}`)
           }
         }}
       >
-        {postAuthor.profilePicture ? (
+        {post.author.profilePicture ? (
           <Image
-            source={{ uri: postAuthor.profilePicture}}
+            source={{ uri: post.author.profilePicture}}
             className="w-10 h-10 rounded-full"
           />
         ) : (
@@ -307,7 +312,7 @@ const PostCard: React.FC<PostCardProps> = ({
         
         <View className="ml-3 flex-1">
           <Text className="font-semibold text-slate-900 dark:text-gray-200 text-base">
-            {postAuthor.username || 'Utilisateur inconnu'}
+            {post.author.username || 'Utilisateur inconnu'}
           </Text>
           <View className="flex-row items-center mt-1">
             <Text className="text-slate-500 dark:text-gray-400 text-sm">
@@ -365,71 +370,70 @@ const PostCard: React.FC<PostCardProps> = ({
   const renderMedia = () => {
     const images = postMedia.images || [];
     const videos = postMedia.videos || [];
+    const mediaFull = [...images, ...videos];
 
     if (images.length === 0 && videos.length === 0) return null;
 
     return (
       <View className="px-4 pb-3 dark:bg-black">
-        {/* Images */}
-        {images.length > 0 && (
-          <View className={`${images.length > 1 ? 'flex-row flex-wrap' : ''} gap-2`}>
-            {images.slice(0, 4).map((image: any, index: number) => (
-              <View 
-                key={index} 
-                className={`${
-                  images.length === 1 ? 'w-full h-[470px]' :
-                  images.length === 2 ? 'w-[48%] aspect-square' :
-                  images.length === 3 ? index === 0 ? 'w-full aspect-video' : 'w-[48%] aspect-square' :
-                  'w-[48%] aspect-square'
-                } rounded-xl overflow-hidden bg-slate-200`}
-              >
-                <TouchableOpacity onPress={() => openFullScreen(index) }activeOpacity={0.8}>
-                <Image
-                  source={{ uri: image.url || image }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                  onLoadStart={() => setImageLoading(true)}
-                  onLoadEnd={() => setImageLoading(false)}
-                />
-                </TouchableOpacity>
-                
-                
-                {/* Overlay pour les images supplémentaires */}
-                {images.length > 4 && index === 3 && (
-                  <TouchableOpacity onPress={() => openFullScreen(3)}
-                   className="absolute inset-0 bg-black/50 dark:bg-white/50 items-center justify-center">
-                    <Text className="text-white dark:text-black font-bold text-lg">
-                      +{images.length - 4}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
+  {/* Images + Vidéo dans la même grille */}
+  {(images.length > 0 || videos.length > 0) && (
+    <View className={`${(images.length + videos.length) > 1 ? 'flex-row flex-wrap' : ''} gap-2`}>
+      {/* Afficher les 4 premiers médias (images ou vidéo) */}
+      {[...images, ...videos.slice(0, 1)].slice(0, 4).map((media: any, index: number) => (
+        <View 
+          key={index} 
+          className={`${
+            (images.length + videos.length) === 1 ? 'w-full h-[470px]' :
+            (images.length + videos.length) === 2 ? 'w-[48%] aspect-square' :
+            (images.length + videos.length) === 3 ? index === 0 ? 'w-full aspect-video' : 'w-[48%] aspect-square' :
+            'w-[48%] aspect-square'
+          } rounded-xl overflow-hidden bg-slate-200`}
+        >
+          <TouchableOpacity onPress={() => openFullScreen(index)} activeOpacity={0.8}>
+            {/* Vérifier si c'est une image ou une vidéo */}
+            {videos.length > 0 && index >= images.length ? (
+              // ✅ C'EST LA VIDÉO
+              <VideoPlayerItem
+                uri={media.url || media}
+                isVisible={isPlaying}
+               
+              />
+            ) : (
+              // ✅ C'EST UNE IMAGE
+              <Image
+                source={{ uri: media.url || media }}
+                className="w-full h-full"
+                resizeMode="cover"
+                onLoadStart={() => setImageLoading(true)}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+            )}
+          </TouchableOpacity>
+          
+          {/* ✅ OVERLAY AVEC COMPTEUR INCLUANT LA VIDÉO */}
+          {(images.length + videos.length) > 4 && index === 3 && (
+            <TouchableOpacity 
+              onPress={() => openFullScreen(3)}
+              className="absolute inset-0 bg-black/50 dark:bg-white/50 items-center justify-center"
+            >
+              <Text className="text-white dark:text-black font-bold text-lg">
+                +{(images.length + videos.length) - 4}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        {/* Vidéos */}
-        {videos.length > 0 && (
-          <View className="mt-2 h-[470px]">
-            {videos.slice(0, 1).map((video: any, index: number) => (
-              <View key={index} className="w-full h-full aspect-video rounded-xl overflow-hidden bg-slate-200 dark:bg-black">
-                 <TouchableOpacity 
-                onPress={() => openFullScreen(images.length + index)} // 👈 Index après les images
-                activeOpacity={0.8}
-              >
-                <VideoPlayerItem
-                  uri={video.url || video}
-                  isVisible={isPlaying}
-                  autoPlay={true}
-                />
-              </TouchableOpacity>
-
-
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+          {/* ✅ BADGE POUR LA VIDÉO DANS LA GRILLE */}
+          {videos.length > 0 && index >= images.length && (
+            <View className="absolute top-2 left-2 bg-black/70 rounded-full px-2 py-1">
+              <Text className="text-white text-xs font-medium">VIDÉO</Text>
+            </View>
+          )}
+        </View>
+      ))}
+    </View>
+  )}
+</View>
     );
   };
 

@@ -279,7 +279,6 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
   // Vérifier la structure du post
   const user = post.user || post.author || {};
 
-  
   if (!user._id) {
     console.warn('⚠️ Post sans utilisateur valide:', { 
       postId: post._id, 
@@ -289,12 +288,18 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
     });
   }
 
+  // ✅ CORRECTION ICI - Gestion sécurisée de profilePicture
+  const profilePicture = user.profile?.profilePicture || 
+                        user.avatar || 
+                        user.profilePicture || 
+                        null;
+
   return {
     _id: post._id || 'unknown-id-' + Date.now(),
     author: {
       _id: user._id || 'unknown-user',
       username: user.username || user.name || 'Utilisateur inconnu',
-      profilePicture: user.profile.profilePicture || user.avatar,
+      profilePicture: profilePicture, // ✅ Utilisation de la variable sécurisée
     },
     content: {
       text: post.text || post.content?.text || '',

@@ -99,13 +99,7 @@ const HeaderOfApp = () => {
         />
       </Animated.View>
 
-      {/* ✅ MÊME MODAL QUE POSTSLIST - Création */}
-      <Modal
-        visible={showCreateModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleCancel}
-      >
+     
         {/* ✅ UTILISE LE MÊME COMPOSANT CreatePost QUE POSTSLIST */}
         <CreatePost
         isVisible={showCreateModal}
@@ -113,7 +107,7 @@ const HeaderOfApp = () => {
         onCancel={handleCancel}
         editPost={editingPost || undefined}
         />
-      </Modal>
+
     </View>
   )
 }

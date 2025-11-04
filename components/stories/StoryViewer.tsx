@@ -269,17 +269,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   </Text>
                 </View>
               ) : (
-                <>
-                {console.log('🔍 StoryVideoPlayer - currentStory.content:', currentStory.content)}
-    {console.log('🔍 StoryVideoPlayer - currentStory.content.data:', currentStory.content.data)}
-    {console.log('🔍 StoryVideoPlayer - Type de data:', typeof currentStory.content.data)}
-    {console.log('🔍 StoryVideoPlayer - isPlaying:', isPlaying, 'visible:', visible)}
                 
                 <StoryVideoPlayer 
                   uri={currentStory.content.data}
                   isVisible={isPlaying && visible}
                 />
-                </>
+      
               )}
               
             </View>

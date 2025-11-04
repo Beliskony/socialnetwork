@@ -139,15 +139,14 @@ const PostsList = () => {
   };
 
   // Gérer la création réussie d'un post
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = async () => {
     setShowCreateModal(false);
     setEditingPost(null);
     setIsSubmitting(false);
     
     // Recharger le feed après un court délai
-    setTimeout(() => {
-      loadFeed();
-    }, 1000);
+    await  loadFeed();
+
   };
 
   // Gérer l'annulation
