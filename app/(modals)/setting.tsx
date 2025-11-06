@@ -163,13 +163,7 @@ export default function SettingsModal() {
               value={notifications.postComments}
               onValueChange={(value: boolean) => setNotifications(prev => ({ ...prev, postComments: value }))}
             />
-            <SettingItem
-              icon={HelpCircle}
-              title="Nouveaux messages"
-              showSwitch
-              value={notifications.newMessage}
-              onValueChange={(value: boolean) => setNotifications(prev => ({ ...prev, newMessage: value }))}
-            />
+            
           </View>
         </View>
 

@@ -10,11 +10,10 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useTheme } from '@/hooks/toggleChangeTheme';
 import { 
-  ArrowLeft, 
   Users,
   Search,
   X
@@ -197,9 +196,9 @@ export default function FollowScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
       {/* Header */}
-      <View className="bg-white dark:bg-slate-800 px-4 pt-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+      <View className="bg-white dark:bg-black px-4 pt-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <View className="flex-row items-center justify-center mb-4">
           <Text className="text-lg font-semibold text-slate-900 dark:text-white flex-1 text-center">
             {isSearching ? 'Résultats de recherche' : 'Suggestions'}
@@ -207,7 +206,7 @@ export default function FollowScreen() {
         </View>
 
         {/* Barre de recherche */}
-        <View className="flex-row items-center bg-slate-100 dark:bg-slate-700 rounded-xl px-3 py-2">
+        <View className="flex-row items-center bg-slate-100 dark:bg-white/10 rounded-xl px-3 py-2">
           <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
           <TextInput
             className="flex-1 ml-2 text-slate-900 dark:text-white text-base"

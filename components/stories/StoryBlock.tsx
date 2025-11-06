@@ -11,7 +11,7 @@ import type { IStoryPopulated } from '@/intefaces/story.Interface';
 import { useTheme } from '@/hooks/toggleChangeTheme';
 
 export const StoryBlock = () => {
-  const [isCreateStoryModalVisible, setIsCreateStoryModalVisible] = useState(Boolean);
+  const [isCreateStoryModalVisible, setIsCreateStoryModalVisible] = useState(false);
   const [isStoryViewerVisible, setIsStoryViewerVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState<IStoryPopulated | null>(null);
   const [selectedUserStories, setSelectedUserStories] = useState<IStoryPopulated[]>([]);
@@ -61,19 +61,24 @@ export const StoryBlock = () => {
     // Recharger les stories après création
     getMyStories();
     getFollowingStories();
+    setIsCreateStoryModalVisible(false)
   };
 
   const handleCloseStoryViewer = () => {
     setIsStoryViewerVisible(false);
     setSelectedStory(null);
     setSelectedUserStories([]);
+
+    // 🔄 Recharger les stories pour mettre à jour les badges "non vues"
+    getMyStories();
+    getFollowingStories();
   };
 
   return (
     <View className="bg-white dark:bg-black">
       <CreateStoryModal
         visible={isCreateStoryModalVisible}
-        onClose={() => setIsCreateStoryModalVisible(true)}
+        onClose={() => setIsCreateStoryModalVisible(false)}
         onStoryCreated={handleStoryCreated}
       />
 

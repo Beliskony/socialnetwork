@@ -27,6 +27,14 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasOpenedGallery, setHasOpenedGallery] = useState(false);
 
+    // 🔄 Réinitialiser l'état quand le modal se ferme
+  useEffect(() => {
+    if (!visible) {
+      setHasOpenedGallery(false);
+      setIsProcessing(false);
+    }
+  }, [visible]);
+
   useEffect(() => {
     if (visible && !hasOpenedGallery) {
       // ✅ Ajouter un délai pour éviter les conflits d'animation
@@ -87,7 +95,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
         content: {
           type: media.type,
           data: media.uri,
-          duration: media.type === 'video' ? 30 : undefined, // Durée en secondes
+          duration: media.type === 'video' ? 30000 : 10000, // Durée en secondes
         }
       };
 
@@ -103,8 +111,10 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
       if (result.type === 'stories/createStory/fulfilled') {
         console.log('✅ Story créée avec succès!');
         onStoryCreated();
-        onClose();
-        Alert.alert('Succès', 'Story publiée !');
+        setTimeout(() => {
+          handleClose();
+          Alert.alert('Succès', 'Story publiée !');
+        }, 100);
       } else {
         throw new Error(result.error?.message || 'Erreur inconnue');
       }
@@ -120,28 +130,38 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
 
   const handleClose = () => {
     setIsProcessing(false);
+    setHasOpenedGallery(false);
     onClose();
   };
 
   return (
     <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
-
-        <View className='w-40 p-4 flex justify-center items-center'>
-        {isProcessing && (
-          <View className='flex flex-col gap-y-2' >
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text >
-              {hasOpenedGallery ? 'Publication de la story...' : 'Ouverture de la galerie...'}
-            </Text>
-          </View>
-        )}
-      </View>
+  visible={visible}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={handleClose}
+>
+  <View className="flex-1 justify-center items-center bg-black/50">
+    <View className="bg-gray-800 rounded-xl p-6 m-4 max-w-sm w-full items-center">
+      {isProcessing && (
+        <View className="flex flex-col gap-y-4 items-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text className="text-white text-center text-base">
+            {hasOpenedGallery ? 'Publication de la story...' : 'Ouverture de la galerie...'}
+          </Text>
+        </View>
+      )}
       
-    </Modal>
+      {/* Bouton annuler pour sortir manuellement */}
+      {!isProcessing && (
+        <TouchableOpacity onPress={handleClose} className="mt-4">
+          <Text className="text-blue-400 text-center font-semibold">
+            Annuler
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </View>
+</Modal>
   );
 };

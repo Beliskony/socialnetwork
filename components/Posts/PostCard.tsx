@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { toggleLike, toggleSave, deletePost, getFeed } from '@/redux/postSlice';
+import * as Sharing from 'expo-sharing';
 import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
 import { PostFront } from '@/intefaces/post.Interface';
@@ -161,25 +162,25 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   // ✅ FONCTION SAUVEGARDE AVEC SYNCHRO DB
-  const handleSave = async () => {
-    if (!currentUser || isSaving) return;
+  //const handleSave = async () => {
+    //if (!currentUser || isSaving) return;
     
-    setIsSaving(true);
-    try {
-      await dispatch(toggleSave(post._id)).unwrap();
+    //setIsSaving(true);
+    //try {
+      //await dispatch(toggleSave(post._id)).unwrap();
       
       // ✅ Resynchroniser après sauvegarde
-      await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+      //await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
       
-    } catch (error: any) {
-      Alert.alert('Erreur', error?.message || 'Impossible de sauvegarder la publication');
+    //} catch (error: any) {
+      //Alert.alert('Erreur', error?.message || 'Impossible de sauvegarder la publication');
       
       // Resynchroniser en cas d'erreur
-      await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      //await dispatch(getFeed({ page: 1, limit: 20, refresh: true })).unwrap();
+    //} finally {
+      //setIsSaving(false);
+    //}
+  //};
 
   // ✅ FONCTION COMMENTAIRE AVEC SYNCHRO DB
   const handleCreateComment = async () => {
@@ -230,6 +231,49 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
+  // ✅ FONCTION DE PARTAGE AVEC GESTION D'ERREUR
+const sharePostToSocial = async (): Promise<void> => {
+  try {
+    // ✅ Vérifier si le partage est disponible
+    const isSharingAvailable = await Sharing.isAvailableAsync();
+    
+    if (!isSharingAvailable) {
+      Alert.alert('Partage non disponible', 'La fonction de partage n\'est pas disponible sur cet appareil.');
+      return;
+    }
+
+    // ✅ CRÉER LE LIEN ET MESSAGE
+    const postUrl: string = `https://votreapp.com/post/${post._id}`;
+    
+    let shareMessage: string = 'Regarde cette publication ! 👀\n\n';
+    
+    // Ajouter le contenu du post si disponible
+    if (post.content?.text) {
+      const textPreview: string = post.content.text.length > 100 
+        ? post.content.text.substring(0, 100) + '...' 
+        : post.content.text;
+      shareMessage += `"${textPreview}"\n\n`;
+    }
+    
+    shareMessage += `${postUrl}`;
+
+    // ✅ OUVRIR LE SÉLECTEUR DE PARTAGE
+    await Sharing.shareAsync(shareMessage, {
+      dialogTitle: 'Partager cette publication',
+      mimeType: 'text/plain',
+      UTI: 'public.plain-text', // Pour iOS
+    });
+
+    console.log('✅ Partage social réussi');
+
+  } catch (error: any) {
+    console.error('❌ Erreur partage social:', error);
+    // Ne pas afficher d'alerte si l'utilisateur a simplement annulé
+    if (error.code !== 'ERR_SHARING_CANCELLED') {
+      Alert.alert('Erreur', 'Impossible de partager la publication');
+    }
+  }
+};
   // Gérer la suppression
   const handleDelete = () => {
   Alert.alert(
@@ -244,7 +288,6 @@ const PostCard: React.FC<PostCardProps> = ({
           try {
             setIsDeleted(true); // ← C'EST LA CLÉ
             await dispatch(deletePost(post._id)).unwrap();
-            onDelete?.();
           } catch (error: any) {
             setIsDeleted(false);
             Alert.alert('Erreur', error?.message || 'Impossible de supprimer la publication');
@@ -286,13 +329,14 @@ if (isDeleted) return null;
     Alert.alert('Options', 'Que voulez-vous faire ?', options);
   };
 
+  
+
   // Rendu du header avec infos utilisateur
   const renderHeader = () => (
     
     <View className="flex-row items-center justify-between p-4 pb-3 dark:bg-black">
       <TouchableOpacity 
         className="flex-row items-center flex-1"
-        //onPress={() => postAuthor._id && onUserPress?.(postAuthor._id)}
         onPress={() => {
           if (post.author._id) {
             router.push(`../(modals)/userProfile/${post.author._id}`)
@@ -551,7 +595,9 @@ if (isDeleted) return null;
             </TouchableOpacity>
 
             {/* Share */}
-            <TouchableOpacity className="flex-row items-center">
+            <TouchableOpacity 
+              onPress={sharePostToSocial}
+              className="flex-row items-center">
               <Share size={22} color="#64748b" />
               <Text className="ml-2 text-slate-600 font-medium">
                 {engagement.sharesCount || 0}
@@ -559,7 +605,7 @@ if (isDeleted) return null;
             </TouchableOpacity>
           </View>
 
-          {/* Save */}
+          {/* Save 
           <TouchableOpacity 
             onPress={handleSave}
             disabled={isSaving || !currentUser}
@@ -573,7 +619,7 @@ if (isDeleted) return null;
                 fill="transparent" 
               />
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* ✅ Formulaire de commentaire */}
