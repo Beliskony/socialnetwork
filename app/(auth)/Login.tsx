@@ -79,8 +79,7 @@ const LoginScreen = () => {
   }
 
   const navigateToForgotPassword = () => {
-    // router.push("/(auth)/forgot-password")
-    Alert.alert("Récupération", "Fonctionnalité à venir...")
+    router.push("../(auth)/ResetPassword")
   }
 
   // Déterminer l'icône en fonction du type d'identifiant

@@ -80,6 +80,32 @@ export interface FollowerInfo {
   isFollowing?: boolean;
 }
 
+// Ajoutez ces interfaces dans user.Interface.ts
+export interface PasswordResetInitiateData {
+  phoneNumber: string;
+  usernameOrFullName: string;
+}
+
+export interface PasswordResetVerifyData {
+  phoneNumber: string;
+  code: string;
+}
+
+export interface PasswordResetCompleteData {
+  phoneNumber: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface PasswordResetState {
+  resetLoading: boolean;
+  verifyLoading: boolean;
+  resetError: string | null;
+  verifyError: string | null;
+  codeVerified: boolean;
+  resetStep: 'init' | 'verify' | 'complete';
+}
+
 export interface AuthResponse {
   user: User;
   token: string;
@@ -96,8 +122,8 @@ export interface RegisterData {
   password: string;
   contact:{
     phoneNumber: string;
-    emailVerified?: false;
-    phoneVerified?: false;
+    emailVerified?: true;
+    phoneVerified?: true;
   }
   profile?: {
     fullName?: string;
@@ -157,4 +183,12 @@ export interface UserState {
   followingLoading: boolean;
   followersError: string | null;
   followingError: string | null;
+
+  // 🆕 État pour la réinitialisation de mot de passe
+  resetLoading: boolean,
+  verifyLoading: boolean,
+  resetError: string | null,
+  verifyError: string | null,
+  codeVerified: boolean,
+  resetStep: 'init'| 'verify' | 'complete',
 }

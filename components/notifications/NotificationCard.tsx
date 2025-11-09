@@ -43,7 +43,7 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
     }
   };
 
-  const senderImage = notification.sender?.profilePicture || 'https://via.placeholder.com/48';
+  const senderImage = notification.sender?.profile?.profilePicture || 'https://i.pinimg.com/736x/c1/2d/65/c12d65c2c443402df0cfa95f4930d6a8.jpg';
 
   return (
     <TouchableOpacity
@@ -64,7 +64,7 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
 
       <View className="flex-1">
         <Text className="font-semibold text-sm text-black">
-          {notification.sender?.username || "Utilisateur"}
+          {notification.sender?.username}
         </Text>
 
         <Text className="text-gray-600 text-sm mt-1">
@@ -79,7 +79,7 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
 
         {notification.post?.content && (
           <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>
-            {notification.post.content}
+            {notification.post?.content}
           </Text>
         )}
 

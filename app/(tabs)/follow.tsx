@@ -200,7 +200,7 @@ export default function FollowScreen() {
       {/* Header */}
       <View className="bg-white dark:bg-black px-4 pt-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <View className="flex-row items-center justify-center mb-4">
-          <Text className="text-lg font-semibold text-slate-900 dark:text-white flex-1 text-center">
+          <Text className="text-2xl font-semibold text-gray-900 dark:text-white flex-1 text-start">
             {isSearching ? 'Résultats de recherche' : 'Suggestions'}
           </Text>
         </View>

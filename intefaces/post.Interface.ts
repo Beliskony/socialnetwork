@@ -120,7 +120,7 @@ export interface PostState {
   userPosts: Post[] ;                // Posts d'un utilisateur spécifique
   
   // Post actuel (pour la page de détail)
-  currentPost: Post | null;
+  currentPost: PostFront| null;
   
   // États de chargement
   loading: boolean;                 // Chargement global

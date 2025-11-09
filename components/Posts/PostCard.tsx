@@ -32,6 +32,7 @@ import {
 import CommentCard from '@/components/Comments/CommentCard';
 import MediaFullScreen from './modalOpen/MediaFullScreen';
 import CreatePost from './CreatePost';
+import CommentCardSkeleton from '../skeletons/SkeletonCommentCard';
 
 
 interface PostCardProps {
@@ -529,8 +530,7 @@ if (isDeleted) return null;
         {/* Liste des commentaires */}
         {commentsLoading ? (
           <View className="py-8 items-center">
-            <ActivityIndicator size="small" color="#3b82f6" />
-            <Text className="text-slate-500 mt-2">Chargement des commentaires...</Text>
+            <CommentCardSkeleton/>
           </View>
         ) : comments.length > 0 ? (
           <ScrollView className="max-h-80" >

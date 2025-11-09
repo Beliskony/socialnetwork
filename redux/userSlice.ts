@@ -8,7 +8,10 @@ import {
   UpdateProfileData, 
   PrivacySettings,
   UserState, 
-  FollowerInfo
+  FollowerInfo,
+  PasswordResetCompleteData,
+  PasswordResetVerifyData,
+  PasswordResetInitiateData
 } from '../intefaces/user.Interface'
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +38,14 @@ const initialState: UserState = {
   followingLoading: false,
   followersError: null,
   followingError: null,
+
+  // 🆕 État pour la réinitialisation de mot de passe
+ resetLoading: false,
+  verifyLoading: false,
+  resetError: null,
+  verifyError: null,
+  codeVerified: false,
+  resetStep: 'init',
 };
 
 // Helper pour les appels API
@@ -649,6 +660,77 @@ export const loadAuth = createAsyncThunk<
   }
 });
 
+// ==================== THUNKS RÉINITIALISATION MOT DE PASSE ====================
+
+// 📱 Initier la réinitialisation (envoi du code SMS)
+export const initiatePasswordReset = createAsyncThunk<
+  void,
+  PasswordResetInitiateData,
+  { rejectValue: string }
+>('user/initiatePasswordReset', async (resetData, { rejectWithValue }) => {
+  try {
+    console.log('🔄 Début initiatePasswordReset:', resetData);
+
+    const data = await fetchAPI('/password-reset/initiale', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
+    });
+
+    console.log('✅ Code SMS envoyé avec succès');
+    return;
+
+  } catch (error: any) {
+    console.error('❌ Erreur initiatePasswordReset:', error);
+    return rejectWithValue(error.message || 'Erreur lors de l\'envoi du code');
+  }
+});
+
+// ✅ Vérifier le code de réinitialisation
+export const verifyResetCode = createAsyncThunk<
+  { valid: boolean },
+  PasswordResetVerifyData,
+  { rejectValue: string }
+>('user/verifyResetCode', async (verifyData, { rejectWithValue }) => {
+  try {
+    console.log('🔄 Vérification du code:', verifyData.phoneNumber);
+
+    const data = await fetchAPI('/password-reset/verify', {
+      method: 'POST',
+      body: JSON.stringify(verifyData),
+    });
+
+    console.log('✅ Code vérifié:', data.valid);
+    return { valid: data.valid };
+
+  } catch (error: any) {
+    console.error('❌ Erreur verifyResetCode:', error);
+    return rejectWithValue(error.message || 'Erreur lors de la vérification du code');
+  }
+});
+
+// 🔄 Réinitialiser le mot de passe
+export const resetPassword = createAsyncThunk<
+  void,
+  PasswordResetCompleteData,
+  { rejectValue: string }
+>('user/resetPassword', async (resetData, { rejectWithValue }) => {
+  try {
+    console.log('🔄 Réinitialisation du mot de passe:', resetData.phoneNumber);
+
+    const data = await fetchAPI('/password-reset/reset', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
+    });
+
+    console.log('✅ Mot de passe réinitialisé avec succès');
+    return data.data;
+
+  } catch (error: any) {
+    console.error('❌ Erreur resetPassword:', error);
+    return rejectWithValue(error.message || 'Erreur lors de la réinitialisation');
+  }
+});
+
 // ==================== SLICE ====================
 
 const userSlice = createSlice({
@@ -851,6 +933,21 @@ const userSlice = createSlice({
         state.blockedUsers = [];
         AsyncStorage.removeItem('auth');
       })
+
+        // Initiate Password Reset
+    .addCase(initiatePasswordReset.pending, (state) => {
+      state.resetLoading = true;
+      state.resetError = null;
+    })
+    .addCase(initiatePasswordReset.fulfilled, (state) => {
+      state.resetLoading = false;
+      state.resetStep = 'verify'; // 🔥 IMPORTANT: Passer à l'étape suivante
+      state.resetError = null;
+    })
+    .addCase(initiatePasswordReset.rejected, (state, action) => {
+      state.resetLoading = false;
+      state.resetError = action.payload as string;
+    })
 
       // Load Followers Details
       .addCase(loadFollowersDetails.pending, (state) => {

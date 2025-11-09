@@ -3,12 +3,11 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from './store';
 import { Platform } from 'react-native';
-import { Post, PostState, initialPostState } from '@/intefaces/post.Interface';
+import { Post, PostFront, PostState, convertToPostFront, initialPostState } from '@/intefaces/post.Interface';
 
 // Configuration axios avec timeout
 const api = axios.create({
   baseURL: 'https://apisocial-g8z6.onrender.com/api',
-  timeout: 10000,
 });
 
 // Headers d'authentification
@@ -347,6 +346,84 @@ export const getAllPosts = createAsyncThunk<
   }
 });
 
+//avoir la publication par sont postId
+// redux/postSlice.ts
+export const getPostById = createAsyncThunk<
+  PostFront, // ✅ Type de retour SINGLE post
+  string, // ✅ Paramètre postId
+  { rejectValue: string; state: RootState }
+>(
+  'posts/getPostById', // ✅ Nom corrigé
+  async (postId: string, { getState, rejectWithValue }) => {
+    try {
+      console.log('🔄 Début getPostById pour:', postId);
+
+      // ✅ Validation de l'ID
+      if (!postId || postId.trim() === '') {
+        return rejectWithValue('ID de post invalide');
+      }
+
+      const headers = getAuthHeaders(getState);
+      
+      if (!headers.Authorization) {
+        return rejectWithValue('Utilisateur non authentifié');
+      }
+
+      // ✅ URL corrigée - probablement "/posts" au lieu de "/post"
+      const response = await api.get(`/posts/${postId}`, { headers });
+
+      console.log('📡 Réponse API getPostById:', {
+        success: response.data.success,
+        hasData: !!response.data.data,
+        data: response.data.data
+      });
+
+      // ✅ Vérification de la réponse
+      if (!response.data.success) {
+        return rejectWithValue(response.data.message || 'Erreur inconnue du serveur');
+      }
+
+      if (!response.data.data) {
+        return rejectWithValue('Post non trouvé');
+      }
+
+      console.log('✅ Post récupéré avec succès:', response.data.data._id);
+      return response.data.data;
+
+    } catch (error: any) {
+      console.error('❌ Erreur getPostById:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+
+      // ✅ Gestion d'erreurs spécifiques
+      if (error.response?.status === 401) {
+        return rejectWithValue('Session expirée - Veuillez vous reconnecter');
+      }
+
+      if (error.response?.status === 404) {
+        return rejectWithValue('Post non trouvé');
+      }
+
+      if (error.response?.status === 400) {
+        return rejectWithValue('ID de post invalide');
+      }
+
+      if (error.code === 'NETWORK_ERROR') {
+        return rejectWithValue('Problème de connexion réseau');
+      }
+
+      // ✅ Erreur générale
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Erreur lors du chargement du post';
+
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 // 👤 Posts par utilisateur - GET /post/user/:userId
 export const getPostsByUser = createAsyncThunk<
   Post[],
@@ -569,9 +646,12 @@ const postSlice = createSlice({
     clearSearchedPosts: (state) => {
       state.searchedPosts = [];
     },
-    setCurrentPost: (state, action: PayloadAction<Post | null>) => {
+    
+    // ✅ CORRIGÉ : setCurrentPost accepte PostFront
+    setCurrentPost: (state, action: PayloadAction<PostFront | null>) => {
       state.currentPost = action.payload;
     },
+    
     updatePostLocal: (state, action: PayloadAction<Partial<Post> & { _id: string }>) => {
       const updateArray = (array: Post[]) => {
         return array.map(post => 
@@ -586,15 +666,23 @@ const postSlice = createSlice({
       state.userPosts = updateArray(state.userPosts);
       state.popularPosts = updateArray(state.popularPosts);
       
+      // ✅ CORRIGÉ : Gestion séparée pour currentPost (PostFront)
       if (state.currentPost?._id === action.payload._id) {
-        state.currentPost = { ...state.currentPost, ...action.payload };
+        // Convertir les updates Post en PostFront
+        const updatedPostFront = convertToPostFront({ 
+          ...state.currentPost, 
+          ...action.payload 
+        });
+        state.currentPost = updatedPostFront;
       }
     },
-    // Optimistic updates
+
+    // ✅ CORRIGÉ : Optimistic updates avec gestion séparée
     optimisticLike: (state, action: PayloadAction<{ postId: string; userId: string }>) => {
       const { postId, userId } = action.payload;
       
-      const optimisticUpdate = (post: Post) => {
+      // Update pour les arrays de Post
+      const optimisticUpdatePost = (post: Post) => {
         if (post._id === postId && !post.likes?.includes(userId)) {
           return {
             ...post,
@@ -604,19 +692,37 @@ const postSlice = createSlice({
         return post;
       };
 
-      state.posts = state.posts.map(optimisticUpdate);
-      state.feed = state.feed.map(optimisticUpdate);
-      state.userPosts = state.userPosts.map(optimisticUpdate);
-      state.popularPosts = state.popularPosts.map(optimisticUpdate);
+      // Update séparé pour PostFront
+      const optimisticUpdatePostFront = (post: PostFront) => {
+        if (post._id === postId && !post.engagement.likes.includes(userId)) {
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              likes: [...post.engagement.likes, userId],
+              likesCount: post.engagement.likesCount + 1
+            }
+          };
+        }
+        return post;
+      };
+
+      state.posts = state.posts.map(optimisticUpdatePost);
+      state.feed = state.feed.map(optimisticUpdatePost);
+      state.userPosts = state.userPosts.map(optimisticUpdatePost);
+      state.popularPosts = state.popularPosts.map(optimisticUpdatePost);
       
+      // ✅ Gestion séparée pour currentPost (PostFront)
       if (state.currentPost?._id === postId) {
-        state.currentPost = optimisticUpdate(state.currentPost);
+        state.currentPost = optimisticUpdatePostFront(state.currentPost);
       }
     },
+
     optimisticUnlike: (state, action: PayloadAction<{ postId: string; userId: string }>) => {
       const { postId, userId } = action.payload;
       
-      const optimisticUpdate = (post: Post) => {
+      // Update pour les arrays de Post
+      const optimisticUpdatePost = (post: Post) => {
         if (post._id === postId) {
           return {
             ...post,
@@ -626,21 +732,39 @@ const postSlice = createSlice({
         return post;
       };
 
-      state.posts = state.posts.map(optimisticUpdate);
-      state.feed = state.feed.map(optimisticUpdate);
-      state.userPosts = state.userPosts.map(optimisticUpdate);
-      state.popularPosts = state.popularPosts.map(optimisticUpdate);
+      // Update séparé pour PostFront
+      const optimisticUpdatePostFront = (post: PostFront) => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              likes: post.engagement.likes.filter(id => id !== userId),
+              likesCount: Math.max(0, post.engagement.likesCount - 1)
+            }
+          };
+        }
+        return post;
+      };
+
+      state.posts = state.posts.map(optimisticUpdatePost);
+      state.feed = state.feed.map(optimisticUpdatePost);
+      state.userPosts = state.userPosts.map(optimisticUpdatePost);
+      state.popularPosts = state.popularPosts.map(optimisticUpdatePost);
       
+      // ✅ Gestion séparée pour currentPost (PostFront)
       if (state.currentPost?._id === postId) {
-        state.currentPost = optimisticUpdate(state.currentPost);
+        state.currentPost = optimisticUpdatePostFront(state.currentPost);
       }
     },
+
     appendFeed: (state, action: PayloadAction<Post[]>) => {
       const newPosts = action.payload.filter(
         newPost => !state.feed.some(existingPost => existingPost._id === newPost._id)
       );
       state.feed.push(...newPosts);
     },
+    
     resetPosts: () => initialPostState,
   },
   extraReducers: (builder) => {
@@ -660,6 +784,7 @@ const postSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+
       // Update Post
       .addCase(updatePost.pending, (state) => {
         state.loading = true;
@@ -681,14 +806,17 @@ const postSlice = createSlice({
         state.userPosts = updateInArray([...state.userPosts]);
         state.popularPosts = updateInArray([...state.popularPosts]);
         
+        // ✅ CORRIGÉ : currentPost reçoit PostFront
         if (state.currentPost?._id === action.payload._id) {
-          state.currentPost = action.payload;
+          const updatedPostFront = convertToPostFront(action.payload);
+          state.currentPost = updatedPostFront;
         }
       })
       .addCase(updatePost.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
+
       // Get Feed
       .addCase(getFeed.pending, (state, action) => {
         state.feedLoading = true;
@@ -717,48 +845,81 @@ const postSlice = createSlice({
         state.feedLoading = false;
         state.feedError = action.payload as string;
       })
+
       // Get All Posts
       .addCase(getAllPosts.fulfilled, (state, action) => {
         state.posts = action.payload.posts;
         state.pagination = action.payload.pagination;
       })
+
       // Get Posts By User
       .addCase(getPostsByUser.fulfilled, (state, action) => {
         state.userPosts = action.payload;
       })
+
       // Get My Posts
       .addCase(getMyPosts.fulfilled, (state, action) => {
         state.userPosts = action.payload;
       })
+
       // Get Popular Posts
       .addCase(getPopularPosts.fulfilled, (state, action) => {
         state.popularPosts = action.payload;
         state.lastFetched.popular = Date.now();
       })
+
       // Search Posts
       .addCase(searchPosts.fulfilled, (state, action) => {
         state.searchedPosts = action.payload.posts;
         state.pagination = action.payload.pagination;
       })
+
       // Search Posts Simple
       .addCase(searchPostsSimple.fulfilled, (state, action) => {
         state.searchedPosts = action.payload;
       })
+
       // Toggle Like
       .addCase(toggleLike.fulfilled, (state, action) => {
         const { postId, action: likeAction } = action.payload;
         console.log(`Like ${likeAction} for post ${postId}`);
       })
+
       // Toggle Save
       .addCase(toggleSave.fulfilled, (state, action) => {
         const { postId, action: saveAction } = action.payload;
         console.log(`Save ${saveAction} for post ${postId}`);
       })
+
       // Share Post
       .addCase(sharePost.fulfilled, (state, action) => {
         state.posts.unshift(action.payload);
         state.feed.unshift(action.payload);
       })
+
+      // getPostById
+      .addCase(getPostById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.currentPost = null;
+      })
+      .addCase(getPostById.fulfilled, (state, action) => {
+        state.loading = false;
+        // ✅ TRANSFORMER le Post en PostFront pour le composant
+        const postFront = convertToPostFront(action.payload);
+        state.currentPost = postFront;
+        state.error = null;
+        
+        console.log('✅ Post stocké dans currentPost:', postFront._id);
+      })
+      .addCase(getPostById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.currentPost = null;
+        
+        console.log('❌ Erreur stockée:', action.payload);
+      })
+
       // Delete Post
       .addCase(deletePost.fulfilled, (state, action) => {
         const postId = action.payload;

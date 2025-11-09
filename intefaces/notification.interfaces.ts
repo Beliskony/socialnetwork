@@ -59,3 +59,16 @@ export interface GetNotificationsParams {
   limit?: number;
   type?: NotificationType;
 }
+
+// Ajoutez cette interface à votre fichier notification.interfaces.ts
+export interface NotificationsResponse {
+  success: boolean;
+  data: INotification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    unreadCount: number;
+    totalPages: number;
+  };
+}

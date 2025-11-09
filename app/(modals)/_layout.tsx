@@ -83,6 +83,14 @@ export default function ModalsLayout() {
           animation: "slide_from_right",
         }}
       />
+
+      <Stack.Screen
+      name="singlePost/[postId]"
+      options={{
+        title: "Publication unique",
+        animation: "slide_from_right"
+      }}
+      />
     </Stack>
   );
 }
