@@ -29,6 +29,7 @@ import {
 import type { RootState } from '@/redux/store';
 import { User } from '@/intefaces/user.Interface';
 import FollowCard from '@/components/follow/FollowCard';
+import RetourConnexion from '@/components/homescreen/RetourConnexion';
 
 export default function FollowScreen() {
   const dispatch = useAppDispatch();
@@ -186,12 +187,7 @@ export default function FollowScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 justify-center items-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="text-slate-500 dark:text-slate-400 mt-4">
-          Chargement...
-        </Text>
-      </SafeAreaView>
+      <RetourConnexion/>
     );
   }
 

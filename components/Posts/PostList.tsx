@@ -209,19 +209,7 @@ const PostsList = () => {
     );
   }
 
-  // Aucun utilisateur connecté
-  if (!currentUser) {
-    return (
-      <View className="flex-1 justify-center items-center bg-slate-50 p-6">
-        <Text className="text-slate-600 text-xl font-semibold mb-3 text-center">
-          Connectez-vous
-        </Text>
-        <Text className="text-slate-500 text-center mb-6 leading-6">
-          Connectez-vous pour voir les publications de votre réseau
-        </Text>
-      </View>
-    );
-  }
+ 
 
   return (
     <View className="flex-1 bg-slate-50 dark:bg-black">

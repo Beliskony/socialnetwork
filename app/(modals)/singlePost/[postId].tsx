@@ -23,9 +23,10 @@ import { getCommentsByPost } from '@/redux/commentSlice';
 import PostSkeleton from '@/components/skeletons/SkeletonPostItem';
 import PostCard from '@/components/Posts/PostCard';
 import { ArrowLeft } from 'lucide-react-native';
+import RetourConnexion from '@/components/homescreen/RetourConnexion';
 
 const SinglePostScreen = () => {
-  const { id } = useLocalSearchParams();
+  const { postId } = useLocalSearchParams();
   const dispatch = useAppDispatch();
   const router = useRouter();
 
@@ -35,23 +36,31 @@ const SinglePostScreen = () => {
     loading: postLoading, 
     error: postError 
   } = useAppSelector((state) => state.posts);
+  // ✅ LOGS DE DEBUG
+  console.log('🔍 DEBUG SinglePostScreen:', {
+    postId,
+    hasId: !! postId,
+    currentPost: currentPost ? `✅ ${currentPost._id}` : '❌ null',
+    loading: postLoading,
+    error: postError
+  });
 
   const { currentUser } = useAppSelector((state) => state.user);
 
   // ✅ Chargement des données
   useEffect(() => {
-    if (id && typeof id === 'string') {
-      console.log('🎯 Chargement du post ID:', id);
+    if (postId && typeof postId === 'string') {
+      console.log('🎯 Chargement du post ID:', postId);
       loadPostData();
     }
-  }, [id, dispatch]);
+  }, [postId, dispatch]);
 
   const loadPostData = async () => {
     try {
-      await dispatch(getPostById(id as string)).unwrap();
+      await dispatch(getPostById(postId as string)).unwrap();
       // Charger les commentaires aussi
       await dispatch(getCommentsByPost({ 
-        postId: id as string, 
+        postId: postId as string, 
         page: 1, 
         limit: 50 
       })).unwrap();
@@ -107,8 +116,9 @@ const SinglePostScreen = () => {
 
   const handleLike = useCallback(async (postId: string) => {
     if (!currentUser) {
-      Alert.alert('Connexion requise', 'Veuillez vous connecter pour aimer une publication');
-      return;
+      return(
+        <RetourConnexion/>
+      )
     }
 
     try {
@@ -198,16 +208,14 @@ const SinglePostScreen = () => {
           className="flex-row items-center"
         >
           <ArrowLeft size={24} color="#64748b" />
-          <Text className="text-slate-600 dark:text-gray-400 ml-2 font-medium">
-            Retour
-          </Text>
+          
         </TouchableOpacity>
         
-        <Text className="text-slate-900 dark:text-white font-semibold text-lg">
+        <Text className="text-slate-900 dark:text-white font-semibold text-2xl">
           Publication
         </Text>
         
-        <View className="w-6" /> {/* Espacement pour centrer */}
+        <View className="w-6" />
       </View>
 
       <ScrollView 

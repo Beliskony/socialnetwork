@@ -347,54 +347,74 @@ export const getAllPosts = createAsyncThunk<
 });
 
 //avoir la publication par sont postId
-// redux/postSlice.ts
 export const getPostById = createAsyncThunk<
-  PostFront, // ✅ Type de retour SINGLE post
-  string, // ✅ Paramètre postId
+  PostFront,
+  string,
   { rejectValue: string; state: RootState }
 >(
-  'posts/getPostById', // ✅ Nom corrigé
+  'posts/getPostById',
   async (postId: string, { getState, rejectWithValue }) => {
     try {
-      console.log('🔄 Début getPostById pour:', postId);
+      console.log('🎯 === DÉBUT getPostById ===');
+      console.log('📌 PostId reçu:', postId);
+      console.log('📌 Type de postId:', typeof postId);
 
       // ✅ Validation de l'ID
       if (!postId || postId.trim() === '') {
+        console.log('❌ ID de post invalide');
         return rejectWithValue('ID de post invalide');
       }
 
       const headers = getAuthHeaders(getState);
+      console.log('🔑 Headers:', {
+        hasAuth: !!headers.Authorization,
+        authHeader: headers.Authorization ? '✅ Présent' : '❌ Manquant'
+      });
       
       if (!headers.Authorization) {
+        console.log('❌ Utilisateur non authentifié');
         return rejectWithValue('Utilisateur non authentifié');
       }
 
-      // ✅ URL corrigée - probablement "/posts" au lieu de "/post"
-      const response = await api.get(`/posts/${postId}`, { headers });
+      console.log('🌐 Appel API vers:', `/post/${postId}`);
+      
+      const response = await api.get(`/post/${postId}`, { headers });
 
-      console.log('📡 Réponse API getPostById:', {
+      console.log('📡 Réponse API complète:', {
+        status: response.status,
+        statusText: response.statusText,
         success: response.data.success,
+        message: response.data.message,
         hasData: !!response.data.data,
-        data: response.data.data
+        dataKeys: response.data.data ? Object.keys(response.data.data) : 'Aucune data'
       });
 
       // ✅ Vérification de la réponse
       if (!response.data.success) {
+        console.log('❌ API retourne success: false');
         return rejectWithValue(response.data.message || 'Erreur inconnue du serveur');
       }
 
       if (!response.data.data) {
+        console.log('❌ API retourne data: null/undefined');
         return rejectWithValue('Post non trouvé');
       }
 
+      console.log('✅ Données brutes de l API:', response.data.data);
       console.log('✅ Post récupéré avec succès:', response.data.data._id);
+      
+      // ✅ Retourner les données brutes pour la transformation
       return response.data.data;
 
     } catch (error: any) {
-      console.error('❌ Erreur getPostById:', {
+      console.error('💥 === ERREUR getPostById ===');
+      console.error('💥 Détails erreur:', {
         message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url
       });
 
       // ✅ Gestion d'erreurs spécifiques
@@ -414,7 +434,6 @@ export const getPostById = createAsyncThunk<
         return rejectWithValue('Problème de connexion réseau');
       }
 
-      // ✅ Erreur générale
       const errorMessage = error.response?.data?.message 
         || error.message 
         || 'Erreur lors du chargement du post';
@@ -905,6 +924,8 @@ const postSlice = createSlice({
       })
       .addCase(getPostById.fulfilled, (state, action) => {
         state.loading = false;
+
+          console.log('🔄 getPostById.fulfilled payload:', action.payload);
         // ✅ TRANSFORMER le Post en PostFront pour le composant
         const postFront = convertToPostFront(action.payload);
         state.currentPost = postFront;

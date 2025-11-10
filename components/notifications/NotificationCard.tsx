@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { INotification, NotificationType } from "@/intefaces/notification.interfaces";
+import { useTheme } from "@/hooks/toggleChangeTheme";
 
 interface Props {
   notification: INotification;
@@ -8,6 +9,8 @@ interface Props {
 }
 
 const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
+  const {isDark} = useTheme()
+
   const getNotificationMessage = (type: NotificationType): string => {
     switch (type) {
       case "like":
@@ -48,7 +51,7 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
   return (
     <TouchableOpacity
       onPress={() => onPress(notification)}
-      className={`flex-row items-center bg-white rounded-xl px-4 py-3 mb-3 shadow-sm ${
+      className={`flex-row items-center bg-white dark:bg-gray-800 rounded-xl px-4 py-3 mb-3 shadow-sm ${
         !notification.isRead ? 'border-l-4 border-blue-500' : ''
       }`}
     >
@@ -63,16 +66,16 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
       </View>
 
       <View className="flex-1">
-        <Text className="font-semibold text-sm text-black">
+        <Text className="font-semibold text-sm text-black dark:text-gray-200">
           {notification.sender?.username}
         </Text>
 
-        <Text className="text-gray-600 text-sm mt-1">
+        <Text className="text-gray-600 dark:text-gray-400 text-sm mt-1">
           {getNotificationMessage(notification.type)}
         </Text>
 
         {notification.content && (
-          <Text className="text-gray-500 text-xs mt-1 italic" numberOfLines={2}>
+          <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1 italic" numberOfLines={2}>
             "{notification.content}"
           </Text>
         )}

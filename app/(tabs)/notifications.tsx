@@ -12,11 +12,13 @@ import {
 import { INotification } from '@/intefaces/notification.interfaces';
 import NotificationCardSkeleton from '@/components/skeletons/SkeletonNotificationsCard';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/hooks/toggleChangeTheme';
 
 const NotificationsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const [refreshing, setRefreshing] = useState(false);
-  const router= useRouter()
+  const router= useRouter();
+  const {isDark} = useTheme()
 
   // Sélectionne les données depuis le store Redux - CORRIGÉ
   const { 
@@ -68,19 +70,24 @@ const NotificationsScreen: React.FC = () => {
       case 'new_post':
         if (notification.post?._id) {
           // Navigation vers le post
-          router.push('../(modals)/singlePost/')
-          console.log('Navigation vers post:', notification.post._id);
+          router.push({
+          pathname: '/(modals)/singlePost/[postId]',
+          params:{postId: notification.post?._id}
+        })
         }
         break;
       case 'follow':
         // Navigation vers le profil
-        // navigation.navigate('Profile', { userId: notification.sender._id });
+        router.push({
+          pathname: '/(modals)/userProfile/[userId]',
+          params:{userId: notification.sender._id}
+        })
         console.log('Navigation vers profil:', notification.sender._id);
         break;
       default:
         console.log('Notification pressée:', notification._id);
     }
-  }, [dispatch]);
+  }, [dispatch, router]);
 
   // 🔄 Render Item optimisé
   const renderItem = useCallback(({ item }: { item: INotification }) => (
@@ -96,10 +103,10 @@ const NotificationsScreen: React.FC = () => {
   // 🎯 États de chargement et erreurs
   if (loading && notifications.length === 0) {
     return (
-      <SafeAreaView className="flex flex-col bg-white">
+      <SafeAreaView className="flex-1 flex-col bg-white dark:bg-black">
         {/* En-tête */}
-      <View className="bg-white px-4 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900 text-start">Notifications</Text>
+      <View className="bg-white dark:bg-black px-4 py-4 border-b border-gray-200 dark:border-gray-400">
+        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-200 text-start">Notifications</Text>
         {unreadCount > 0 && (
           <Text className="text-blue-500 text-sm mt-1">
             {unreadCount} non-lue{unreadCount > 1 ? 's' : ''}
@@ -134,10 +141,10 @@ const NotificationsScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-black">
       {/* En-tête */}
-      <View className="bg-white px-4 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">Notifications</Text>
+      <View className="bg-white dark:bg-black px-4 py-4 border-b border-gray-200 dark:border-gray-400">
+        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-200">Notifications</Text>
         {unreadCount > 0 && (
           <Text className="text-blue-500 text-sm mt-1">
             {unreadCount} non-lue{unreadCount > 1 ? 's' : ''}
@@ -168,7 +175,7 @@ const NotificationsScreen: React.FC = () => {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center py-20">
-            <Text className="text-gray-500 text-lg font-medium text-center">
+            <Text className="text-gray-500 dark:text-gray-400 text-lg font-medium text-center">
               Aucune notification
             </Text>
             <Text className="text-gray-400 text-sm text-center mt-2 px-8">
@@ -180,7 +187,7 @@ const NotificationsScreen: React.FC = () => {
           pagination.hasMore && notifications.length > 0 ? (
             <View className="py-4 items-center">
               <ActivityIndicator size="small" color="#3B82F6" />
-              <Text className="text-gray-500 text-xs mt-2">
+              <Text className="text-gray-500 dark:text-gray-400 text-xs mt-2">
                 Chargement...
               </Text>
             </View>

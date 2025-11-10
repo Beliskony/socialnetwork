@@ -10,6 +10,7 @@ import ProfilePostsList from "@/components/Posts/ProfilPostList"
 import { formatCount } from "@/services/Compteur"
 import { useTheme } from "@/hooks/toggleChangeTheme"
 import formatDateBirthDay from "@/services/FormatDate"
+import RetourConnexion from "@/components/homescreen/RetourConnexion"
 
 function ProfileScreen() {
   const { currentUser, token } = useAppSelector((state) => state.user) // ← Correction ici
@@ -92,17 +93,7 @@ function ProfileScreen() {
 
   if (!currentUser || !token) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-8">
-        <Text className="text-lg font-semibold text-slate-900 text-center mb-4">
-          Connectez-vous pour voir votre profil
-        </Text>
-        <TouchableOpacity 
-          className="bg-blue-600 px-6 py-3 rounded-full active:bg-blue-700"
-          onPress={() => router.push('../../(auth)/Login')}
-        >
-          <Text className="text-white font-semibold">Se connecter</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <RetourConnexion/>
     )
   }
 

@@ -294,6 +294,29 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
                         user.profilePicture || 
                         null;
 
+    // ✅ CORRECTION CRITIQUE : Gestion des likes avec détection de l'utilisateur courant
+// ✅ Détection si l'utilisateur connecté a liké
+const likes = post.likes || post.engagement?.likes || [];
+let currentUserLiked = false;
+
+if (Array.isArray(likes) && currentUserId) {
+  currentUserLiked = likes.some((like) => {
+    if (typeof like === 'string') return like === currentUserId;
+    if (typeof like === 'object' && like?._id) return like._id === currentUserId;
+    return false;
+  });
+}
+
+const likesCount = Array.isArray(likes)
+  ? likes.length
+  : post.engagement?.likesCount || 0;
+
+  console.log('🔧 convertToPostFront - Détection like:', {
+    currentUserId,
+    currentUserLiked,
+    likesCount
+  });
+
   return {
     _id: post._id || 'unknown-id-' + Date.now(),
     author: {
@@ -319,6 +342,7 @@ export const convertToPostFront = (post: any, currentUserId?: string): any => {
     engagement: {
       likes: post.likes || post.engagement?.likes || [],
       likesCount: post.likes?.length || post.engagement?.likesCount || 0,
+      currentUserLiked,
       comments: post.comments?.map((c: any) => c._id).filter(Boolean) || post.engagement?.comments || [],
       commentsCount: post.comments?.length || post.engagement?.commentsCount || 0,
       shares: post.engagement?.shares || [],
