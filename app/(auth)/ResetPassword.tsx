@@ -88,7 +88,7 @@ const ResetPassword = () => {
   const renderStep1 = () => (
     <View className="w-full">
       <Text className="text-3xl font-bold text-center mb-3 text-gray-800">
-        🔐 Mot de passe oublié
+        Mot de passe oublié
       </Text>
       <Text className="text-lg text-center mb-8 text-gray-600 leading-7">
         Nous allons vous envoyer un code de vérification par SMS

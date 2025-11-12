@@ -1,61 +1,69 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Dimensions } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
 interface Props {
   uri: string;
   isVisible: boolean;
+  onVideoEnd?: () => void;
 }
 
-const StoryVideoPlayer: React.FC<Props> = ({ uri, isVisible }) => {
-  const lastVisible = useRef<boolean | null>(null);
+const StoryVideoPlayer: React.FC<Props> = ({ uri, isVisible, onVideoEnd }) => {
+  const videoRef = useRef<Video>(null);
+  const [hasError, setHasError] = useState(false);
   
-  const player = useVideoPlayer(
-    { uri },
-    (player) => {
-      player.loop = true; // ✅ Loop activé pour les stories
-      player.muted = false;
-    }
-  );
+   useEffect(() => {
+    const handleVideoPlayback = async () => {
+      if (!videoRef.current) return;
 
-  // Gérer play/pause basé sur isVisible - même logique que VideoPlayerItem
-  useEffect(() => {
-    if (!player) return;
-    
-    if (isVisible && lastVisible.current !== true) {
-      console.log('🎬 Starting story video playback');
-      player.play();
-    } else if (!isVisible && lastVisible.current !== false) {
-      console.log('🎬 Pausing story video');
-      player.pause();
+      try {
+        if (isVisible) {
+          console.log('🎬 Starting video playback:', uri);
+          // Réinitialiser et jouer
+          await videoRef.current.playFromPositionAsync(0)
+        } else {
+          await videoRef.current.pauseAsync();
+        }
+      } catch (error) {
+        console.error('❌ Video playback error:', error);
+        setHasError(true);
+      }
+    };
+
+    handleVideoPlayback();
+  }, [isVisible, uri]);
+
+  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (status.isLoaded) {
+      if (status.didJustFinish) {
+        console.error('❌ Video error:', status);
+        onVideoEnd?.()
+      }
     }
-    
-    lastVisible.current = isVisible;
-  }, [isVisible, player]);
+  };
+
 
   return (
-    <View
-      style={{
-        width: width,
-        height: height,
-        backgroundColor: 'black',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      <VideoView
-        player={player}
+    <View style={{ width, height }}>
+      <Video
+        ref={videoRef}
+        source={{ uri }}
         style={{ 
           width: '100%', 
-          height: '100%' 
+          height: '100%',
+          backgroundColor: 'black'
         }}
-        contentFit="cover"
-        allowsPictureInPicture={false}
-        showsTimecodes={false}
-        nativeControls={false}
-        allowsFullscreen={false}
+        resizeMode={ResizeMode.COVER}
+        isLooping={false}
+        shouldPlay={isVisible}
+        isMuted={false}
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+        onError={(error) => {
+          console.error('❌ Video component error:', error);
+          setHasError(true);
+        }}
       />
     </View>
   );

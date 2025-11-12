@@ -1,6 +1,9 @@
 // store/slices/notificationsSlice.ts
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { NotificationService } from '@/services/notificationsService';
+import * as Device from 'expo-device'
+import { Platform } from 'react-native';
 import { 
   INotification, 
   NotificationState, 
@@ -10,15 +13,23 @@ import {
 } from '@/intefaces/notification.interfaces';
 
 
-
 // Interface pour les erreurs avec gestion silencieuse
 interface ErrorWithSilent {
   message: string;
   silent?: boolean;
 }
 
+interface RollbackData{
+  previousNotifications: INotification[];
+  previousUnredCount: number;
+}
+
 // État initial aligné avec votre interface
-const initialState: NotificationState = {
+const initialState: NotificationState & {
+  rollbackData: RollbackData | null;
+  pushToken: string | null;
+  permissions: string | null;
+} = {
   notifications: [],
   unreadCount: 0,
   loading: false,
@@ -30,9 +41,72 @@ const initialState: NotificationState = {
     totalPages: 0,
     hasMore: true,
   },
+  rollbackData: null,
+  pushToken: null,
+  permissions: null,
 };
 
+
 // ================= THUNKS AMÉLIORÉS =================
+
+//initialisation de notification expo
+export const initializeExpoNotificationsAsync = createAsyncThunk<
+{pushToken: string | null; permissions:string},
+void,
+{rejectValue:string}
+>(
+  'notification/initializeExpo',
+  async(_, {rejectWithValue}) =>{
+    try {
+      await NotificationService.setupBackgroundNotifications();
+
+      const token = await NotificationService.requestPermissions();
+      return{pushToken:token, permissions:token ? 'granted' : 'denied' }
+
+    } catch (error: any) {
+       return rejectWithValue(error.message || 'Erreur lors de l\'initialisation des notifications');
+    }
+  }
+);
+
+
+// 🔔 Enregistrer le token push sur le backend
+export const registerPushTokenAsync = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>(
+  'notification/registerPushToken',
+  async (pushToken, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as any;
+      const token = state.user?.token;
+      
+      if (!token) return rejectWithValue('Token non trouvé');
+
+      await axios.post(
+        'https://apisocial-g8z6.onrender.com/api/notifications/register-push-token',
+        {
+          expoPushToken: pushToken,
+          deviceId: Device.modelName || 'mobile-device',
+          platform: Platform.OS,
+        },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+
+      console.log('✅ Token push enregistré avec succès');
+    } catch (err: any) {
+      console.error('❌ Erreur enregistrement token push:', err.response?.data);
+      return rejectWithValue(err.response?.data?.message || 'Erreur lors de l\'enregistrement du token push');
+    }
+  }
+);
+
 
 // 🔄 Récupérer les notifications avec gestion d'erreurs avancée
 export const fetchNotificationsAsync = createAsyncThunk<
@@ -292,7 +366,12 @@ export const deleteAllNotificationsAsync = createAsyncThunk<
 
 const notificationSlice = createSlice({
   name: 'notification',
-  initialState,
+  initialState:  {
+    ...initialState,
+    rollbackData: null as RollbackData | null,
+    pushToken: null as string | null,
+    permissions: null as string | null,
+  },
   reducers: {
     // 🔔 Ajouter une notification (pour WebSocket/real-time)
     addNotification: (state, action: PayloadAction<INotification>) => {
@@ -305,6 +384,11 @@ const notificationSlice = createSlice({
         // Mettre à jour le total
         state.pagination.total += 1;
       }
+    },
+
+    // 💾 Sauvegarder les données pour rollback
+    setRollbackData: (state, action: PayloadAction<RollbackData>) => {
+      state.rollbackData = action.payload;
     },
 
     // ⚡ Optimistic Updates
@@ -377,6 +461,7 @@ const notificationSlice = createSlice({
       state.notifications = [];
       state.unreadCount = 0;
       state.pagination = initialState.pagination;
+      state.rollbackData = null;
     },
 
     resetError: (state) => {
@@ -394,6 +479,16 @@ const notificationSlice = createSlice({
       state.pagination.hasMore = true;
     },
 
+    // 🔔 Mettre à jour le token push
+    setPushToken: (state, action: PayloadAction<string>) => {
+      state.pushToken = action.payload;
+    },
+
+    // 🔔 Mettre à jour les permissions
+    setPermissions: (state, action: PayloadAction<string>) => {
+      state.permissions = action.payload;
+    },
+
     // 🎯 Filtrer les notifications localement (optionnel)
     filterNotificationsByType: (state, action: PayloadAction<NotificationType | 'all'>) => {
       // Cette action peut être utilisée pour un filtrage côté client
@@ -402,6 +497,30 @@ const notificationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+
+       // initializeExpoNotificationsAsync
+      .addCase(initializeExpoNotificationsAsync.fulfilled, (state, action) => {
+        state.pushToken = action.payload.pushToken;
+        state.permissions = action.payload.permissions;
+        
+        // Enregistrer automatiquement le token sur le backend si disponible
+        if (action.payload.pushToken) {
+          // Note: Vous pouvez dispatcher registerPushTokenAsync ici si nécessaire
+          console.log('✅ Notifications Expo initialisées - Token:', action.payload.pushToken);
+        }
+      })
+      .addCase(initializeExpoNotificationsAsync.rejected, (state, action) => {
+        state.error = action.payload || 'Erreur lors de l\'initialisation des notifications';
+      })
+      
+      // registerPushTokenAsync
+      .addCase(registerPushTokenAsync.fulfilled, (state) => {
+        console.log('✅ Token push enregistré avec succès');
+      })
+      .addCase(registerPushTokenAsync.rejected, (state, action) => {
+        console.error('❌ Erreur enregistrement token:', action.payload);
+      })
+
       // fetchNotificationsAsync
       .addCase(fetchNotificationsAsync.pending, (state) => {
         state.loading = true;

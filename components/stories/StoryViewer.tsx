@@ -38,9 +38,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const startTime = useRef<number>(0);
   const currentStoryId = useRef<string | null>(null);
@@ -66,7 +64,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       setCurrentStoryIndex(Math.max(initialIndex, 0));
       setProgress(0);
       setVideoError(false);
-      setIsPlaying(true);
       
       startProgress();
       
@@ -86,7 +83,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       stopProgress();
       currentStoryId.current = currentStory._id;
       setVideoError(false);
-      setIsPlaying(true);
       
       startProgress();
       markAsViewed(currentStory);
@@ -114,14 +110,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       clearInterval(progressInterval.current);
       progressInterval.current = null;
     }
-    setIsPlaying(false);
   }, []);
 
   const nextStory = useCallback(() => {
     if (currentStoryIndex < stories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
-      setIsPlaying(true);
     } else {
       onClose();
     }
@@ -131,7 +125,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
-      setIsPlaying(true);
     }
   }, [currentStoryIndex]);
 
@@ -139,7 +132,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     if (index >= 0 && index < stories.length) {
       setCurrentStoryIndex(index);
       setProgress(0);
-      setIsPlaying(true);
     }
   }, [stories.length]);
 
@@ -171,13 +163,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     startProgress();
   }, [startProgress]);
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => !prev);
-  }, []);
-
-  const togglePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
-  }, []);
 
   const handleVideoError = useCallback((error: any) => {
     console.error('Erreur vidéo:', error);
@@ -272,7 +257,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                 
                 <StoryVideoPlayer 
                   uri={currentStory.content.data}
-                  isVisible={isPlaying && visible}
+                  isVisible={visible}
+                  onVideoEnd={nextStory}
                 />
       
               )}

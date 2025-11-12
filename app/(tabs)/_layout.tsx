@@ -93,22 +93,6 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Notifications",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
-              <Bell 
-                size={24} 
-                color={focused ? "#3B82F6" : color}
-                fill={focused ? "#3B82F6" : "transparent"}
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
-          ),
-        }}
-      />
 
        {/* Tab centrale spéciale pour la création */}
       <Tabs.Screen
@@ -126,6 +110,23 @@ export default function TabLayout() {
             </View>
           ),
           tabBarLabel: () => null,
+        }}
+      />
+
+            <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Notifications",
+          tabBarIcon: ({ color, size, focused }) => (
+            <View className={`p-2 rounded-2xl ${focused ? (isDark ? 'bg-gray-800' : 'bg-blue-50') : ''}`}>
+              <Bell 
+                size={24} 
+                color={focused ? "#3B82F6" : color}
+                fill={focused ? "#3B82F6" : "transparent"}
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            </View>
+          ),
         }}
       />
 

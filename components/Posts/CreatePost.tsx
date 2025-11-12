@@ -173,12 +173,12 @@ const CreatePost: React.FC<CreatePostProps> = ({
     if (!isValidForm || isSubmitting) return;
 
     console.log('🖼️ Nouvelles images ajoutées:', selectedImages);
-  console.log('🎥 Nouvelles vidéos ajoutées:', selectedVideos);
-  console.log('📝 Texte modifié:', text.trim());
-  console.log('🖼️ Images sélectionnées:', selectedImages); // 👈 Déjà là
-  console.log('🖼️ Images sélectionnées (détail):', JSON.stringify(selectedImages, null, 2)); // 👈 AJOUTE CETTE LIGNE
-  console.log('🎥 Vidéos sélectionnées:', selectedVideos);
-  console.log('🔐 Privacy:', privacy);
+    console.log('🎥 Nouvelles vidéos ajoutées:', selectedVideos);
+    console.log('📝 Texte modifié:', text.trim());
+    console.log('🖼️ Images sélectionnées:', selectedImages); // 👈 Déjà là
+    console.log('🖼️ Images sélectionnées (détail):', JSON.stringify(selectedImages, null, 2)); // 👈 AJOUTE CETTE LIGNE
+    console.log('🎥 Vidéos sélectionnées:', selectedVideos);
+    console.log('🔐 Privacy:', privacy);
 
     setIsSubmitting(true);
 

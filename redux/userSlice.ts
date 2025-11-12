@@ -670,17 +670,28 @@ export const initiatePasswordReset = createAsyncThunk<
 >('user/initiatePasswordReset', async (resetData, { rejectWithValue }) => {
   try {
     console.log('🔄 Début initiatePasswordReset:', resetData);
+    console.log('📤 Données envoyées au backend:', {
+      phoneNumber: resetData.phoneNumber,
+      usernameOrFullName: resetData.usernameOrFullName
+    });
 
     const data = await fetchAPI('/password-reset/initiale', {
       method: 'POST',
       body: JSON.stringify(resetData),
     });
 
-    console.log('✅ Code SMS envoyé avec succès');
+    // 🔥 AJOUTER CES LOGS POUR VOIR LA RÉPONSE
+    console.log('📥 Réponse du backend:', data);
+
     return;
 
   } catch (error: any) {
     console.error('❌ Erreur initiatePasswordReset:', error);
+    console.error('📋 Détails erreur:', {
+      status: error.status,
+      message: error.message,
+      response: error.response
+    });
     return rejectWithValue(error.message || 'Erreur lors de l\'envoi du code');
   }
 });

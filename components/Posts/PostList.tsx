@@ -243,6 +243,8 @@ const PostsList = () => {
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
+        nestedScrollEnabled={true}
+        scrollEnabled={false}
         ListEmptyComponent={() => (
           <View className="flex-1 justify-center items-center py-20 px-6">
             <Text className="text-slate-600 text-xl font-semibold mb-3 text-center">

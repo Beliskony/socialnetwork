@@ -74,11 +74,6 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
           {getNotificationMessage(notification.type)}
         </Text>
 
-        {notification.content && (
-          <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1 italic" numberOfLines={2}>
-            "{notification.content}"
-          </Text>
-        )}
 
         {notification.post?.content && (
           <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>
