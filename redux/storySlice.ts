@@ -202,10 +202,27 @@ export const deleteStory = createAsyncThunk<
   { rejectValue: string; state: RootState }
 >('stories/deleteStory', async (storyId, { getState, rejectWithValue }) => {
   try {
+    console.log('📝 [REDUX] Paramètres:', { storyId });
+
     const headers = getAuthHeaders(getState);
-    await api.delete(`/stories/${storyId}`, { headers });
+    const response= await api.delete(`/${storyId}`, { headers });
+   
+    console.log('✅ [REDUX] Réponse API:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data
+    });
+
+    console.log('🎯 [REDUX] Suppression réussie, retour storyId:', storyId);
     return storyId;
   } catch (err: any) {
+    
+    console.log('❌ [REDUX] ERREUR dans deleteStory thunk:');
+    console.log('🔍 [REDUX] Type erreur:', err?.name);
+    console.log('🔍 [REDUX] Message erreur:', err?.message);
+    console.log('🔍 [REDUX] Statut HTTP:', err?.response?.status);
+    console.log('🔍 [REDUX] Données erreur:', err?.response?.data);
+    console.log('🔍 [REDUX] URL erreur:', err?.config?.url);
     return rejectWithValue(err.response?.data?.message || 'Erreur lors de la suppression de la story');
   }
 });

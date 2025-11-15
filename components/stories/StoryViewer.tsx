@@ -7,13 +7,16 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useStories } from '@/hooks/useStories';
 import { useAppSelector } from '@/redux/hooks';
-import { X, User, Eye, Volume2, VolumeX, Play, Pause } from 'lucide-react-native';
+import { X, User, Eye, Trash2} from 'lucide-react-native';
 import type { IStoryPopulated } from '@/intefaces/story.Interface';
+import { deleteStory } from '@/redux/storySlice';
 import { formatCount } from '@/services/Compteur';
 import StoryVideoPlayer from './StoryVideoPlayer';
+import { useAppDispatch } from '@/redux/hooks';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 15000;
@@ -33,6 +36,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   initialStory,
   userStories,
 }) => {
+  const dispatch = useAppDispatch();
   const { viewStory, viewStoryOptimistic } = useStories();
   const { currentUser } = useAppSelector((state) => state.user);
   
@@ -76,6 +80,36 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       stopProgress();
     };
   }, [visible, initialStory, stories]);
+
+  const deleteUserCurrentStory = async (storyId: string) => {
+  // Afficher l'alerte de confirmation
+  Alert.alert(
+    "Supprimer la story",
+    "Êtes-vous sûr de vouloir supprimer cette story ? Cette action est irréversible.",
+    [
+      {
+        text: "Annuler",
+        style: "cancel"
+      },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await dispatch(deleteStory(storyId)).unwrap();
+            console.log('✅ Story supprimée avec succès');
+            // Fermer le viewer après suppression
+            onClose();
+          } catch (error) {
+            console.log('❌ Erreur lors de la suppression:', error);
+            Alert.alert("Erreur", "Impossible de supprimer la story");
+          }
+        }
+      }
+    ]
+  );
+}
+
 
   // CHANGEMENT DE STORY
   useEffect(() => {
@@ -268,7 +302,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         </View>
 
         {/* Header groupé en haut */}
-        <View className="absolute top-14 left-4 right-4">
+        <View className="absolute top-14 left-4 right-4 z-50">
           <View className="flex-row items-center justify-between">
             {/* User info */}
             <View className="flex-row items-center bg-black/50 rounded-full pl-1 pr-4 py-1">
@@ -305,6 +339,19 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               </View>
             </View>
 
+  
+           <View className='flex flex-row gap-x-2'>            
+            {/* suppression de story uniquement par son auteur */}
+            {isAuthor(currentStory) &&(
+              <TouchableOpacity 
+                onPress={()=>deleteUserCurrentStory(currentStory._id)}
+                className='bg-black/50 rounded-full w-10 h-10 items-center justify-center'
+                >
+                  <Trash2 size={20} color="white" />
+              </TouchableOpacity>
+              )}
+
+
             {/* Close button */}
             <TouchableOpacity 
               onPress={handleClose} 
@@ -312,6 +359,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             >
               <X size={20} color="white" />
             </TouchableOpacity>
+            </View>
           </View>
         </View>
 
