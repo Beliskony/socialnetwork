@@ -1,0 +1,50 @@
+# ============ Node / Expo ============
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+dist
+build
+.expo
+.expo-shared
+.expo/web-build
+.expo/dev-tools
+
+# ============ OS Files ============
+.DS_Store
+Thumbs.db
+*.log
+
+# ============ Native builds (inutile pour EAS) ============
+android
+ios
+
+# ============ ENV files ============
+.env
+.env.*
+*.env.local
+
+# ============ Assets lourds ============
+# Évite que tu envoies des vidéos/images énormes en local
+**/*.mp4
+**/*.mov
+**/*.avi
+**/*.mkv
+**/*.zip
+**/*.rar
+**/*.7z
+**/*.psd
+**/*.ai
+
+# Si tu as un dossier de fichiers volumineux en local
+assets/videos
+assets/raw
+assets/temp
+assets/uploads
+
+# ============ Tests =============
+__tests__
+coverage
+
+# ============ TypeScript ============
+*.tsbuildinfo

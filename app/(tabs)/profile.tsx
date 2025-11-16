@@ -1,6 +1,5 @@
 // app/(tabs)/profile.tsx
 import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, Alert } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks" // ← Utilisez useAppSelector
 import { logout, getCurrentUser } from "@/redux/userSlice" // ← Importez getCurrentUser si nécessaire

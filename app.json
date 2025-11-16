@@ -15,7 +15,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Logo.png",
         "backgroundColor": "#2E3244"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.beliskony.FoudMe"
     },
     "web": {
       "bundler": "metro",
@@ -39,10 +43,15 @@
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ]
-      
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cdea96fb-ddb6-4638-8e5a-cdfb3de8e3e5"
+      }
     }
   }
 }
