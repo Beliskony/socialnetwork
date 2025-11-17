@@ -197,7 +197,7 @@ function ProfileScreen() {
               {currentUser.profile?.location ? (
                 <View className="flex flex-row items-center gap-x-2">
                   <MapPin size={20} color={isDark ? 'white' : 'black'} />
-                  <Text className="text-gray-900 text-lg">{currentUser.profile.location}</Text>
+                  <Text className="text-gray-900 dark:text-gray-200 text-lg">{currentUser.profile.location}</Text>
                 </View>
               ) : (
                 <Text className="text-slate-400 text-sm italic">Aucune localisation</Text>
@@ -219,7 +219,7 @@ function ProfileScreen() {
               
             </View>
                  {currentUser.profile?.website ? (
-                <View className="flex flex-row items-center justify-center gap-x-2 mt-2">
+                <View className="flex flex-row items-center justify-start gap-x-2 mt-2 ml-11">
                   <Globe size={20} color={isDark ? 'white' : 'black'} />
                   <TouchableOpacity className="text-blue-600 text-lg">
                     <Text className="text-blue-600 text-lg">

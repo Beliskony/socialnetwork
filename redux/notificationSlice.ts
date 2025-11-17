@@ -391,6 +391,22 @@ const notificationSlice = createSlice({
       state.rollbackData = action.payload;
     },
 
+    // 🔥 AJOUT: Setter manuel du token push
+    setPushToken: (state, action: PayloadAction<string>) => {
+      state.pushToken = action.payload;
+    },
+
+    // 🔥 AJOUT: Setter manuel des permissions
+    setPermissions: (state, action: PayloadAction<string>) => {
+      state.permissions = action.payload;
+    },
+
+    // 🔥 AJOUT: Clear des données Expo
+    clearExpoData: (state) => {
+      state.pushToken = null;
+      state.permissions = null;
+    },
+
     // ⚡ Optimistic Updates
     optimisticMarkAsRead: (state, action: PayloadAction<string>) => {
       const notification = state.notifications.find(n => n._id === action.payload);
@@ -479,15 +495,6 @@ const notificationSlice = createSlice({
       state.pagination.hasMore = true;
     },
 
-    // 🔔 Mettre à jour le token push
-    setPushToken: (state, action: PayloadAction<string>) => {
-      state.pushToken = action.payload;
-    },
-
-    // 🔔 Mettre à jour les permissions
-    setPermissions: (state, action: PayloadAction<string>) => {
-      state.permissions = action.payload;
-    },
 
     // 🎯 Filtrer les notifications localement (optionnel)
     filterNotificationsByType: (state, action: PayloadAction<NotificationType | 'all'>) => {
@@ -511,6 +518,7 @@ const notificationSlice = createSlice({
       })
       .addCase(initializeExpoNotificationsAsync.rejected, (state, action) => {
         state.error = action.payload || 'Erreur lors de l\'initialisation des notifications';
+        console.error('❌ Initialisation Expo notifications:', action.payload);
       })
       
       // registerPushTokenAsync
@@ -619,7 +627,10 @@ export const {
   resetError,
   resetPagination,
   refreshNotifications,
-  filterNotificationsByType
+  filterNotificationsByType,
+  setPushToken,
+  setPermissions,
+  clearExpoData,
 } = notificationSlice.actions;
 
 export default notificationSlice.reducer;

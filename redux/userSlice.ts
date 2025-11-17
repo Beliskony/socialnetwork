@@ -648,15 +648,28 @@ export const deactivateAccount = createAsyncThunk<
 export const loadAuth = createAsyncThunk<
   { user: User; token: string } | null,
   void
->('user/loadAuth', async () => {
+>('user/loadAuth', async (_, { rejectWithValue }) => {
   try {
     const savedAuth = await AsyncStorage.getItem('auth');
-    if (savedAuth) {
-      return JSON.parse(savedAuth);
+      if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      
+      // 🔥 VALIDATION DES DONNÉES
+      if (authData.user && authData.token) {
+        console.log('✅ Auth chargée depuis storage');
+        return authData;
+      } else {
+        console.log('⚠️ Données auth invalides, nettoyage...');
+        await AsyncStorage.removeItem('auth');
+        return null;
+      }
     }
+    console.log('Aucune auth trouvée dans storage');
     return null;
   } catch (error) {
-    return null;
+    console.error('❌ Erreur chargement auth:', error);
+    await AsyncStorage.removeItem('auth')
+    return rejectWithValue(error);
   }
 });
 
@@ -815,6 +828,21 @@ const userSlice = createSlice({
         follower.isFollowing = action.payload.isFollowing;
       }
     },
+
+        // 🔥 NOUVEAU : Réinitialiser l'état de loading sans affecter l'auth
+    resetAuthLoading: (state) => {
+      state.authLoading = false;
+      state.loading = false;
+      state.error = null;
+    },
+    
+    // 🔥 NOUVEAU : Réinitialiser uniquement les erreurs
+    resetErrors: (state) => {
+      state.error = null;
+      state.resetError = null;
+      state.verifyError = null;
+    },
+
 
   },
   extraReducers: (builder) => {
@@ -1005,7 +1033,9 @@ export const {
   // 🆕 AJOUTEZ CES EXPORTS
   clearFollowersDetails,
   clearFollowingDetails,
-  updateFollowerStatus
+  updateFollowerStatus,
+  resetAuthLoading,
+  resetErrors
 } = userSlice.actions;
 
 export default userSlice.reducer;

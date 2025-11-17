@@ -46,7 +46,7 @@ const NotificationCard: React.FC<Props> = ({ notification, onPress }) => {
     }
   };
 
-  const senderImage = notification.sender?.profile?.profilePicture || 'https://i.pinimg.com/736x/c1/2d/65/c12d65c2c443402df0cfa95f4930d6a8.jpg';
+  const senderImage = notification.sender?.profile?.profilePicture;
 
   return (
     <TouchableOpacity
