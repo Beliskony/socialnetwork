@@ -1,5 +1,5 @@
 // app/(tabs)/profile.tsx
-import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, Alert } from "react-native"
+import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking } from "react-native"
 import { useState, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks" // ← Utilisez useAppSelector
 import { logout, getCurrentUser } from "@/redux/userSlice" // ← Importez getCurrentUser si nécessaire
@@ -65,30 +65,14 @@ function ProfileScreen() {
     router.push('../../(modals)/editProfile')
   }
 
-  const handleShareProfile = () => {
+ {/* const handleShareProfile = () => {
     Alert.alert("Partager", "Fonctionnalité de partage à implémenter")
-  }
+  }*/}
 
   const handleSettings = () => {
     router.push('../../(modals)/setting')
   }
 
-  // Handlers pour ProfilePostsList
-  const handlePostPress = (post: any) => {
-    console.log('Post press:', post._id)
-    // router.push(`/post/${post._id}`)
-  }
-
-  const handleUserPress = (userId: string) => {
-    if (userId !== currentUser?._id) {
-      console.log('User press:', userId)
-      // router.push(`/profile/${userId}`)
-    }
-  }
-
-  const handleCommentPress = (post: any) => {
-    console.log('Comment press:', post._id)
-  }
 
   if (!currentUser || !token) {
     return (
@@ -129,12 +113,12 @@ function ProfileScreen() {
           
           {/* Boutons d'action header */}
           <View className="absolute top-12 right-4 flex-row space-x-2 gap-x-3">
-            <TouchableOpacity 
+          {/*  <TouchableOpacity 
               className="w-10 h-10 bg-white/20 rounded-full items-center justify-center active:bg-white/30"
               onPress={handleShareProfile}
             >
               <Share2 size={20} color="white" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity 
               className="w-10 h-10 bg-white/20 rounded-full items-center justify-center active:bg-white/30"
               onPress={handleLogout}
@@ -193,14 +177,14 @@ function ProfileScreen() {
             )}
             
             {/* Informations supplémentaires */}
-            <View className="flex-row flex-wrap gap-4 mt-4 justify-around">
+            <View className="flex flexc-col gap-4 mt-4 justify-around">
               {currentUser.profile?.location ? (
                 <View className="flex flex-row items-center gap-x-2">
                   <MapPin size={20} color={isDark ? 'white' : 'black'} />
                   <Text className="text-gray-900 dark:text-gray-200 text-lg">{currentUser.profile.location}</Text>
                 </View>
               ) : (
-                <Text className="text-slate-400 text-sm italic">Aucune localisation</Text>
+                <Text className="text-gray-900 dark:text-gray-100 text-lg">Aucune localisation</Text>
               )}
 
                {/* Date de naissance si disponible */}
@@ -212,24 +196,34 @@ function ProfileScreen() {
                 </Text>
               </View>
               ) : (
-              <Text className="text-slate-400 text-sm mt-2">
+              <Text className="text-gray-900 dark:text-gray-100 text-lg mt-2">
                 pas de date d'anniversaire pour le moment
               </Text>
             )}
               
-            </View>
+            
                  {currentUser.profile?.website ? (
-                <View className="flex flex-row items-center justify-start gap-x-2 mt-2 ml-11">
+                <View className="flex flex-row items-center justify-start gap-x-2 mt-2">
                   <Globe size={20} color={isDark ? 'white' : 'black'} />
-                  <TouchableOpacity className="text-blue-600 text-lg">
+                  <TouchableOpacity className="text-blue-600 text-lg"  onPress={() => {
+                      if (currentUser.profile?.website) {
+                        // Ajouter https:// si absent
+                        let url = currentUser.profile.website;
+                        if (!url.startsWith('http://') && !url.startsWith('https://')) { url = 'https://' + url; }
+                          Linking.openURL(url).catch(err => 
+                            console.error('Erreur ouverture URL:', err)
+                          );
+                      }
+          }}>
                     <Text className="text-blue-600 text-lg">
                       {currentUser.profile.website}
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <Text className="text-slate-400 text-sm italic">🌐 Aucun site web</Text>
+                <Text className="text-gray-900 dark:text-gray-100 text-lg">🌐 Aucun site web</Text>
               )}
+            </View>
            
           </View>
 
@@ -303,9 +297,6 @@ function ProfileScreen() {
               <ProfilePostsList
                 userId={currentUser._id}
                 showActions={true}
-                onPostPress={handlePostPress}
-                onUserPress={handleUserPress}
-                onCommentPress={handleCommentPress}
               />
             )}
           </View>

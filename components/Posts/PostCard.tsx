@@ -8,10 +8,10 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
-  Modal,
+  Share,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { toggleLike, toggleSave, deletePost, getFeed } from '@/redux/postSlice';
+import { toggleLike, sharePost, deletePost, getFeed } from '@/redux/postSlice';
 import * as Sharing from 'expo-sharing';
 import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router';
 import {
   Heart,
   MessageCircle,
-  Share,
+  Share2,
   Bookmark,
   MoreVertical,
   User,
@@ -78,6 +78,9 @@ const PostCard: React.FC<PostCardProps> = ({
   const [postToEdit, setPostToEdit] = useState<PostFront | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [initialMediaIndex, setInitialMediaIndex] = useState(0);
+  const [localCommentsCount, setLocalCommentsCount] = useState(0);
+  const [localSharesCount, setLocalSharesCount] = useState(0);
+  const [isSharing, setIsSharing] = useState(false);
 
   const openFullScreen= (index: number) => {
       console.log('🖼️ openFullScreen appelé avec index:', index);
@@ -184,12 +187,21 @@ const PostCard: React.FC<PostCardProps> = ({
   //};
 
   // ✅ FONCTION COMMENTAIRE AVEC SYNCHRO DB
+  // Initialiser le compteur
+useEffect(() => {
+  const dbCount = engagement.commentsCount || engagement.comments?.length || 0;
+  setLocalCommentsCount(dbCount);
+}, [engagement]);
+
   const handleCreateComment = async () => {
     if (!commentText.trim() || !currentUser || isCommenting) return;
     
     setIsCommenting(true);
     
     try {
+
+     setLocalCommentsCount(prevCount => prevCount + 1);
+
       await dispatch(createComment({
         postId: post._id,
         content: { text: commentText.trim() }
@@ -197,12 +209,12 @@ const PostCard: React.FC<PostCardProps> = ({
       
       setCommentText('');
       
-      // ✅ Recharger les commentaires ET le feed
-      await Promise.all([
-        dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap(),
-      ]);
+      // ✅ Recharger les commentaires
+      await dispatch(getCommentsByPost({ postId: post._id, page: 1, limit: 10 })).unwrap();
+
       
     } catch (error: any) {
+      setLocalCommentsCount(prev => prev - 1);
       Alert.alert('Erreur', error?.message || 'Impossible de publier le commentaire');
     } finally {
       setIsCommenting(false);
@@ -232,8 +244,19 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
+
+  // 🔽 INITIALISATION DU COMPTEUR
+useEffect(() => {
+  const dbSharesCount = engagement.sharesCount || 0;
+  setLocalSharesCount(dbSharesCount);
+}, [engagement.sharesCount]);
+
   // ✅ FONCTION DE PARTAGE AVEC GESTION D'ERREUR
 const sharePostToSocial = async (): Promise<void> => {
+  if (isSharing) return;
+  
+  setIsSharing(true);
+
   try {
     // ✅ Vérifier si le partage est disponible
     const isSharingAvailable = await Sharing.isAvailableAsync();
@@ -244,7 +267,7 @@ const sharePostToSocial = async (): Promise<void> => {
     }
 
     // ✅ CRÉER LE LIEN ET MESSAGE
-    const postUrl: string = `https://votreapp.com/post/${post._id}`;
+    const postUrl: string = `https://foudme/post/${post._id}`;
     
     let shareMessage: string = 'Regarde cette publication ! 👀\n\n';
     
@@ -258,14 +281,32 @@ const sharePostToSocial = async (): Promise<void> => {
     
     shareMessage += `${postUrl}`;
 
-    // ✅ OUVRIR LE SÉLECTEUR DE PARTAGE
-    await Sharing.shareAsync(shareMessage, {
-      dialogTitle: 'Partager cette publication',
-      mimeType: 'text/plain',
-      UTI: 'public.plain-text', // Pour iOS
+    // ✅ MISE À JOUR OPTIMISTE IMMÉDIATE du compteur local
+    setLocalSharesCount(prev => prev + 1);
+    // ✅ UTILISER Share.share() DE REACT NATIVE
+    const result = await Share.share({
+      message: shareMessage,
+      title: 'Partager cette publication'
     });
 
-    console.log('✅ Partage social réussi');
+   if (result.action === Share.sharedAction) {
+      console.log('✅ Partage social réussi');
+      
+      // ✅ ENREGISTRER LE PARTAGE EN DB SEULEMENT SI PARTAGE RÉUSSI
+      try {
+        await dispatch(sharePost({ 
+          postId: post._id,
+          text: `Partagé depuis l'application`
+        })).unwrap();
+        console.log('✅ Partage enregistré dans la base de données');
+      } catch (dbError: any) {
+        setLocalSharesCount(prev => prev - 1);
+        console.error('❌ Erreur enregistrement DB:', dbError);
+        // Silencieux pour l'utilisateur
+      }
+    } else if (result.action === Share.dismissedAction) {
+      console.log('❌ Partage annulé par l\'utilisateur');
+    }
 
   } catch (error: any) {
     console.error('❌ Erreur partage social:', error);
@@ -590,15 +631,16 @@ if (isDeleted) return null;
             >
               <MessageCircle size={22} color="#64748b" />
               <Text className="ml-2 text-slate-600 font-medium">
-                {engagement.commentsCount || engagement.comments?.length || 0}
+               {/* {engagement.commentsCount || engagement.comments?.length || 0}*/}
+                {localCommentsCount}
               </Text>
             </TouchableOpacity>
 
             {/* Share */}
-            <TouchableOpacity 
+            <TouchableOpacity  
               onPress={sharePostToSocial}
-              className="flex-row items-center">
-              <Share size={22} color="#64748b" />
+              className="flex-row items-center ml-52">
+              <Share2 size={22} color="#64748b" />
               <Text className="ml-2 text-slate-600 font-medium">
                 {engagement.sharesCount || 0}
               </Text>

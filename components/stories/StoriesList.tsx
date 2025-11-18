@@ -105,7 +105,8 @@ export const StoriesList: React.FC<StoriesListProps> = ({
     >
       <View className="relative">
         <View className="w-16 h-16 rounded-full bg-blue-600 items-center justify-center">
-          <Plus size={30} color="white" />
+          {/*<Plus size={30} color="white" />*/}
+          <Text className='text-3xl font-semibold text-white'>S</Text>
         </View>
       </View>
       <Text className="text-xs mt-1 text-slate-700 dark:text-gray-400 max-w-16 text-center" numberOfLines={1}>
