@@ -552,20 +552,20 @@ export const toggleSave = createAsyncThunk<
 });
 
 // 🔄 Partager un post - POST /post/:postId/share
-export const sharePost = createAsyncThunk<
-  Post,
-  { postId: string; text?: string },
+export const sharePostLink = createAsyncThunk<
+  { sharesCount: number },
+  string, // postId seulement
   { rejectValue: string; state: RootState }
->('post/sharePost', async ({ postId, text }, { getState, rejectWithValue }) => {
+>('post/sharePostLink', async (postId, { getState, rejectWithValue }) => {
   try {
     const headers = getAuthHeaders(getState);
-    const response = await api.post(`/post/${postId}/share`, { text }, { headers });
+    const response = await api.post(`/post/${postId}/share`, {}, { headers });
     
     if (!response.data.success) {
       throw new Error(response.data.message);
     }
 
-    return response.data.data;
+    return response.data.data; // { sharesCount: number }
   } catch (err: any) {
     const errorMessage = err.response?.data?.message || err.message || 'Erreur lors du partage';
     return rejectWithValue(errorMessage);
@@ -911,9 +911,29 @@ const postSlice = createSlice({
       })
 
       // Share Post
-      .addCase(sharePost.fulfilled, (state, action) => {
-        state.posts.unshift(action.payload);
-        state.feed.unshift(action.payload);
+       .addCase(sharePostLink.pending, (state, action) => {
+        const postId = action.meta.arg;
+        // Pas de loading général, juste mise à jour optimiste du compteur
+      })
+      .addCase(sharePostLink.fulfilled, (state, action) => {
+        const { sharesCount } = action.payload;
+        const postId = action.meta.arg;
+        
+        // ✅ Met à jour le compteur de partages du post existant
+        const post = state.posts.find(p => p._id === postId);
+        if (post && post.engagement) {
+          post.engagement.sharesCount = sharesCount;
+        }
+         // ✅ Met aussi à jour dans le feed si présent
+        const feedPost = state.feed.find(p => p._id === postId);
+        if (feedPost && feedPost.engagement) {
+          feedPost.engagement.sharesCount = sharesCount;
+        }
+      })
+      .addCase(sharePostLink.rejected, (state, action) => {
+        const postId = action.meta.arg;
+        // Le rollback est géré dans le composant avec le state local
+        state.error = action.payload || 'Erreur lors du partage';
       })
 
       // getPostById

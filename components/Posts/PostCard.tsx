@@ -11,7 +11,7 @@ import {
   Share,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { toggleLike, sharePost, deletePost, getFeed } from '@/redux/postSlice';
+import { toggleLike, sharePostLink, deletePost, getFeed } from '@/redux/postSlice';
 import * as Sharing from 'expo-sharing';
 import { createComment, getCommentsByPost } from '@/redux/commentSlice';
 import type { RootState, AppDispatch } from '@/redux/store';
@@ -252,20 +252,13 @@ useEffect(() => {
 }, [engagement.sharesCount]);
 
   // ✅ FONCTION DE PARTAGE AVEC GESTION D'ERREUR
+// ✅ FONCTION DE PARTAGE AVEC MODAL DE CHOIX
 const sharePostToSocial = async (): Promise<void> => {
   if (isSharing) return;
   
   setIsSharing(true);
 
   try {
-    // ✅ Vérifier si le partage est disponible
-    const isSharingAvailable = await Sharing.isAvailableAsync();
-    
-    if (!isSharingAvailable) {
-      Alert.alert('Partage non disponible', 'La fonction de partage n\'est pas disponible sur cet appareil.');
-      return;
-    }
-
     // ✅ CRÉER LE LIEN ET MESSAGE
     const postUrl: string = `https://foudme/post/${post._id}`;
     
@@ -283,39 +276,48 @@ const sharePostToSocial = async (): Promise<void> => {
 
     // ✅ MISE À JOUR OPTIMISTE IMMÉDIATE du compteur local
     setLocalSharesCount(prev => prev + 1);
-    // ✅ UTILISER Share.share() DE REACT NATIVE
+
+    // ✅ UTILISER Share.share() DE REACT NATIVE (affiche le modal)
     const result = await Share.share({
       message: shareMessage,
-      title: 'Partager cette publication'
+      title: 'Partager cette publication',
+      // url: postUrl // Optionnel pour certaines apps
     });
 
-   if (result.action === Share.sharedAction) {
+    if (result.action === Share.sharedAction) {
       console.log('✅ Partage social réussi');
       
       // ✅ ENREGISTRER LE PARTAGE EN DB SEULEMENT SI PARTAGE RÉUSSI
       try {
-        await dispatch(sharePost({ 
-          postId: post._id,
-          text: `Partagé depuis l'application`
-        })).unwrap();
+        await dispatch(sharePostLink(post._id)).unwrap();
         console.log('✅ Partage enregistré dans la base de données');
       } catch (dbError: any) {
+        // ✅ ROLLBACK en cas d'erreur DB
         setLocalSharesCount(prev => prev - 1);
         console.error('❌ Erreur enregistrement DB:', dbError);
         // Silencieux pour l'utilisateur
       }
+      
     } else if (result.action === Share.dismissedAction) {
+      // ✅ ROLLBACK si l'utilisateur annule
       console.log('❌ Partage annulé par l\'utilisateur');
+      setLocalSharesCount(prev => prev - 1);
     }
 
   } catch (error: any) {
+    // ✅ ROLLBACK en cas d'erreur générale
+    setLocalSharesCount(prev => prev - 1);
     console.error('❌ Erreur partage social:', error);
+    
     // Ne pas afficher d'alerte si l'utilisateur a simplement annulé
-    if (error.code !== 'ERR_SHARING_CANCELLED') {
+    if (error.code !== 'ERR_SHARING_CANCELLED' && !error.message?.includes('dismissed')) {
       Alert.alert('Erreur', 'Impossible de partager la publication');
     }
+  } finally {
+    setIsSharing(false);
   }
-};
+}
+
   // Gérer la suppression
   const handleDelete = () => {
   Alert.alert(

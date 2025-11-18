@@ -13,6 +13,16 @@ export interface Post {
   comments?: ICommentFront[];
   createdAt: string;
   updatedAt: string;
+  engagement: {
+    likes: string[];
+    likesCount: number;
+    comments: string[];
+    commentsCount: number;
+    shares: string[];
+    sharesCount: number;
+    saves: string[];
+    savesCount: number;
+  };
 }
 
 export interface PostFront {
