@@ -2,6 +2,7 @@
   "expo": {
     "name": "Foud-Me",
     "slug": "Foud-Me",
+    "owner": "beliskony",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo.png",
@@ -28,11 +29,11 @@
     },
     "plugins": [
       "expo-router",
-       [
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/Logo.png",
-          "resizeMode":"contain",
+          "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "defaultChannel": "default"
         }
@@ -59,7 +60,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "cdea96fb-ddb6-4638-8e5a-cdfb3de8e3e5"
+        "projectId": "7dd8c6ad-b479-4968-be4f-aa6383c52165"
       }
     }
   }

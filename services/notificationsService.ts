@@ -26,7 +26,7 @@ export class NotificationService {
     
     
     // Méthode 3: Fallback - votre projectId
-    return 'cdea96fb-ddb6-4638-8e5a-cdfb3de8e3e5';
+    return '7dd8c6ad-b479-4968-be4f-aa6383c52165';
   }
 
   // Demander les permissions AVEC DEBUG
