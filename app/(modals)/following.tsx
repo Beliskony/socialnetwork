@@ -1,7 +1,7 @@
 // app/(modals)/following.tsx
 import { View, Text, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { loadFollowingsDetails, toggleFollow, updateFollowerStatus } from "@/redux/userSlice"
 import { router } from "expo-router"
@@ -15,6 +15,15 @@ export default function FollowingModal() {
     followingLoading,
     loading 
   } = useAppSelector((state) => state.user)
+  const [localLoading, setLocalLoading] = useState<string | null>(null)
+  const [optimisticFollowing, setOptimisticFollowing] = useState<any[]>([])
+
+    useEffect(() => {
+    if (followingDetails.length > 0) {
+      setOptimisticFollowing(followingDetails)
+    }
+  }, [followingDetails])
+
 
   useEffect(() => {
     if (currentUser?.social?.following && currentUser.social.following.length > 0) {
@@ -32,7 +41,55 @@ export default function FollowingModal() {
     }
   }
 
-  const handleUnfollow = async (targetId: string, username: string) => {
+   // Fonction pour vérifier si l'utilisateur suit cette personne
+  const isUserFollowing = (userId: string): boolean => {
+    return currentUser?.social?.following?.includes(userId) || false
+  }
+
+  const handleFollowToggle = async (targetId: string, username: string) => {
+    setLocalLoading(targetId)
+    
+    try {
+      const currentUserItem = optimisticFollowing.find(user => user._id === targetId)
+      const currentIsFollowing = currentUserItem?.isFollowing ?? true
+      const newFollowingStatus = !currentIsFollowing
+       // Mise à jour OPTIMISTE IMMÉDIATE
+      if (newFollowingStatus === false) {
+        // Si on se désabonne, retirer immédiatement de la liste
+        setOptimisticFollowing(prev => 
+          prev.filter(user => user._id !== targetId)
+        )
+      } else {
+        // Si on follow à nouveau, mettre à jour le statut
+        setOptimisticFollowing(prev => 
+          prev.map(user => 
+            user._id === targetId 
+              ? { ...user, isFollowing: newFollowingStatus }
+              : user
+          )
+        )
+      }
+      // Mettre à jour le state Redux
+      dispatch(updateFollowerStatus({ 
+        userId: targetId, 
+        isFollowing: newFollowingStatus 
+      }))
+
+      // Action API (silencieuse)
+      await dispatch(toggleFollow(targetId)).unwrap()
+      
+    } catch (error: any) {
+      console.error("Erreur follow/unfollow:", error)
+      
+      await loadFollowing()
+      
+      Alert.alert("Erreur", error.message || "Erreur lors de l'action")
+    } finally {
+      setLocalLoading(null)
+    }
+  }
+
+  const handleUnfollowWithConfirmation = (targetId: string, username: string) => {
     Alert.alert(
       "Se désabonner",
       `Êtes-vous sûr de vouloir vous désabonner de ${username} ?`,
@@ -41,34 +98,25 @@ export default function FollowingModal() {
         { 
           text: "Se désabonner", 
           style: "destructive",
-          onPress: async () => {
-            try {
-              await dispatch(toggleFollow(targetId)).unwrap()
-              
-              // Mettre à jour localement le statut
-              dispatch(updateFollowerStatus({ 
-                userId: targetId, 
-                isFollowing: false 
-              }))
-              
-              // Recharger la liste
-              await dispatch(loadFollowingsDetails(currentUser!.social.following)).unwrap()
-              
-              Alert.alert("Succès", `Vous ne suivez plus ${username}`)
-            } catch (error: any) {
-              Alert.alert("Erreur", error.message || "Erreur lors du désabonnement")
-            }
-          }
+          onPress: () => handleFollowToggle(targetId, username)
         }
       ]
     )
   }
 
   const navigateToProfile = (userId: string) => {
-    //router.push(`/(app)/profile/${userId}`)
+    if (userId === currentUser?._id) {
+      router.push("/profile")
+    } else {
+      router.push(`/userProfile/${userId}`)
+    }
   }
 
-  const renderFollowingItem = ({ item }: { item: any }) => (
+  const renderFollowingItem = ({ item }: { item: any }) => {
+    const isFollowing = isUserFollowing(item._id)
+    const isLoading = localLoading === item._id
+
+    return (
     <TouchableOpacity 
       className="flex-row items-center justify-between p-4 border-b border-slate-100 active:bg-slate-50"
       onPress={() => navigateToProfile(item._id)}
@@ -94,21 +142,36 @@ export default function FollowingModal() {
       </View>
 
       {item._id !== currentUser?._id && (
-        <TouchableOpacity 
-          onPress={() => handleUnfollow(item._id, item.username)}
-          className="border border-slate-300 px-4 py-2 rounded-full active:bg-slate-50"
-          disabled={loading}
-        >
-          <View className="flex-row items-center">
-            <Check size={16} color="#64748b" />
-            <Text className="text-slate-700 text-sm font-medium ml-1">
-              Abonné
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
-    </TouchableOpacity>
-  )
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation()
+              handleUnfollowWithConfirmation(item._id, item.username)
+            }}
+            className={`px-4 py-2 rounded-full border min-w-[80px] items-center justify-center ${
+              isFollowing 
+                ? 'bg-white border-slate-300' 
+                : 'bg-blue-600 border-blue-600'
+            } ${isLoading ? 'opacity-60' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={isFollowing ? "#64748b" : "#ffffff"} />
+            ) : isFollowing ? (
+              <View className="flex-row items-center">
+                <UserMinus size={16} color="#64748b" />
+                <Text className="text-slate-700 text-sm font-medium ml-1">
+                  Abonné
+                </Text>
+              </View>
+            ) : (
+              <Text className="text-white text-sm font-medium">Suivre</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    )
+  }
+
 
   return (
     <SafeAreaView className="flex-1 bg-white">

@@ -1,7 +1,7 @@
 // app/(modals)/followers.tsx
 import { View, Text, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { RootState } from "@/redux/store"
 import { toggleFollow, loadFollowersDetails, updateFollowerStatus } from "@/redux/userSlice"
@@ -16,6 +16,7 @@ export default function FollowersModal() {
     followersLoading,
     loading 
   } = useAppSelector((state: RootState) => state.user)
+  const [localLoading, setLocalLoading] = useState<string | null>(null)
 
   const targetUserId = currentUser?._id
 
@@ -36,19 +37,38 @@ export default function FollowersModal() {
     }
   }
 
-  const handleFollow = async (targetId: string, currentIsFollowing: boolean = false) => {
+  // Fonction pour vérifier si l'utilisateur suit cette personne
+const isUserFollowing = (userId: string): boolean => {
+  return currentUser?.social?.following?.includes(userId) || false
+}
+
+  const handleFollow = async (targetId: string) => {
+    const currentIsFollowing = isUserFollowing(targetId)
+    
+    setLocalLoading(targetId)
+
     try {
-      // CORRECTION: utilisation correcte de dispatch avec unwrap()
-      await dispatch(toggleFollow(targetId)).unwrap()
-      
       // CORRECTION: mise à jour du statut local
       dispatch(updateFollowerStatus({ 
         userId: targetId, 
         isFollowing: !currentIsFollowing 
       }))
+
+      // CORRECTION: utilisation correcte de dispatch avec unwrap()
+      await dispatch(toggleFollow(targetId)).unwrap()
       
     } catch (error: any) {
+      console.error("Erreur follow/unfollow:", error)
+      
+      // REVERT en cas d'erreur
+      dispatch(updateFollowerStatus({ 
+        userId: targetId, 
+        isFollowing: currentIsFollowing 
+      }))
+
       Alert.alert("Erreur", error.message || "Erreur lors du follow/unfollow")
+    } finally{
+      setLocalLoading(null)
     }
   }
 
@@ -83,15 +103,15 @@ export default function FollowersModal() {
 
       {item._id !== currentUser?._id && (
         <TouchableOpacity 
-          onPress={() => handleFollow(item._id, item.isFollowing)}
+          onPress={() => handleFollow(item._id)}
           className={`px-4 py-2 rounded-full border ${
-            item.isFollowing 
-              ? 'bg-white border-slate-300' 
-              : 'bg-blue-600 border-blue-600'
-          }`}
-          disabled={loading}
+            isUserFollowing(item._id)
+              ? 'bg-white border-slate-300'
+              : 'bg-blue-600 border-blue-600' 
+          } ${localLoading === item._id ? 'opacity-60' : ''}`}
+          disabled={localLoading === item._id}
         >
-          {item.isFollowing ? (
+          {isUserFollowing(item._id) ? (
             <View className="flex-row items-center">
               <Check size={16} color="#64748b" />
               <Text className="text-slate-700 text-sm font-medium ml-1">
@@ -99,7 +119,11 @@ export default function FollowersModal() {
               </Text>
             </View>
           ) : (
-            <Text className="text-white text-sm font-medium">Suivre</Text>
+            <View className="flex-row items-center">
+              <Text className="text-white text-sm font-medium ml-1">
+                Suivre
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       )}

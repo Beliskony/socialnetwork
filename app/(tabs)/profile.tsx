@@ -1,6 +1,6 @@
 // app/(tabs)/profile.tsx
 import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking } from "react-native"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks" // ← Utilisez useAppSelector
 import { logout, getCurrentUser } from "@/redux/userSlice" // ← Importez getCurrentUser si nécessaire
 import { router } from "expo-router"
@@ -17,6 +17,7 @@ function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const { isDark } = useTheme()
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'likes'>('posts')
+   const [localStats, setLocalStats] = useState({ posts: 0, followers: 0, following: 0 })
 
   // Charger les données au montage
   useEffect(() => {
@@ -29,8 +30,25 @@ function ProfileScreen() {
         //location: currentUser.profile?.location,
         //website: currentUser.profile?.website
       //})
+      setLocalStats({
+        posts: currentUser.content?.posts?.length || 0,
+        followers: currentUser.social?.followers?.length || 0,
+        following: currentUser.social?.following?.length || 0,
+      })
     }
   }, [currentUser])
+
+  useEffect(() => {
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      await dispatch(getCurrentUser()).unwrap()
+    } catch (error) {
+      console.log('Erreur rechargement:', error)
+    }
+  }
 
   const onRefresh = async () => {
     setRefreshing(true)
@@ -257,7 +275,7 @@ function ProfileScreen() {
               className="items-center flex-1 border-x border-slate-100 active:opacity-70"
               onPress={() => router.push('../../(modals)/followers')}
             >
-              <Text className="text-xl font-bold text-slate-900 dark:text-gray-100">{formatCount(stats.followers)}</Text>
+              <Text className="text-xl font-bold text-slate-900 dark:text-gray-100">{formatCount(localStats.followers)}</Text>
               <Text className="text-slate-500 dark:text-gray-300 text-sm mt-1">Abonnés</Text>
             </TouchableOpacity>
             
