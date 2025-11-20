@@ -14,9 +14,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/LogoWhite.png",
-        "backgroundColor": "#2E3244"
+        "foregroundImage": "./assets/icons/appstore.png",
+        "backgroundColor": "#FFFFFF"
       },
+      "icon":"./assets/images/apple-touch-icon.png",
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
