@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/appstore.png",
+        "foregroundImage": "./assets/images/apple-touch-icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "icon":"./assets/images/apple-touch-icon.png",
